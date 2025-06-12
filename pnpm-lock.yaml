@@ -652,6 +652,10 @@ importers:
       vue-router:
         specifier: 'catalog:'
         version: 4.5.1(vue@3.5.13(typescript@5.8.3))
+    devDependencies:
+      '@stagewise/toolbar-vue':
+        specifier: ^0.2.0
+        version: 0.2.0(vue@3.5.13(typescript@5.8.3))
 
   internal/lint-configs/commitlint-config:
     dependencies:
@@ -3765,6 +3769,14 @@ packages:
 
   '@speed-highlight/core@1.2.7':
     resolution: {integrity: sha512-0dxmVj4gxg3Jg879kvFS/msl4s9F3T9UXC1InxgOf7t5NvcPD97u/WTA5vL/IxWHMn7qSxBozqrnnE2wvl1m8g==}
+
+  '@stagewise/toolbar-vue@0.2.0':
+    resolution: {integrity: sha512-w+qZ+Ez3rtRybUxempvAUOZwrce8lG68aIUwi2zIx93duNuACqQLiATBaQ8PGAAWM9IW4TeRYLnP5e+P2ySNTA==}
+    peerDependencies:
+      vue: ^3.5.13
+
+  '@stagewise/toolbar@0.3.0':
+    resolution: {integrity: sha512-NqbFwTAVukmxrJ6euGNZ9C/T9HTXx3/vkufsBqsjm1VC9XEo57JXrLMX4M62ZPdVJHFfe40B2nOVHAaOSKIAdw==}
 
   '@stylistic/stylelint-plugin@3.1.2':
     resolution: {integrity: sha512-tylFJGMQo62alGazK74MNxFjMagYOHmBZiePZFOJK2n13JZta0uVkB3Bh5qodUmOLtRH+uxH297EibK14UKm8g==}
@@ -12792,6 +12804,13 @@ snapshots:
   '@socket.io/component-emitter@3.1.2': {}
 
   '@speed-highlight/core@1.2.7': {}
+
+  '@stagewise/toolbar-vue@0.2.0(vue@3.5.13(typescript@5.8.3))':
+    dependencies:
+      '@stagewise/toolbar': 0.3.0
+      vue: 3.5.13(typescript@5.8.3)
+
+  '@stagewise/toolbar@0.3.0': {}
 
   '@stylistic/stylelint-plugin@3.1.2(stylelint@16.19.1(typescript@5.8.3))':
     dependencies:
