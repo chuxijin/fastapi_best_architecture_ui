@@ -6,21 +6,15 @@ import { defineOverridesPreferences } from '@vben/preferences';
  * !!! 更改配置后请清空缓存，否则可能不生效
  */
 export const overridesPreferences = defineOverridesPreferences({
+  // overrides
   app: {
-    accessMode: 'frontend',
+    accessMode: 'backend',
     name: import.meta.env.VITE_APP_TITLE,
     enableRefreshToken: true,
-  },
-  copyright: {
-    companyName: 'FastAPI Practices',
-    companySiteLink: 'https://github.com/fastapi-practices',
-    date: '2025',
-    icp: '',
-    icpLink: '',
+    defaultHomePath: '/dashboard/analytics',
   },
   footer: {
-    enable: true,
-    fixed: true,
+    enable: false,
   },
   logo: {
     source: 'https://wu-clan.github.io/picx-images-hosting/logo/fba.png',

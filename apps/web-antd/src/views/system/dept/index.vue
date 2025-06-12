@@ -10,7 +10,7 @@ import type { SysDeptParams, SysDeptTreeResult } from '#/api';
 import { computed, ref } from 'vue';
 
 import { Page, useVbenModal, VbenButton } from '@vben/common-ui';
-import { AddData } from '@vben/icons';
+import { MaterialSymbolsAdd } from '@vben/icons';
 import { $t } from '@vben/locales';
 
 import { message } from 'ant-design-vue';
@@ -143,6 +143,7 @@ const [Modal, modalApi] = useVbenModal({
   onOpenChange(isOpen) {
     if (isOpen) {
       const data = modalApi.getData<formSysDeptParams>();
+      formApi.resetForm();
       if (data) {
         if (data.parent_id === 0) {
           data.parent_id = undefined;
@@ -160,7 +161,7 @@ const [Modal, modalApi] = useVbenModal({
     <Grid>
       <template #toolbar-actions>
         <VbenButton @click="() => modalApi.setData(null).open()">
-          <AddData class="size-5" />
+          <MaterialSymbolsAdd class="size-5" />
           新增部门
         </VbenButton>
       </template>

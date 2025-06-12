@@ -18,7 +18,7 @@ function setupCommonGuard(router: Router) {
   // 记录已经加载的页面
   const loadedPaths = new Set<string>();
 
-  router.beforeEach(async (to) => {
+  router.beforeEach((to) => {
     to.meta.loaded = loadedPaths.has(to.path);
 
     // 页面加载进度条
@@ -49,6 +49,18 @@ function setupAccessGuard(router: Router) {
     const accessStore = useAccessStore();
     const userStore = useUserStore();
     const authStore = useAuthStore();
+
+    // 优先处理 OAuth2 回调
+    if (
+      to.name === 'OAuth2Callback' ||
+      to.path === '/oauth2/callback' ||
+      window.location.pathname === '/oauth2/callback'
+    ) {
+      await authStore.oauth2Login();
+      // 为了兼容 vue-router hash 模式，这里直接重定向到域名
+      // 再由守卫自动完成默认地址重定向
+      window.location.replace(window.location.origin);
+    }
 
     // 基本路由，这些路由不需要进入权限拦截
     if (coreRouteNames.includes(to.name as string)) {

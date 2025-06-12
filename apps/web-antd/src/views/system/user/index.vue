@@ -16,7 +16,7 @@ import type {
 import { onMounted, ref } from 'vue';
 
 import { ColPage, useVbenModal, VbenButton } from '@vben/common-ui';
-import { AddData } from '@vben/icons';
+import { MaterialSymbolsAdd } from '@vben/icons';
 import { $t } from '@vben/locales';
 import { preferences } from '@vben/preferences';
 
@@ -60,7 +60,6 @@ const searchDept = async (searchValue: string | undefined) => {
 /**
  * 右侧
  */
-
 const formOptions: VbenFormProps = {
   collapsed: true,
   showCollapseButton: true,
@@ -86,14 +85,6 @@ const gridOptions: VxeTableGridOptions<SysUserResult> = {
     refresh: { code: 'query' },
     custom: true,
     zoom: true,
-  },
-  tooltipConfig: {
-    contentMethod: ({ column, row }) => {
-      if (column.field === 'roles' && row.roles.length > 0) {
-        return row.roles.map((item) => item.name).join('、');
-      }
-      return null;
-    },
   },
   columns: useColumns(onActionClick),
   proxyConfig: {
@@ -235,7 +226,7 @@ onMounted(() => {
     :right-width="80"
   >
     <template #left>
-      <div class="bg-card mr-2 h-full rounded-[var(--radius)]">
+      <div class="bg-card mr-2 h-full overflow-y-auto rounded-[var(--radius)]">
         <div class="mt-1 p-2">
           <a-input-search
             v-model:value="searchDeptValue"
@@ -246,7 +237,7 @@ onMounted(() => {
           />
         </div>
         <div class="-mt-3 p-3">
-          XXX集团
+          <div class="mb-1">XXX集团</div>
           <a-tree
             v-if="treeData.length > 0"
             :show-line="{ showLeafIcon: false }"
@@ -274,18 +265,38 @@ onMounted(() => {
     <Grid>
       <template #toolbar-actions>
         <VbenButton @click="() => addModalApi.setData(null).open()">
-          <AddData class="size-5" />
+          <MaterialSymbolsAdd class="size-5" />
           添加用户
         </VbenButton>
       </template>
       <template #avatar="{ row }">
         <a-avatar :src="row.avatar || preferences.app.defaultAvatar" />
       </template>
-      <template #roles="{ row }">
-        <span v-if="row.roles.length > 0">
-          <a-tag v-for="role in row.roles" :key="role.name">
-            {{ role.name }}
+      <template #dept="{ row }">
+        <span v-if="row.dept">
+          <a-tag :key="row.dept.name" color="green">
+            {{ row.dept.name }}
           </a-tag>
+        </span>
+        <span v-else>未绑定</span>
+      </template>
+      <template #roles="{ row }">
+        <span v-if="row.roles.length === 1">
+          <a-tag color="purple">
+            {{ row.roles[0].name }}
+          </a-tag>
+        </span>
+        <span v-else-if="row.roles.length > 1">
+          <a-popover placement="topLeft" :overlay-style="{ maxWidth: '20%' }">
+            <template #content>
+              <a-tag v-for="role in row.roles" :key="role.name" color="purple">
+                {{ role.name }}
+              </a-tag>
+            </template>
+            <a-tag v-for="role in row.roles" :key="role.name" color="purple">
+              {{ role.name }}
+            </a-tag>
+          </a-popover>
         </span>
         <span v-else>未绑定</span>
       </template>

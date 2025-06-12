@@ -5,12 +5,12 @@ import type {
   OnActionClickParams,
   VxeTableGridOptions,
 } from '#/adapter/vxe-table';
-import type { SysAddRoleParams, SysRoleResult } from '#/api';
+import type { CreateSysRoleParams, SysRoleResult } from '#/api';
 
 import { computed, ref } from 'vue';
 
 import { Page, useVbenDrawer, useVbenModal, VbenButton } from '@vben/common-ui';
-import { AddData } from '@vben/icons';
+import { MaterialSymbolsAdd } from '@vben/icons';
 import { $t } from '@vben/locales';
 import { traverseTreeValues } from '@vben/utils';
 
@@ -19,7 +19,7 @@ import { message } from 'ant-design-vue';
 import { useVbenForm } from '#/adapter/form';
 import { useVbenVxeGrid } from '#/adapter/vxe-table';
 import {
-  addSysRoleApi,
+  createSysRoleApi,
   deleteSysRoleApi,
   getSysRoleListApi,
   getSysRoleMenuApi,
@@ -104,7 +104,7 @@ const [Form, formApi] = useVbenForm({
   schema,
 });
 
-interface formSysRoleParams extends SysAddRoleParams {
+interface formSysRoleParams extends CreateSysRoleParams {
   id?: number;
 }
 
@@ -122,11 +122,11 @@ const [Modal, modalApi] = useVbenModal({
     const { valid } = await formApi.validate();
     if (valid) {
       modalApi.lock();
-      const data = await formApi.getValues<SysAddRoleParams>();
+      const data = await formApi.getValues<CreateSysRoleParams>();
       try {
         await (formData.value?.id
           ? updateSysRoleApi(formData.value?.id, data)
-          : addSysRoleApi(data));
+          : createSysRoleApi(data));
         await modalApi.close();
         onRefresh();
       } finally {
@@ -137,9 +137,10 @@ const [Modal, modalApi] = useVbenModal({
   onOpenChange(idOpen) {
     if (idOpen) {
       const data = modalApi.getData<formSysRoleParams>();
+      formApi.resetForm();
       if (data) {
         formData.value = data;
-        formApi.setValues(formData.value);
+        formApi.setValues(data);
       }
     }
   },
@@ -169,7 +170,7 @@ const openDrawer = async (pk: number) => {
     <Grid>
       <template #toolbar-actions>
         <VbenButton @click="() => modalApi.setData(null).open()">
-          <AddData class="size-5" />
+          <MaterialSymbolsAdd class="size-5" />
           新增角色
         </VbenButton>
       </template>
