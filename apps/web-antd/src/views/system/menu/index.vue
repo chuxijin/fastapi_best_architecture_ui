@@ -8,7 +8,7 @@ import type { SysMenuParams, SysMenuTreeResult } from '#/api';
 import { computed, ref } from 'vue';
 
 import { Page, useVbenModal, VbenButton } from '@vben/common-ui';
-import { AddData, IconifyIcon } from '@vben/icons';
+import { IconifyIcon, MaterialSymbolsAdd } from '@vben/icons';
 import { $t } from '@vben/locales';
 
 import { message } from 'ant-design-vue';
@@ -142,6 +142,7 @@ const [Modal, modalApi] = useVbenModal({
   onOpenChange(isOpen) {
     if (isOpen) {
       const data = modalApi.getData<SysMenuParams>();
+      formApi.resetForm();
       if (data) {
         if (data.parent_id === 0) {
           data.parent_id = 0;
@@ -159,7 +160,7 @@ const [Modal, modalApi] = useVbenModal({
     <Grid>
       <template #toolbar-actions>
         <VbenButton @click="() => modalApi.setData(null).open()">
-          <AddData class="size-5" />
+          <MaterialSymbolsAdd class="size-5" />
           新增菜单
         </VbenButton>
       </template>
@@ -175,6 +176,11 @@ const [Modal, modalApi] = useVbenModal({
             <IconifyIcon
               v-if="row.type === 2"
               icon="carbon:security"
+              class="size-full"
+            />
+            <a-image
+              v-else-if="/^https?:\/\/.*$/.test(row.icon || '')"
+              :src="row.icon"
               class="size-full"
             />
             <IconifyIcon

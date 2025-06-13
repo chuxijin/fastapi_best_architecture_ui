@@ -35,7 +35,6 @@ const coreRouteNames = traverseTreeValues(coreRoutes, (route) => route.name);
 /** 有权限校验的路由列表，包含动态路由和静态路由 */
 const accessRoutes = [...dynamicRoutes, ...staticRoutes];
 
-/** 用于系统菜单组件参数 */
 const componentKeys: string[] = Object.keys(
   import.meta.glob('../../views/**/*.vue'),
 )

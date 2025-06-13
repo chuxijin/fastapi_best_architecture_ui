@@ -13,7 +13,7 @@ const routes: RouteRecordRaw[] = [
       {
         name: 'CoulddriveOverview',
         path: 'overview',
-        component: () => import('#/views/coulddrive/index.vue'),
+        component: () => import('#/views/coulddrive/overview/index.vue'),
         meta: {
           title: '概览',
           icon: 'mdi:view-dashboard',

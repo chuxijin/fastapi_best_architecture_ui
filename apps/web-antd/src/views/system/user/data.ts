@@ -8,7 +8,6 @@ import type { SysRoleResult, SysUserResult } from '#/api';
 
 import { $t } from '@vben/locales';
 
-import { z } from '#/adapter/form';
 import {
   getSysDeptTreeApi,
   updateSysUserMultiApi,
@@ -71,14 +70,13 @@ export function useColumns(
       field: 'dept',
       title: '部门',
       width: 120,
-      formatter({ cellValue }) {
-        return cellValue.name || '未绑定';
-      },
+      slots: { default: 'dept' },
     },
     {
       field: 'roles',
       title: '角色',
       width: 220,
+      showOverflow: 'ellipsis',
       slots: { default: 'roles' },
     },
     { field: 'email', title: '邮箱', width: 150 },
@@ -223,17 +221,6 @@ export function useEditSchema(roleSelectOptions: any): VbenFormSchema[] {
       label: '头像地址',
     },
     {
-      component: 'Input',
-      fieldName: 'email',
-      label: '邮箱',
-      rules: z.string().email({ message: '无效的邮箱地址' }).optional(),
-    },
-    {
-      component: 'Input',
-      fieldName: 'phone',
-      label: '手机号',
-    },
-    {
       component: 'Select',
       componentProps: {
         class: 'w-full',
@@ -267,6 +254,7 @@ export function useAddSchema(roleSelectOptions: any): VbenFormSchema[] {
       },
       fieldName: 'dept_id',
       label: '部门',
+      rules: 'required',
     },
     {
       component: 'Input',
@@ -284,12 +272,6 @@ export function useAddSchema(roleSelectOptions: any): VbenFormSchema[] {
       fieldName: 'password',
       label: '密码',
       rules: 'required',
-    },
-    {
-      component: 'Input',
-      fieldName: 'email',
-      label: '邮箱',
-      rules: z.string().email({ message: '无效的邮箱地址' }),
     },
     {
       component: 'Select',
