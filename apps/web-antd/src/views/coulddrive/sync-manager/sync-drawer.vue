@@ -325,6 +325,24 @@ async function loadRenameRuleOptions() {
   }
 }
 
+// 重建面包屑路径
+function rebuildBreadcrumbPaths(targetPath: string) {
+  const pathSegments = targetPath.split('/').filter(segment => segment);
+  const newBreadcrumbs = [{ path: '/', file_id: '0', name: '根目录' }];
+
+  let currentPath = '';
+  for (const segment of pathSegments) {
+    currentPath += '/' + segment;
+    newBreadcrumbs.push({
+      path: currentPath,
+      file_id: '0', // 对于中间路径，我们使用默认的file_id
+      name: segment
+    });
+  }
+
+  return newBreadcrumbs;
+}
+
 // 路径选择相关函数
 async function selectSourcePath() {
   if (!formData.value.type || !formData.value.user_id) {
@@ -334,8 +352,15 @@ async function selectSourcePath() {
 
   pathSelectionMode.value = 'source';
 
-  // 重置路径导航到根目录
-  resetPathForSelection();
+  // 如果已有源路径，使用当前路径作为起点，否则从根目录开始
+  if (formData.value.src_path && formData.value.src_path !== '/') {
+    // 使用已有的源路径作为起点，并重建面包屑
+    const breadcrumbs = rebuildBreadcrumbPaths(formData.value.src_path);
+    pathNavigation.pathHistory.value = breadcrumbs;
+    navigateToPathForSelection(formData.value.src_path, '0');
+  } else {
+    resetPathForSelection();
+  }
 
   pathSelectionModalVisible.value = true;
 
@@ -355,8 +380,25 @@ async function selectTargetPath() {
 
   pathSelectionMode.value = 'target';
 
-  // 重置路径导航到根目录
-  resetPathForSelection();
+  // 如果已有目标路径，使用当前路径作为起点，否则从根目录开始
+  if (formData.value.dst_path && formData.value.dst_path !== '/') {
+    // 尝试从dst_meta中获取file_id
+    let fileId = '0';
+    if (formData.value.dst_meta) {
+      try {
+        const dstMeta = JSON.parse(formData.value.dst_meta);
+        fileId = dstMeta.file_id || '0';
+      } catch (error) {
+        console.error('解析 dst_meta 失败:', error);
+      }
+    }
+    // 使用已有的目标路径和file_id作为起点，并重建面包屑
+    const breadcrumbs = rebuildBreadcrumbPaths(formData.value.dst_path);
+    pathNavigation.pathHistory.value = breadcrumbs;
+    navigateToPathForSelection(formData.value.dst_path, fileId);
+  } else {
+    resetPathForSelection();
+  }
 
   pathSelectionModalVisible.value = true;
   await loadDiskFileList();

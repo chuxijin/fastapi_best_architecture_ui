@@ -547,6 +547,7 @@ export async function getCoulddriveFileListApi(
     headers: {
       'X-Token': token,
     },
+    timeout: 60000
   });
 }
 
@@ -562,6 +563,7 @@ export async function getCoulddriveShareFileListApi(
     headers: {
       'X-Token': token,
     },
+    timeout: 60000
   });
 }
 
