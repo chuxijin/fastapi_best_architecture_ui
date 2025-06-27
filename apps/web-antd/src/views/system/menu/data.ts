@@ -30,7 +30,7 @@ export const querySchema: VbenFormSchema[] = [
       ],
     },
     fieldName: 'status',
-    label: $t('page.form.status'),
+    label: $t('common.form.status'),
   },
 ];
 
@@ -62,10 +62,10 @@ export function useColumns(
         ],
       },
     },
-    { field: 'perms', title: '权限标识', width: 150 },
     { field: 'sort', title: '排序', width: 50 },
-    { field: 'name', title: '菜单名称', width: 120 },
-    { field: 'path', title: '路由地址', width: 150 },
+    { field: 'perms', title: '权限标识', align: 'left', width: 160 },
+    { field: 'name', title: '菜单名称', align: 'left', width: 180 },
+    { field: 'path', title: '路由地址', align: 'left', width: 180 },
     { field: 'component', title: '页面组件', align: 'left', width: 300 },
     {
       field: 'status',
@@ -82,7 +82,7 @@ export function useColumns(
     { field: 'remark', title: '备注' },
     {
       field: 'operation',
-      title: $t('page.table.operation'),
+      title: $t('common.table.operation'),
       align: 'center',
       fixed: 'right',
       width: 200,
@@ -158,13 +158,13 @@ export const schema: VbenFormSchema[] = [
     component: 'Input',
     dependencies: {
       show: (values) => {
-        return [0, 1, 3].includes(values.type);
+        return [0, 1, 3, 4].includes(values.type);
       },
       triggerFields: ['type'],
     },
     fieldName: 'path',
     label: '路由地址',
-    rules: 'required',
+    rules: z.string().regex(/^\/.*/, { message: '必须以为 "/" 开始' }),
   },
   {
     component: 'InputNumber',
@@ -252,7 +252,11 @@ export const schema: VbenFormSchema[] = [
   },
   {
     component: 'Switch',
-    defaultValue: true,
+    componentProps: {
+      checkedValue: 1,
+      unCheckedValue: 0,
+    },
+    defaultValue: 1,
     dependencies: {
       show: (values) => {
         return values.type !== 2;
@@ -264,7 +268,11 @@ export const schema: VbenFormSchema[] = [
   },
   {
     component: 'Switch',
-    defaultValue: true,
+    componentProps: {
+      checkedValue: 1,
+      unCheckedValue: 0,
+    },
+    defaultValue: 1,
     dependencies: {
       show: (values) => {
         return values.type === 1;

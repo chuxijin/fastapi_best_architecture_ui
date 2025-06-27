@@ -27,7 +27,7 @@ const formOptions: VbenFormProps = {
   collapsed: true,
   showCollapseButton: true,
   submitButtonOptions: {
-    content: $t('page.form.query'),
+    content: $t('common.form.query'),
   },
   schema: querySchema,
 };
@@ -128,6 +128,9 @@ const [Modal, modalApi] = useVbenModal({
     if (valid) {
       modalApi.lock();
       const data = await formApi.getValues<SysMenuParams>();
+      if (data.type === 3 || data.type === 4) {
+        data.component = '/_core/fallback/iframe.vue';
+      }
       try {
         await (formData.value?.id
           ? updateSysMenuApi(formData.value.id, data)

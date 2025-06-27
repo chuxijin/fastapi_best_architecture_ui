@@ -75,7 +75,7 @@ const [Drawer, drawerApi] = useVbenDrawer({
 const formOptions: VbenFormProps = {
   showCollapseButton: false,
   submitButtonOptions: {
-    content: $t('page.form.query'),
+    content: $t('common.form.query'),
   },
   commonConfig: {
     componentProps: {
@@ -249,6 +249,11 @@ const [DataRuleDrawer, dataRuleDrawerApi] = useVbenDrawer({
               <IconifyIcon
                 v-if="row.type === 2"
                 icon="carbon:security"
+                class="size-full"
+              />
+              <a-image
+                v-else-if="/^https?:\/\/.*$/.test(row.icon || '')"
+                :src="row.icon"
                 class="size-full"
               />
               <IconifyIcon

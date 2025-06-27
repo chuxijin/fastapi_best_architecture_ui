@@ -37,7 +37,7 @@ export async function loginApi(data: LoginParams) {
  */
 export async function refreshTokenApi() {
   return baseRequestClient.post<RefreshTokenResult>(
-    '/api/v1/auth/tokens/refresh',
+    '/api/v1/auth/tokens',
     undefined,
     {
       withCredentials: true,
@@ -48,21 +48,13 @@ export async function refreshTokenApi() {
 /**
  * 退出登录
  */
-export async function logoutApi(access_token: null | string) {
-  return baseRequestClient.post(
-    '/api/v1/auth/logout',
-    undefined,
-    access_token
-      ? {
-          headers: { Authorization: `Bearer ${access_token}` },
-        }
-      : undefined,
-  );
+export async function logoutApi() {
+  return requestClient.post('/api/v1/auth/logout');
 }
 
 /**
  * 获取用户权限码
  */
 export async function getAccessCodesApi() {
-  return [];
+  return requestClient.get<string[]>('/api/v1/auth/codes');
 }

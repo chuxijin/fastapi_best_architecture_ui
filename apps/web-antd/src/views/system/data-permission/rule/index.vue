@@ -21,10 +21,11 @@ import { message } from 'ant-design-vue';
 import { useVbenForm } from '#/adapter/form';
 import { useVbenVxeGrid } from '#/adapter/vxe-table';
 import {
-  createDataRuleApi,
+  createSysDataRuleApi,
   deleteSysDataRuleApi,
   getSysDataRuleListApi,
   getSysDataRuleModelsApi,
+  updateSysDataRuleApi,
 } from '#/api/data-permission';
 
 import { querySchema, schema, useColumns } from './data';
@@ -32,7 +33,7 @@ import { querySchema, schema, useColumns } from './data';
 const dataRuleFormOptions: VbenFormProps = {
   showCollapseButton: false,
   submitButtonOptions: {
-    content: $t('page.form.query'),
+    content: $t('common.form.query'),
   },
   schema: querySchema,
 };
@@ -121,7 +122,9 @@ const [Modal, modalApi] = useVbenModal({
       modalApi.lock();
       const data = await formApi.getValues<CreateSysDataRuleParams>();
       try {
-        await createDataRuleApi(data);
+        await (formData.value?.id
+          ? updateSysDataRuleApi(formData.value?.id, data)
+          : createSysDataRuleApi(data));
         await modalApi.close();
         onRefresh();
       } finally {
