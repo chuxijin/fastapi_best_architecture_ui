@@ -307,6 +307,31 @@ export interface CoulddriveTransferParams {
   ext?: Record<string, any>;
 }
 
+export interface CoulddriveShareParams {
+  drive_type: string;
+  file_name: string;
+  file_ids: (number | string)[];
+  expired_type: number;
+  password?: string;
+}
+
+export interface CoulddriveShareInfo {
+  title: string;
+  share_id: string;
+  pwd_id: string;
+  url: string;
+  expired_type: number;
+  view_count: number;
+  expired_at?: string;
+  expired_left?: number;
+  audit_status: number;
+  status: number;
+  file_id?: string;
+  file_only_num?: string;
+  file_size?: number;
+  path_info?: string;
+}
+
 export interface CoulddriveSyncConfigListParams {
   enable?: boolean;
   type?: string;
@@ -496,6 +521,7 @@ export async function getCoulddriveRelationshipListApi(
     headers: {
       'X-Token': token,
     },
+    timeout: 60 * 2 * 1000, // 2分钟超时
   });
 }
 
@@ -541,9 +567,15 @@ export async function deleteCoulddriveUserApi(userId: number) {
 export async function getCoulddriveFileListApi(
   params: CoulddriveListFilesParams,
   token: string,
+  options?: { disableCache?: boolean }
 ) {
+  // 如果需要禁用缓存，添加时间戳参数
+  const finalParams = options?.disableCache
+    ? { ...params, _t: Date.now() }
+    : params;
+
   return requestClient.get<PaginationResult>('/api/v1/couldfile/list', {
-    params,
+    params: finalParams,
     headers: {
       'X-Token': token,
     },
@@ -604,6 +636,22 @@ export async function transferCoulddriveFilesApi(
   token: string,
 ) {
   return requestClient.post<boolean>('/api/v1/couldfile/transfer', params, {
+    headers: {
+      'X-Token': token,
+    },
+    // 转存完成后自动清理文件列表缓存
+    timeout: 60000, // 转存可能需要较长时间
+  });
+}
+
+/**
+ * 创建 Coulddrive 分享链接
+ */
+export async function createCoulddriveShareApi(
+  params: CoulddriveShareParams,
+  token: string,
+) {
+  return requestClient.post<CoulddriveShareInfo>('/api/v1/couldfile/share', params, {
     headers: {
       'X-Token': token,
     },

@@ -18,7 +18,8 @@ import {
   getCoulddriveShareFileListApi,
   getCoulddriveRelationshipListApi
 } from '#/api';
-import { usePathNavigation } from '#/composables/usePathNavigation';
+// 移除usePathNavigation导入，由FileSelector组件处理
+import FileSelector from '#/components/FileSelector.vue';
 
 // 创建图标组件
 const Settings = createIconifyIcon('mdi:cog');
@@ -58,53 +59,14 @@ const sourceOptionsCache = ref<Map<string, Array<{ label: string; value: string 
 // 路径选择相关状态
 const pathSelectionModalVisible = ref(false);
 const pathSelectionMode = ref<'source' | 'target'>('source');
-const fileListForSelection = ref<CoulddriveFileInfo[]>([]);
-const loadingFileList = ref(false);
 const selectedAccountCookies = ref('');
-
-// 路径导航逻辑
-const pathNavigation = usePathNavigation({
-  onNavigate: () => {
-    if (pathSelectionMode.value === 'source') {
-      loadShareFileList();
-    } else if (pathSelectionMode.value === 'target') {
-      loadDiskFileList();
-    }
-  },
-  onEnterFolder: () => {
-    if (pathSelectionMode.value === 'source') {
-      loadShareFileList();
-    } else if (pathSelectionMode.value === 'target') {
-      loadDiskFileList();
-    }
-  },
-  onGoBack: () => {
-    if (pathSelectionMode.value === 'source') {
-      loadShareFileList();
-    } else if (pathSelectionMode.value === 'target') {
-      loadDiskFileList();
-    }
-  }
-});
-
-const {
-  currentPath: currentPathForSelection,
-  currentFileId: currentFileIdForSelection,
-  breadcrumbPaths,
-  navigateToPath: navigateToPathForSelection,
-  navigateToFolder: navigateToFolderForSelection,
-  goBack: goBackForSelection,
-  resetPath: resetPathForSelection
-} = pathNavigation;
 
 // 来源选择相关状态
 const sourceType = ref('');
 const sourceId = ref('');
 const sourceOptions = ref<Array<{ label: string; value: string }>>([]);
 
-// 文件选择状态
-const selectedFiles = ref<Set<string>>(new Set());
-const selectedFolder = ref<string>('');
+// 文件选择状态 - 移除，由FileSelector组件处理
 
 // 编辑模式状态
 const isEditMode = ref(false);
@@ -135,7 +97,7 @@ const formData = ref({
   end_time: null,
 });
 
-// breadcrumbPaths 已在 pathNavigation 中定义
+// 移除breadcrumbPaths，由FileSelector组件处理
 
 // 是否需要数值输入
 const needsValueInput = computed(() => {
@@ -157,10 +119,7 @@ const needsDayInput = computed(() => {
   return formData.value.cron_type === 'monthly';
 });
 
-// 是否可以返回上级目录
-const canGoBack = computed(() => {
-  return currentPathForSelection.value !== '/' && breadcrumbPaths.value.length > 1;
-});
+// 移除canGoBack，由FileSelector组件处理
 
 // 监听网盘类型变化，自动加载对应账号
 watch(() => formData.value.type, async (newType, oldType) => {
@@ -182,8 +141,10 @@ watch(() => formData.value.user_id, (newUserId) => {
   }
 }, { immediate: false });
 
-// 监听编辑数据变化
-watch(() => props.editData, async (newData) => {
+// 监听抽屉打开和编辑数据变化
+watch([() => props.visible, () => props.editData], async ([visible, newData]) => {
+  if (!visible) return; // 如果抽屉未打开，不处理
+
   if (newData) {
     isEditMode.value = true;
     editingConfigId.value = newData.id;
@@ -243,9 +204,10 @@ watch(() => props.editData, async (newData) => {
       await loadSourceOptions(sourceType.value);
     }
   } else {
+    // 只有在新建模式下才重置表单
     resetForm();
   }
-}, { immediate: true });
+}, { immediate: false });
 
 // 获取账号列表
 async function loadAccountOptions(type?: string) {
@@ -351,25 +313,7 @@ async function selectSourcePath() {
   }
 
   pathSelectionMode.value = 'source';
-
-  // 如果已有源路径，使用当前路径作为起点，否则从根目录开始
-  if (formData.value.src_path && formData.value.src_path !== '/') {
-    // 使用已有的源路径作为起点，并重建面包屑
-    const breadcrumbs = rebuildBreadcrumbPaths(formData.value.src_path);
-    pathNavigation.pathHistory.value = breadcrumbs;
-    navigateToPathForSelection(formData.value.src_path, '0');
-  } else {
-    resetPathForSelection();
-  }
-
   pathSelectionModalVisible.value = true;
-
-  if (!sourceType.value) {
-    sourceId.value = '';
-    sourceOptions.value = [];
-  } else if (sourceType.value && sourceId.value) {
-    await loadShareFileList();
-  }
 }
 
 async function selectTargetPath() {
@@ -379,29 +323,7 @@ async function selectTargetPath() {
   }
 
   pathSelectionMode.value = 'target';
-
-  // 如果已有目标路径，使用当前路径作为起点，否则从根目录开始
-  if (formData.value.dst_path && formData.value.dst_path !== '/') {
-    // 尝试从dst_meta中获取file_id
-    let fileId = '0';
-    if (formData.value.dst_meta) {
-      try {
-        const dstMeta = JSON.parse(formData.value.dst_meta);
-        fileId = dstMeta.file_id || '0';
-      } catch (error) {
-        console.error('解析 dst_meta 失败:', error);
-      }
-    }
-    // 使用已有的目标路径和file_id作为起点，并重建面包屑
-    const breadcrumbs = rebuildBreadcrumbPaths(formData.value.dst_path);
-    pathNavigation.pathHistory.value = breadcrumbs;
-    navigateToPathForSelection(formData.value.dst_path, fileId);
-  } else {
-    resetPathForSelection();
-  }
-
   pathSelectionModalVisible.value = true;
-  await loadDiskFileList();
 }
 
 // 处理来源类型变化
@@ -416,10 +338,7 @@ async function onSourceTypeChange(type: string) {
 
 // 处理来源ID变化
 async function onSourceIdChange(id: string) {
-  if (sourceType.value && id) {
-    currentPathForSelection.value = '/';
-    await loadShareFileList();
-  }
+  // 移除具体实现，由FileSelector组件处理
 }
 
 // 加载来源选项（好友或群组）
@@ -470,183 +389,50 @@ async function loadSourceOptions(type: string) {
   }
 }
 
-// 加载分享文件列表
-async function loadShareFileList() {
-  if (!selectedAccountCookies.value) {
-    message.error('账号认证信息缺失');
-    return;
-  }
-
-  if (!sourceType.value || !sourceId.value) {
-    message.warning('请先选择来源类型和来源ID');
-    return;
-  }
-
-  loadingFileList.value = true;
-  try {
-    const params: CoulddriveListShareFilesParams = {
-      drive_type: formData.value.type,
-      source_type: sourceType.value as 'friend' | 'group',
-      source_id: sourceId.value,
-      file_path: currentPathForSelection.value,
-      recursive: false,
-    };
-
-    const response = await getCoulddriveShareFileListApi(params, selectedAccountCookies.value);
-    fileListForSelection.value = response.items || [];
-  } catch (error) {
-    console.error('加载分享文件列表失败:', error);
-    message.error('加载分享文件列表失败');
-    fileListForSelection.value = [];
-  } finally {
-    loadingFileList.value = false;
-  }
-}
-
-// 加载磁盘文件列表
-async function loadDiskFileList() {
-  if (!selectedAccountCookies.value) {
-    message.error('账号认证信息缺失');
-    return;
-  }
-
-  loadingFileList.value = true;
-  try {
-    const params: CoulddriveListFilesParams = {
-      drive_type: formData.value.type,
-      file_path: currentPathForSelection.value,
-      file_id: currentFileIdForSelection.value || undefined, // 传递当前路径对应的file_id
-      recursive: false,
-    };
-
-    const response = await getCoulddriveFileListApi(params, selectedAccountCookies.value);
-    fileListForSelection.value = response.items || [];
-  } catch (error) {
-    console.error('加载磁盘文件列表失败:', error);
-    message.error('加载磁盘文件列表失败');
-    fileListForSelection.value = [];
-  } finally {
-    loadingFileList.value = false;
-  }
-}
-
-// 进入文件夹
-function enterFolder(folder: CoulddriveFileInfo) {
-  if (!folder.is_folder) return;
-
-  selectedFiles.value.clear();
-  selectedFolder.value = '';
-  navigateToFolderForSelection(folder);
-}
-
-// 返回上级目录
-function goBackInSelection() {
-  selectedFiles.value.clear();
-  selectedFolder.value = '';
-  goBackForSelection();
-}
-
-// 确认选择路径
-function confirmPathSelection() {
-  _confirmPathSelectionAsync();
-}
-
-// 确认选择路径（内部异步函数）
-async function _confirmPathSelectionAsync() {
-  let selectedPath = currentPathForSelection.value;
-  let selectedFileInfo = null;
-
-  // 优先检查是否选中了文件夹
-  if (selectedFolder.value) {
-    const folderFile = fileListForSelection.value.find(file => file.file_id === selectedFolder.value);
-    if (folderFile && folderFile.is_folder) {
-      selectedPath = folderFile.file_path;
-      selectedFileInfo = folderFile;
-    }
-  }
-  // 其次检查是否选中了文件
-  else if (selectedFiles.value.size === 1) {
-    const selectedFileId = Array.from(selectedFiles.value)[0];
-    const selectedFile = fileListForSelection.value.find(file => file.file_id === selectedFileId);
-    if (selectedFile && selectedFile.is_folder) {
-      selectedPath = selectedFile.file_path;
-      selectedFileInfo = selectedFile;
-    } else if (selectedFile && !selectedFile.is_folder) {
-      selectedPath = currentPathForSelection.value;
-      selectedFileInfo = selectedFile;
-    }
-  }
-
-  if (!selectedPath || selectedPath === '') {
-    selectedPath = currentPathForSelection.value || '/';
-  }
-
+// 处理文件选择确认
+function handleFileSelectConfirm(data: any) {
   if (pathSelectionMode.value === 'source') {
-    formData.value.src_path = selectedPath;
+    // 对于源路径，如果有选中的文件夹，使用选中文件夹的路径
+    if (data.selectedFiles && data.selectedFiles.length > 0 && data.selectedFiles[0].is_folder) {
+      formData.value.src_path = data.selectedFiles[0].file_path;
+    } else {
+      formData.value.src_path = data.currentPath || data.path;
+    }
+
     if (sourceType.value && sourceId.value) {
       formData.value.src_meta = JSON.stringify({
         source_type: sourceType.value,
         source_id: sourceId.value,
       });
     }
-    pathSelectionModalVisible.value = false;
-    message.success(`已选择源路径: ${selectedPath}`);
+    message.success(`已选择源路径: ${formData.value.src_path}`);
   } else if (pathSelectionMode.value === 'target') {
-    formData.value.dst_path = selectedPath;
-    if (selectedFileInfo && selectedFileInfo.is_folder) {
-        formData.value.dst_meta = JSON.stringify({
-        file_id: selectedFileInfo.file_id,
-        });
-    } else {
+    // 对于目标路径，如果有选中的文件夹，使用选中文件夹的信息
+    if (data.selectedFiles && data.selectedFiles.length > 0 && data.selectedFiles[0].is_folder) {
+      const selectedFolder = data.selectedFiles[0];
+      formData.value.dst_path = selectedFolder.file_path;
       formData.value.dst_meta = JSON.stringify({
-        file_path: selectedPath,
+        file_id: selectedFolder.file_id,
+      });
+    } else {
+      // 如果没有选中文件夹，使用当前路径
+      formData.value.dst_path = data.currentPath || data.path;
+      formData.value.dst_meta = JSON.stringify({
+        file_path: data.currentPath || data.path,
+        file_id: data.fileId || '0',
       });
     }
-    pathSelectionModalVisible.value = false;
-    message.success(`已选择目标路径: ${selectedPath}`);
+    message.success(`已选择目标路径: ${formData.value.dst_path}`);
   }
-}
-
-// 取消路径选择
-function cancelPathSelection() {
   pathSelectionModalVisible.value = false;
-  resetPathForSelection();
-  fileListForSelection.value = [];
-  selectedFiles.value.clear();
-  selectedFolder.value = '';
 }
 
-// 切换文件选中状态
-function toggleFileSelection(fileId: string) {
-  if (selectedFiles.value.has(fileId)) {
-    selectedFiles.value.delete(fileId);
-  } else {
-    selectedFiles.value.add(fileId);
-  }
+// 处理文件选择取消
+function handleFileSelectCancel() {
+  pathSelectionModalVisible.value = false;
 }
 
-// 检查文件是否被选中
-function isFileSelected(fileId: string): boolean {
-  return selectedFiles.value.has(fileId);
-}
-
-// 处理文件点击
-function handleFileClick(file: CoulddriveFileInfo) {
-  if (file.is_folder) {
-    // 文件夹单击选中（用于路径选择）
-    selectedFolder.value = file.file_id;
-  } else {
-    // 文件单击切换选中状态
-    toggleFileSelection(file.file_id);
-  }
-}
-
-// 面包屑导航跳转
-function navigateToBreadcrumbPath(path: string) {
-  selectedFiles.value.clear();
-  selectedFolder.value = '';
-  navigateToPathForSelection(path);
-}
+// 移除这些函数，由FileSelector组件处理
 
 // 文件大小格式化
 function formatFileSize(bytes: number): string {
@@ -829,7 +615,7 @@ async function handleSubmit() {
 // 关闭抽屉
 function handleClose() {
   emit('update:visible', false);
-  resetForm();
+  // 不在关闭时重置表单，而是在打开新建模式时重置
 }
 
 // 组件挂载时加载规则模板选项
@@ -1229,175 +1015,21 @@ onMounted(() => {
     </template>
   </a-drawer>
 
-  <!-- 路径选择模态框 -->
-  <a-modal
+      <!-- 文件选择器 -->
+  <FileSelector
     v-model:visible="pathSelectionModalVisible"
+    :drive-type="formData.type"
+    :auth-token="selectedAccountCookies"
+    :mode="pathSelectionMode === 'source' && sourceType ? 'share' : 'disk'"
+    :share-params="pathSelectionMode === 'source' && sourceType ? {
+      sourceType: sourceType,
+      sourceId: sourceId
+    } : undefined"
+    :initial-path="pathSelectionMode === 'source' ? formData.src_path : formData.dst_path"
     :title="`选择${pathSelectionMode === 'source' ? '源' : '目标'}路径`"
-    width="800px"
-    @ok="confirmPathSelection"
-    @cancel="cancelPathSelection"
-  >
-    <!-- 来源类型选择（仅在源路径选择时显示） -->
-    <div v-if="pathSelectionMode === 'source'" class="mb-4">
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div>
-          <label class="block text-sm font-medium text-gray-700 mb-1">来源类型</label>
-          <a-select
-            v-model:value="sourceType"
-            placeholder="请选择来源类型"
-            class="w-full"
-            @change="onSourceTypeChange"
-          >
-            <a-select-option value="">我的网盘</a-select-option>
-            <a-select-option value="friend">好友分享</a-select-option>
-            <a-select-option value="group">群组分享</a-select-option>
-            <a-select-option value="link">链接分享</a-select-option>
-          </a-select>
-        </div>
-
-        <div v-if="sourceType === 'friend' || sourceType === 'group'">
-          <label class="block text-sm font-medium text-gray-700 mb-1">
-            {{ sourceType === 'friend' ? '选择好友' : '选择群组' }}
-          </label>
-          <a-select
-            v-model:value="sourceId"
-            :placeholder="`请选择${sourceType === 'friend' ? '好友' : '群组'}`"
-            class="w-full"
-            @change="onSourceIdChange"
-            :loading="!sourceOptions.length && sourceType"
-          >
-            <a-select-option
-              v-for="option in sourceOptions"
-              :key="option.value"
-              :value="option.value"
-            >
-              {{ option.label }}
-            </a-select-option>
-          </a-select>
-        </div>
-
-        <div v-if="sourceType === 'link'" class="col-span-2">
-          <label class="block text-sm font-medium text-gray-700 mb-1">
-            分享链接
-          </label>
-          <a-input
-            v-model:value="sourceId"
-            placeholder="请输入分享链接，如：https://pan.quark.cn/s/xxxxx 或 https://pan.quark.cn/s/xxxxx|password"
-            class="w-full"
-            @change="onSourceIdChange"
-          />
-          <div class="text-xs text-gray-500 mt-1">
-            支持格式：链接 或 链接|密码（如有密码）
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- 面包屑导航 -->
-    <div class="mb-4">
-      <a-breadcrumb>
-        <a-breadcrumb-item
-          v-for="(path, index) in breadcrumbPaths"
-          :key="index"
-        >
-          <a
-            v-if="index < breadcrumbPaths.length - 1"
-            @click="navigateToBreadcrumbPath(path.path)"
-            class="text-blue-600 hover:text-blue-800 cursor-pointer"
-          >
-            {{ path.name }}
-          </a>
-          <span v-else class="text-gray-600">{{ path.name }}</span>
-        </a-breadcrumb-item>
-      </a-breadcrumb>
-    </div>
-
-    <!-- 操作按钮 -->
-    <div class="mb-4 flex justify-between items-center">
-      <a-button
-        @click="goBackInSelection"
-        :disabled="!canGoBack"
-        size="small"
-      >
-        返回上级
-      </a-button>
-    </div>
-
-    <!-- 文件列表 -->
-    <div class="border rounded-lg max-h-96 overflow-y-auto">
-      <a-spin :spinning="loadingFileList">
-        <div v-if="fileListForSelection.length === 0" class="p-8 text-center text-gray-500">
-          <p v-if="pathSelectionMode === 'source' && (!sourceType || !sourceId)">
-            请先选择来源类型和来源ID
-          </p>
-          <p v-else>此目录为空</p>
-        </div>
-
-        <div v-else>
-          <div
-            v-for="file in fileListForSelection"
-            :key="file.file_id"
-            class="flex items-center p-3 border-b hover:bg-gray-50 cursor-pointer"
-            :class="{
-              'bg-blue-50': file.is_folder ? selectedFolder === file.file_id : isFileSelected(file.file_id),
-              'border-blue-300': file.is_folder ? selectedFolder === file.file_id : isFileSelected(file.file_id)
-            }"
-            @click="handleFileClick(file)"
-            @dblclick="file.is_folder ? enterFolder(file) : null"
-          >
-            <div class="flex-1 flex items-center">
-              <!-- 文件图标 -->
-              <div class="mr-3">
-                <svg
-                  v-if="file.is_folder"
-                  class="w-5 h-5 text-blue-500"
-                  fill="currentColor"
-                  viewBox="0 0 20 20"
-                >
-                  <path d="M2 6a2 2 0 012-2h5l2 2h5a2 2 0 012 2v6a2 2 0 01-2 2H4a2 2 0 01-2-2V6z"></path>
-                </svg>
-                <svg
-                  v-else
-                  class="w-5 h-5 text-gray-500"
-                  fill="currentColor"
-                  viewBox="0 0 20 20"
-                >
-                  <path fill-rule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4zm2 6a1 1 0 011-1h6a1 1 0 110 2H7a1 1 0 01-1-1zm1 3a1 1 0 100 2h6a1 1 0 100-2H7z" clip-rule="evenodd"></path>
-                </svg>
-              </div>
-
-              <!-- 文件信息 -->
-              <div class="flex-1">
-                <div class="font-medium text-gray-900">{{ file.file_name }}</div>
-                                 <div class="text-sm text-gray-500">
-                   {{ file.is_folder ? '文件夹' : formatFileSize(file.file_size || 0) }}
-                   <span v-if="file.updated_at" class="ml-2">
-                    {{ formatDateTime(file.updated_at) }}
-                   </span>
-                 </div>
-              </div>
-
-                            <!-- 选择状态指示器 -->
-              <div v-if="!file.is_folder && isFileSelected(file.file_id)" class="ml-3">
-                <div class="w-4 h-4 bg-blue-500 rounded-full flex items-center justify-center">
-                  <svg class="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20">
-                    <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"></path>
-                  </svg>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </a-spin>
-    </div>
-
-    <!-- 选择提示 -->
-    <div v-if="selectedFiles.size > 0" class="mt-4 p-3 bg-blue-50 rounded-lg">
-      <p class="text-sm text-blue-700">
-        已选择 {{ selectedFiles.size }} 个文件
-      </p>
-    </div>
-  </a-modal>
+    @confirm="handleFileSelectConfirm"
+    @cancel="handleFileSelectCancel"
+  />
 </template>
 
 <style scoped>
@@ -1409,6 +1041,7 @@ onMounted(() => {
   from {
     transform: rotate(0deg);
   }
+
   to {
     transform: rotate(360deg);
   }

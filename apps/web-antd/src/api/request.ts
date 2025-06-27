@@ -199,7 +199,7 @@ function createRequestClient(baseURL: string, options?: RequestClientOptions) {
     '/api/v1/template': ['/api/v1/template'],
     // 用户相关
     '/api/v1/coulduser': ['/api/v1/coulduser'],
-    // 文件相关
+    // 文件相关 - 包含转存接口
     '/api/v1/couldfile': ['/api/v1/couldfile'],
     // 同步配置相关
     '/api/v1/couldsync': ['/api/v1/couldsync'],
