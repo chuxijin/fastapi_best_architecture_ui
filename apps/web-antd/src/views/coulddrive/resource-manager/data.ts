@@ -358,13 +358,13 @@ export function useResourceColumns(
     {
       field: 'main_name',
       title: '主要名字',
-      width: 120,
+      minWidth: 120,
       showOverflow: 'tooltip',
     },
     {
       field: 'title',
       title: '标题',
-      width: 200,
+      minWidth: 150,
       showOverflow: 'tooltip',
     },
     {
@@ -384,20 +384,20 @@ export function useResourceColumns(
     {
       field: 'subject',
       title: '科目',
-      width: 120,
+      minWidth: 100,
       align: 'center',
       showOverflow: 'tooltip',
     },
     {
       field: 'resource_type',
       title: '资源类型',
-      width: 120,
+      width: 100,
       align: 'center',
     },
     {
       field: 'url_type',
       title: '网盘类型',
-      width: 120,
+      width: 100,
       align: 'center',
       cellRender: {
         name: 'CellTag',
@@ -416,7 +416,7 @@ export function useResourceColumns(
     {
       field: 'status',
       title: '状态',
-      width: 100,
+      width: 80,
       align: 'center',
       cellRender: {
         name: 'CellTag',
@@ -439,6 +439,21 @@ export function useResourceColumns(
           { color: 'red', label: '已拒绝', value: 2 },
           { color: 'green', label: '已通过', value: 4 },
         ],
+      },
+    },
+    {
+      field: 'created_time',
+      title: '创建时间',
+      minWidth: 160,
+      align: 'center',
+      formatter: ({ row }) => {
+        return row.created_time ? new Date(row.created_time).toLocaleString('zh-CN', {
+          year: 'numeric',
+          month: '2-digit',
+          day: '2-digit',
+          hour: '2-digit',
+          minute: '2-digit',
+        }) : '-';
       },
     },
     {

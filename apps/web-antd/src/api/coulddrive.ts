@@ -20,7 +20,7 @@ export type TemplateCategory = '文件过滤' | '开发工具' | '文件命名' 
 export type ResourceDomain = '教育' | '科技' | '影视';
 
 // 资源类型枚举
-export type ResourceType = '课程' | '电子书' | '软件' | '真题';
+export type ResourceType = '课程' | '电子书' | '笔记' | '软件' | '真题';
 
 // 教育领域科目枚举
 export type EducationSubject = '26考研英语' | '26考研数学' | '26考研政治' | '26考研统考' | '26考研非统考';
@@ -1098,4 +1098,481 @@ export async function getSyncTaskItemListApi(
     `/api/v1/couldsync/task/${taskId}/items`,
     { params }
   );
+}
+
+// 教师映射接口和常量
+interface TeacherMapping {
+  field: string;
+  subject: string;
+  sort: number;
+}
+
+export const TEACHER_MAPPINGS: Record<string, TeacherMapping> = {
+  武忠祥: {
+    field: '26考研',
+    subject: '数学',
+    sort: 1
+  },
+  张宇: {
+    field: '26考研',
+    subject: '数学',
+    sort: 2
+  },
+  姜晓千: {
+    field: '26考研',
+    subject: '数学',
+    sort: 3
+  },
+  李永乐: {
+    field: '26考研',
+    subject: '数学',
+    sort: 5
+  },
+  汤家凤: {
+    field: '26考研',
+    subject: '数学',
+    sort: 6
+  },
+  杨超: {
+    field: '26考研',
+    subject: '数学',
+    sort: 7
+  },
+  周洋鑫: {
+    field: '26考研',
+    subject: '数学',
+    sort: 8
+  },
+  田静: {
+    field: '26考研',
+    subject: '英语',
+    sort: 1
+  },
+  唐迟: {
+    field: '26考研',
+    subject: '英语',
+    sort: 2
+  },
+  刘晓燕: {
+    field: '26考研',
+    subject: '英语',
+    sort: 3
+  },
+  王晶婷: {
+    field: '26考研',
+    subject: '英语',
+    sort: 4
+  },
+  颉斌斌: {
+    field: '26考研',
+    subject: '英语',
+    sort: 5
+  },
+  新东方: {
+    field: '26考研',
+    subject: '英语',
+    sort: 6
+  },
+  朱伟: {
+    field: '26考研',
+    subject: '英语',
+    sort: 7
+  },
+  石雷鹏: {
+    field: '26考研',
+    subject: '英语',
+    sort: 8
+  },
+  王江涛: {
+    field: '26考研',
+    subject: '英语',
+    sort: 9
+  },
+  Monkey: {
+    field: '26考研',
+    subject: '英语',
+    sort: 10
+  },
+  其他: {
+    field: '26考研',
+    subject: '英语',
+    sort: 99
+  },
+  徐涛: {
+    field: '26考研',
+    subject: '政治',
+    sort: 1
+  },
+  肖: {
+    field: '26考研',
+    subject: '政治',
+    sort: 2
+  },
+  腿姐: {
+    field: '26考研',
+    subject: '政治',
+    sort: 3
+  },
+  苏一: {
+    field: '26考研',
+    subject: '政治',
+    sort: 4
+  },
+  米鹏: {
+    field: '26考研',
+    subject: '政治',
+    sort: 5
+  }
+};
+
+// 智能识别相关接口
+export interface SmartRecognitionRequest {
+  content: string;
+}
+
+export interface SmartRecognitionResponse {
+  domain?: string;
+  subject?: string;
+  main_name?: string;
+  resource_type?: string;
+  url?: string;
+  url_type?: string;
+  extract_code?: string;
+  description?: string;
+  resource_intro?: string;
+  sort?: number;
+  confidence: number; // 识别置信度
+  success: boolean;
+  message?: string;
+}
+
+// AI识别服务配置
+const AI_CONFIG = {
+  apiUrl: 'https://goapi.gptnb.ai/v1/chat/completions',
+  apiKey: 'sk-JcAXVYA8xb2PHl7bAa9d47A598Ee4971A910080400EbB122',
+  model: 'gpt-4o',
+};
+
+// 智能识别提示词
+const SMART_RECOGNITION_PROMPT = `
+你是一个专业的网盘资源信息提取助手。请从用户提供的分享文本中提取资源信息，并以JSON格式返回。
+
+提取规则：
+1. 从文本中识别资源名称（通常在「」或[]中）
+2. 判断网盘类型（百度网盘、夸克网盘、阿里云盘等）
+3. 提取分享链接
+4. 提取提取码（如果有）
+5. 根据资源名称推断领域和科目
+6. 推断资源类型（课程、电子书、软件、真题等）
+7. 识别教师名字并设置对应的排序值
+
+领域分类（必须使用以下值）：
+- 教育：包含学科、课程、教学相关内容
+- 科技：包含软件、编程、技术相关内容
+- 影视：包含电影、电视剧、综艺等内容
+
+科目分类（必须使用以下值）：
+教育领域：
+- 26考研英语、26考研数学、26考研政治、26考研统考、26考研非统考
+
+科技领域：
+- 编程开发、人工智能、数据科学、网络安全、云计算
+
+影视领域：
+- 电影、短剧、电视剧、综艺
+
+资源类型（必须使用以下值）：
+- 课程、电子书、笔记、软件、真题
+
+网盘类型映射（必须使用以下值）：
+- 夸克网盘/夸克 -> QuarkDrive
+- 百度网盘/百度 -> BaiduDrive
+- 阿里云盘/阿里 -> AlistDrive
+
+教师识别和排序（如果识别到以下教师名字，请设置对应的排序值）：
+数学教师：武忠祥(1), 张宇(2), 姜晓千(3), 李永乐(5), 汤家凤(6), 杨超(7), 周洋鑫(8)
+英语教师：田静(1), 唐迟(2), 刘晓燕(3), 王晶婷(4), 颉斌斌(5), 新东方(6), 朱伟(7), 石雷鹏(8), 王江涛(9), Monkey(10), 其他(99)
+政治教师：徐涛(1), 肖(2), 腿姐(3), 苏一(4), 米鹏(5)
+
+请严格按照以下JSON格式返回，不要包含任何其他文本：
+{
+  "domain": "领域（教育/科技/影视）",
+  "subject": "科目（必须从上述枚举中选择）",
+  "main_name": "资源主要名称",
+  "resource_type": "资源类型（课程/电子书/软件/真题）",
+  "url": "分享链接",
+  "url_type": "网盘类型（QuarkDrive/BaiduDrive/AlistDrive）",
+  "extract_code": "提取码（如果有）",
+  "description": "简要描述",
+  "resource_intro": "详细介绍",
+  "sort": 排序值（如果识别到教师则使用对应排序，否则设为0）,
+  "confidence": 0.95,
+  "success": true,
+  "message": "识别成功"
+}
+
+如果无法识别某些字段，请设为空字符串或null。confidence表示识别置信度(0-1)。
+特别注意：科目字段必须从上述枚举列表中精确选择，不能使用其他值。
+如果识别到教师名字，请根据上述映射表设置对应的排序值。
+`;
+
+// 智能识别API
+export async function smartRecognitionApi(content: string): Promise<SmartRecognitionResponse> {
+  // 输入验证
+  if (!content || content.trim().length < 10) {
+    throw new Error('输入内容太短，请提供完整的分享文本');
+  }
+
+  // 设置请求超时
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 30000); // 30秒超时
+
+  try {
+    const response = await fetch(AI_CONFIG.apiUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${AI_CONFIG.apiKey}`,
+      },
+      body: JSON.stringify({
+        model: AI_CONFIG.model,
+        messages: [
+          {
+            role: 'system',
+            content: SMART_RECOGNITION_PROMPT,
+          },
+          {
+            role: 'user',
+            content: `请分析以下分享文本并提取资源信息：\n\n${content}`,
+          },
+        ],
+        temperature: 0.3,
+        max_tokens: 1000,
+      }),
+      signal: controller.signal,
+    });
+
+    clearTimeout(timeoutId);
+
+    if (!response.ok) {
+      if (response.status === 401) {
+        throw new Error('API密钥无效，请检查配置');
+      } else if (response.status === 429) {
+        throw new Error('请求过于频繁，请稍后再试');
+      } else if (response.status >= 500) {
+        throw new Error('AI服务暂时不可用，请稍后重试');
+      } else {
+        throw new Error(`API请求失败: ${response.status} ${response.statusText}`);
+      }
+    }
+
+    const data = await response.json();
+
+    if (!data.choices || !data.choices[0] || !data.choices[0].message) {
+      throw new Error('AI响应格式错误');
+    }
+
+    const aiResponse = data.choices[0].message.content.trim();
+
+    // 尝试解析JSON响应
+    try {
+      // 处理被代码块包裹的JSON响应
+      let jsonString = aiResponse;
+
+      // 移除可能的代码块标记
+      if (jsonString.startsWith('```json')) {
+        jsonString = jsonString.replace(/^```json\s*/, '').replace(/\s*```$/, '');
+      } else if (jsonString.startsWith('```')) {
+        jsonString = jsonString.replace(/^```\s*/, '').replace(/\s*```$/, '');
+      }
+
+      // 移除可能的其他格式标记
+      jsonString = jsonString.replace(/^json\s*/, '').trim();
+
+      const parsedResult = JSON.parse(jsonString);
+
+      // 验证必要字段
+      if (typeof parsedResult !== 'object') {
+        throw new Error('AI返回的不是有效的JSON对象');
+      }
+
+      // 设置默认值
+      const result: SmartRecognitionResponse = {
+        domain: parsedResult.domain || '',
+        subject: parsedResult.subject || '',
+        main_name: parsedResult.main_name || '',
+        resource_type: parsedResult.resource_type || '',
+        url: parsedResult.url || '',
+        url_type: parsedResult.url_type || '',
+        extract_code: parsedResult.extract_code || '',
+        description: parsedResult.description || '',
+        resource_intro: parsedResult.resource_intro || '',
+        sort: parsedResult.sort || 0,
+        confidence: Math.min(Math.max(parsedResult.confidence || 0.5, 0), 1), // 确保在0-1范围内
+        success: parsedResult.success !== false,
+        message: parsedResult.message || '识别完成',
+      };
+
+      // 基本验证：如果没有提取到关键信息，降低置信度
+      if (!result.main_name && !result.url) {
+        result.confidence = Math.min(result.confidence, 0.3);
+        result.message = '未能提取到关键信息，建议手动填写';
+      }
+
+      return result;
+    } catch (parseError) {
+      console.error('解析AI响应失败:', parseError);
+      console.error('原始AI响应:', aiResponse);
+
+      // 如果JSON解析失败，尝试简单的文本提取
+      return await fallbackTextExtraction(content);
+    }
+  } catch (error: any) {
+    clearTimeout(timeoutId);
+
+    if (error.name === 'AbortError') {
+      throw new Error('请求超时，请检查网络连接后重试');
+    }
+
+    console.error('智能识别API调用失败:', error);
+
+    // 降级到简单文本提取
+    return await fallbackTextExtraction(content);
+  }
+}
+
+// 降级处理：简单的文本提取
+async function fallbackTextExtraction(content: string): Promise<SmartRecognitionResponse> {
+  const result: SmartRecognitionResponse = {
+    domain: '',
+    subject: '',
+    main_name: '',
+    resource_type: '',
+    url: '',
+    url_type: '',
+    extract_code: '',
+    description: '',
+    resource_intro: '',
+    sort: 0,
+    confidence: 0.3,
+    success: true,
+    message: '使用简单提取模式',
+  };
+
+  // 提取链接
+  const urlMatch = content.match(/(https?:\/\/[^\s]+)/);
+  if (urlMatch) {
+    result.url = urlMatch[1];
+  }
+
+  // 判断网盘类型
+  if (content.includes('夸克') || content.includes('quark')) {
+    result.url_type = 'QuarkDrive';
+  } else if (content.includes('百度') || content.includes('baidu')) {
+    result.url_type = 'BaiduDrive';
+  } else if (content.includes('阿里') || content.includes('aliyun')) {
+    result.url_type = 'AlistDrive';
+  }
+
+  // 提取资源名称（在「」或[]中）
+  const nameMatch = content.match(/[「【\[]([^」】\]]+)[」】\]]/);
+  if (nameMatch) {
+    result.main_name = nameMatch[1];
+  }
+
+  // 提取提取码
+  const codeMatch = content.match(/提取码[：:]\s*([a-zA-Z0-9]+)|密码[：:]\s*([a-zA-Z0-9]+)/);
+  if (codeMatch) {
+    result.extract_code = codeMatch[1] || codeMatch[2];
+  }
+
+  // 教师识别和排序设置
+  let teacherFound = false;
+  for (const [teacherName, mapping] of Object.entries(TEACHER_MAPPINGS)) {
+    if (content.includes(teacherName)) {
+      result.sort = mapping.sort;
+      teacherFound = true;
+
+      // 根据教师设置对应的科目
+      if (mapping.subject === '数学') {
+        result.domain = '教育';
+        result.subject = '26考研数学';
+        result.resource_type = '课程';
+      } else if (mapping.subject === '英语') {
+        result.domain = '教育';
+        result.subject = '26考研英语';
+        result.resource_type = '课程';
+      } else if (mapping.subject === '政治') {
+        result.domain = '教育';
+        result.subject = '26考研政治';
+        result.resource_type = '课程';
+      }
+      break; // 找到第一个匹配的教师就停止
+    }
+  }
+
+  // 如果没有通过教师识别设置领域，则进行简单的领域判断（使用正确的枚举值）
+  if (!teacherFound && result.main_name) {
+    const name = result.main_name.toLowerCase();
+
+    // 教育领域判断
+    if (name.includes('考研') || name.includes('英语') || name.includes('数学') || name.includes('政治') ||
+        name.includes('课程') || name.includes('教学') || name.includes('学习') || name.includes('统考')) {
+      result.domain = '教育';
+      result.resource_type = '课程';
+
+      // 具体科目判断
+      if (name.includes('英语')) {
+        result.subject = '26考研英语';
+      } else if (name.includes('数学')) {
+        result.subject = '26考研数学';
+      } else if (name.includes('政治')) {
+        result.subject = '26考研政治';
+      } else if (name.includes('统考')) {
+        result.subject = '26考研统考';
+      } else if (name.includes('考研')) {
+        result.subject = '26考研非统考';
+      }
+    }
+    // 科技领域判断
+    else if (name.includes('软件') || name.includes('编程') || name.includes('代码') ||
+             name.includes('ai') || name.includes('人工智能') || name.includes('数据') ||
+             name.includes('安全') || name.includes('云计算')) {
+      result.domain = '科技';
+      result.resource_type = '软件';
+
+      // 具体科目判断
+      if (name.includes('编程') || name.includes('代码') || name.includes('开发')) {
+        result.subject = '编程开发';
+      } else if (name.includes('ai') || name.includes('人工智能')) {
+        result.subject = '人工智能';
+      } else if (name.includes('数据')) {
+        result.subject = '数据科学';
+      } else if (name.includes('安全')) {
+        result.subject = '网络安全';
+      } else if (name.includes('云计算') || name.includes('云')) {
+        result.subject = '云计算';
+      }
+    }
+    // 影视领域判断
+    else if (name.includes('电影') || name.includes('电视') || name.includes('综艺') ||
+             name.includes('短剧') || name.includes('影视') || name.includes('视频')) {
+      result.domain = '影视';
+
+      // 具体科目判断
+      if (name.includes('电影')) {
+        result.subject = '电影';
+      } else if (name.includes('短剧')) {
+        result.subject = '短剧';
+      } else if (name.includes('电视') || name.includes('电视剧')) {
+        result.subject = '电视剧';
+      } else if (name.includes('综艺')) {
+        result.subject = '综艺';
+      }
+    }
+  }
+
+  result.description = content.substring(0, 200); // 取前200个字符作为描述
+
+  return result;
 }

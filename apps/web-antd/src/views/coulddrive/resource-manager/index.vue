@@ -12,6 +12,7 @@ import type {
   CoulddriveUserListParams,
   ResourceStatistics,
   ResourceViewTrendResponse,
+  SmartRecognitionResponse,
 } from '#/api';
 
 import { ref, computed, onMounted } from 'vue';
@@ -40,6 +41,8 @@ import {
   RESOURCE_TYPE_OPTIONS,
   DRIVE_TYPE_OPTIONS,
   refreshResourceShareInfoApi,
+  smartRecognitionApi,
+  TEACHER_MAPPINGS,
 } from '#/api';
 import {
   resourceQuerySchema,
@@ -100,6 +103,13 @@ const gridOptions: VxeTableGridOptions = {
     highlight: true,
   },
   height: 'auto',
+  // 启用列宽自动调整
+  columnConfig: {
+    resizable: true,
+    isCurrent: true,
+  },
+  // 设置最小高度
+  minHeight: 400,
   exportConfig: {},
   printConfig: {},
   toolbarConfig: {
@@ -662,23 +672,98 @@ async function handleSmartRecognition() {
     return;
   }
 
+  console.log('开始智能识别，输入内容:', urlToRecognize);
+
   isRecognizing.value = true;
   try {
-    // TODO: 调用智能识别API
-    // const response = await smartRecognitionApi(urlToRecognize);
-    // 暂时模拟识别结果
-    await new Promise(resolve => setTimeout(resolve, 2000));
+    const response: SmartRecognitionResponse = await smartRecognitionApi(urlToRecognize);
 
-    // TODO: 根据识别结果自动填充表单
-    // 模拟填充一些数据
-    if (recognitionUrl.value.trim()) {
-      formData.value.url = recognitionUrl.value.trim();
+    console.log('智能识别响应:', response);
+
+    if (response.success) {
+      // 根据识别结果自动填充表单
+      if (response.domain) {
+        formData.value.domain = response.domain;
+        // 当领域改变时，更新科目选项
+        updateSubjectOptions(response.domain);
+      }
+
+      if (response.subject) {
+        formData.value.subject = response.subject;
+      }
+
+      if (response.main_name) {
+        formData.value.main_name = response.main_name;
+      }
+
+      if (response.resource_type) {
+        formData.value.resource_type = response.resource_type;
+      }
+
+      if (response.url) {
+        formData.value.url = response.url;
+      }
+
+      if (response.url_type) {
+        formData.value.url_type = response.url_type;
+        // 当网盘类型改变时，加载对应的账号选项
+        onUrlTypeChange(response.url_type);
+      }
+
+      if (response.extract_code) {
+        formData.value.extract_code = response.extract_code;
+      }
+
+      if (response.description) {
+        formData.value.description = response.description;
+      }
+
+      if (response.resource_intro) {
+        formData.value.resource_intro = response.resource_intro;
+      }
+
+      // 设置排序值
+      if (response.sort !== undefined) {
+        formData.value.sort = response.sort;
+      }
+
+      // 清空识别输入框
+      recognitionUrl.value = '';
+
+      // 显示识别结果信息
+      const confidencePercent = Math.round(response.confidence * 100);
+      let successMessage = `智能识别完成！置信度: ${confidencePercent}%`;
+
+      // 如果识别到了教师，显示额外信息
+      if (response.sort && response.sort > 0) {
+        const teacherName = Object.keys(TEACHER_MAPPINGS).find(name => {
+          const mapping = TEACHER_MAPPINGS[name];
+          if (!mapping) return false;
+
+          const subjectMatch = response.subject?.includes('数学') ? '数学' :
+                              response.subject?.includes('英语') ? '英语' :
+                              response.subject?.includes('政治') ? '政治' : '';
+
+          return mapping.sort === response.sort && mapping.subject === subjectMatch;
+        });
+
+        if (teacherName) {
+          successMessage += ` - 识别到教师: ${teacherName}`;
+        }
+      }
+
+      message.success(`${successMessage} - ${response.message || '识别成功'}`);
+
+      // 如果置信度较低，给出提示
+      if (response.confidence < 0.7) {
+        message.warning('识别置信度较低，请检查并修正填充的信息');
+      }
+    } else {
+      message.error(`智能识别失败: ${response.message || '未知错误'}`);
     }
-
-    message.success('智能识别功能开发中，敬请期待！');
-  } catch (error) {
+  } catch (error: any) {
     console.error('智能识别失败:', error);
-    message.error('智能识别失败');
+    message.error(`智能识别失败: ${error?.message || '网络错误，请稍后重试'}`);
   } finally {
     isRecognizing.value = false;
   }
@@ -1055,23 +1140,61 @@ onMounted(async () => {
         <div v-if="!editingResourceId" class="border-t pt-4">
           <div class="space-y-3">
             <div>
-              <h4 class="text-sm font-medium text-gray-700">智能识别</h4>
-              <p class="text-xs text-gray-500 mt-1">根据资源链接自动识别并填充相关信息</p>
+              <h4 class="text-sm font-medium text-gray-700 flex items-center">
+                <svg class="w-4 h-4 mr-2 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
+                </svg>
+                智能识别
+              </h4>
+              <p class="text-xs text-gray-500 mt-1">根据分享文本自动识别并填充资源信息，支持夸克网盘、百度网盘等</p>
             </div>
 
             <div class="space-y-2">
+              <!-- 示例文本提示 -->
+              <div class="bg-blue-50 border border-blue-200 rounded-lg p-3">
+                <p class="text-xs font-medium text-blue-700 mb-1">📝 示例格式：</p>
+                <p class="text-xs text-blue-600 leading-relaxed">
+                  我用夸克网盘分享了「【20】26信号与系统」，点击链接即可保存。打开「夸克APP」，无需下载在线播放视频，畅享原画5倍速，支持电视投屏。<br/>
+                  链接：https://pan.quark.cn/s/0a8af5b41c3c
+                </p>
+              </div>
+
               <textarea
                 v-model="recognitionUrl"
-                rows="3"
-                class="w-full rounded-md border border-gray-300 px-3 py-2 focus:border-blue-500 focus:outline-none"
-                placeholder="请输入要识别的资源链接（可选，留空则使用上方链接）"
+                rows="4"
+                class="w-full rounded-md border border-gray-300 px-3 py-2 focus:border-blue-500 focus:outline-none resize-none"
+                placeholder="请粘贴完整的分享文本，包含资源名称和分享链接..."
               />
-              <div class="flex justify-end">
+
+              <div class="flex justify-between items-center">
+                <div class="text-xs text-gray-500">
+                  <span class="inline-flex items-center">
+                    <svg class="w-3 h-3 mr-1 text-green-500" fill="currentColor" viewBox="0 0 20 20">
+                      <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
+                    </svg>
+                    支持自动提取：资源名称、网盘类型、分享链接、提取码
+                  </span>
+                </div>
+
                 <button
                   @click="handleSmartRecognition"
-                  :disabled="isRecognizing"
-                  class="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2 border border-blue-600"
-                  style="min-height: 40px; min-width: 120px; background-color: #3b82f6 !important;"
+                  :disabled="isRecognizing || !recognitionUrl.trim()"
+                  class="px-4 py-2 text-white rounded-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2 transition-all duration-200 shadow-sm"
+                  :style="{
+                    'min-height': '40px',
+                    'min-width': '120px',
+                    'background': (isRecognizing || !recognitionUrl.trim()) ? '#9ca3af' : 'linear-gradient(to right, #3b82f6, #2563eb)',
+                  }"
+                  @mouseenter="(e) => {
+                    if (!isRecognizing && recognitionUrl.trim() && e.target) {
+                      (e.target as HTMLElement).style.background = 'linear-gradient(to right, #2563eb, #1d4ed8)';
+                    }
+                  }"
+                  @mouseleave="(e) => {
+                    if (!isRecognizing && recognitionUrl.trim() && e.target) {
+                      (e.target as HTMLElement).style.background = 'linear-gradient(to right, #3b82f6, #2563eb)';
+                    }
+                  }"
                 >
                   <svg v-if="isRecognizing" class="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24">
                     <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
@@ -1380,4 +1503,43 @@ onMounted(async () => {
     </TrendModal>
   </Page>
 </template>
+
+<style scoped>
+/* 确保表格容器充分利用空间 */
+:deep(.vxe-grid) {
+  width: 100%;
+}
+
+/* 优化表格布局 */
+:deep(.vxe-table) {
+  width: 100% !important;
+}
+
+/* 确保表格内容区域充分利用空间 */
+:deep(.vxe-table--body-wrapper) {
+  overflow-x: auto;
+}
+
+/* 优化列头样式 */
+:deep(.vxe-header--column) {
+  background-color: #fafafa;
+  font-weight: 500;
+}
+
+/* 优化行悬停效果 */
+:deep(.vxe-body--row:hover) {
+  background-color: #f5f5f5;
+}
+
+/* 确保操作列按钮正常显示 */
+:deep(.vxe-cell--operation .ant-btn) {
+  margin: 0 2px;
+}
+
+/* 优化标签显示 */
+:deep(.ant-tag) {
+  margin: 1px;
+  border-radius: 4px;
+}
+</style>
 
