@@ -235,7 +235,15 @@ function handleContextMenuClick(code: string, row: CoulddriveFileInfo) {
       deleteFile(row.file_id, row.file_name);
       break;
     case 'share':
-      openShareModal(row);
+      // 检查是否有多个文件被选中
+      const selectedRows = gridApi.grid.getCheckboxRecords(true) as CoulddriveFileInfo[];
+      if (selectedRows.length > 1) {
+        // 如果选中了多个文件，使用批量分享
+        openBatchShareModal();
+      } else {
+        // 否则使用单个分享
+        openShareModal(row);
+      }
       break;
     case 'rename':
       message.info(`重命名功能开发中: ${row.file_name}`);
@@ -259,7 +267,7 @@ function deleteFile(fileId: string, fileName: string) {
 
 // 批量删除
 function deleteSelectedFiles() {
-  const selectedRows = (gridApi as any).getCheckboxRecords() as CoulddriveFileInfo[];
+  const selectedRows = gridApi.grid.getCheckboxRecords(true) as CoulddriveFileInfo[];
   if (selectedRows.length === 0) {
     message.warning('请选择要删除的文件');
     return;
@@ -477,22 +485,37 @@ function handleFileSelectCancel() {
   fileSelectorVisible.value = false;
 }
 
-// 创建分享相关状态
-const currentShareFile = ref<CoulddriveFileInfo | null>(null);
+// 分享结果相关状态
+const shareResultInfo = ref<CoulddriveShareInfo | null>(null);
 
-// 创建分享表单
+// 统一的分享状态（支持单个和批量）
+const shareQueue = ref<CoulddriveFileInfo[]>([]);
+const shareResults = ref<Array<{
+  file: CoulddriveFileInfo;
+  result?: CoulddriveShareInfo;
+  error?: string;
+  status: 'pending' | 'success' | 'error';
+}>>([]);
+const shareProgress = ref({
+  current: 0,
+  total: 0,
+  isRunning: false,
+});
+
+// 创建分享表单（支持单个和批量）
 const [CreateShareForm, createShareFormApi] = useVbenForm({
   showDefaultActions: false,
   wrapperClass: 'grid-cols-1',
   schema: [
     {
-      component: 'Input',
+      component: 'Textarea',
       componentProps: {
-        placeholder: '请输入文件名',
+        placeholder: '选中的文件',
         disabled: true,
+        rows: 3,
       },
-      fieldName: 'file_name',
-      label: '文件名',
+      fieldName: 'file_list',
+      label: '文件列表',
     },
     {
       component: 'RadioGroup',
@@ -521,7 +544,7 @@ const [createShareModal, createShareModalApi] = useVbenModal({
       return;
     }
 
-    if (!currentShareFile.value) {
+    if (shareQueue.value.length === 0) {
       message.error('没有选择要分享的文件');
       return;
     }
@@ -531,26 +554,16 @@ const [createShareModal, createShareModalApi] = useVbenModal({
       createShareModalApi.lock();
       try {
         const formValues = await createShareFormApi.getValues<{
-          file_name: string;
           expired_type: number;
         }>();
 
-        const shareParams: CoulddriveShareParams = {
-          drive_type: formData.value.type,
-          file_name: formValues.file_name,
-          file_ids: [currentShareFile.value.file_id],
-          expired_type: formValues.expired_type,
-        };
-
-        const result = await createCoulddriveShareApi(shareParams, authToken.value);
-
-        // 显示分享结果
+        // 关闭设置弹窗，开始执行分享
         await createShareModalApi.close();
-        showShareResult(result);
+        await executeShare(shareQueue.value, formValues.expired_type);
 
       } catch (error) {
-        console.error('创建分享失败:', error);
-        message.error('创建分享失败，请重试');
+        console.error('分享失败:', error);
+        message.error('分享失败，请重试');
       } finally {
         createShareModalApi.unlock();
       }
@@ -558,35 +571,33 @@ const [createShareModal, createShareModalApi] = useVbenModal({
   },
   onOpenChange(isOpen) {
     if (!isOpen) {
-      currentShareFile.value = null;
+      // 不要在这里清空shareQueue，因为onConfirm还需要使用它
+      // shareQueue.value = [];
+      shareResults.value = [];
+      shareProgress.value = { current: 0, total: 0, isRunning: false };
     }
   },
 });
 
-// 打开分享模态框
-function openShareModal(file: CoulddriveFileInfo) {
-  if (!formData.value.type || !formData.value.user_id) {
-    message.warning('请先选择账号');
-    return;
-  }
+// 分享进度弹窗（批量分享时显示）
+const [shareProgressModal, shareProgressModalApi] = useVbenModal({
+  title: '分享进度',
+  destroyOnClose: false,
+  centered: true,
+  showCancelButton: false,
+  confirmText: '查看结果',
+  closable: false,
+  async onConfirm() {
+    if (!shareProgress.value.isRunning) {
+      await shareProgressModalApi.close();
+      showShareResults();
+    }
+  },
+});
 
-  currentShareFile.value = file;
-
-  // 设置表单默认值
-  createShareFormApi.setValues({
-    file_name: file.file_name,
-    expired_type: 7,
-  });
-
-  createShareModalApi.open();
-}
-
-// 分享结果相关状态
-const shareResultInfo = ref<CoulddriveShareInfo | null>(null);
-
-// 分享结果模态框
+// 统一的分享结果模态框
 const [shareResultModal, shareResultModalApi] = useVbenModal({
-  title: '分享文件',
+  title: '分享结果',
   destroyOnClose: true,
   centered: true,
   showCancelButton: false,
@@ -597,11 +608,170 @@ const [shareResultModal, shareResultModalApi] = useVbenModal({
   onOpenChange(isOpen) {
     if (!isOpen) {
       shareResultInfo.value = null;
+      shareResults.value = [];
+      shareProgress.value = { current: 0, total: 0, isRunning: false };
     }
   },
 });
 
+// 统一的分享执行函数
+async function executeShare(files: CoulddriveFileInfo[], expiredType: number) {
+  if (!files || files.length === 0) {
+    message.error('没有选择要分享的文件');
+    return;
+  }
+
+  if (!formData.value.type) {
+    message.error('请先选择网盘类型');
+    return;
+  }
+
+  if (!authToken.value) {
+    message.error('认证信息缺失，请重新选择账号');
+    return;
+  }
+
+  // 初始化分享状态
+  shareResults.value = files.map(file => ({
+    file,
+    status: 'pending' as const,
+  }));
+
+  shareProgress.value = {
+    current: 0,
+    total: files.length,
+    isRunning: true,
+  };
+
+  // 如果是批量分享（多个文件），显示进度弹窗
+  if (files.length > 1) {
+    shareProgressModalApi.open();
+  }
+
+  // 逐个分享文件
+  for (let i = 0; i < files.length; i++) {
+    const file = files[i];
+    if (!file) continue;
+
+    shareProgress.value.current = i + 1;
+
+    try {
+      const shareParams: CoulddriveShareParams = {
+        drive_type: formData.value.type,
+        file_name: file.file_name,
+        file_ids: [file.file_id],
+        expired_type: expiredType,
+      };
+
+      const result = await createCoulddriveShareApi(shareParams, authToken.value);
+
+      // 更新结果
+      if (shareResults.value[i]) {
+        shareResults.value[i] = {
+          file,
+          result,
+          status: 'success',
+        };
+      }
+
+    } catch (error) {
+      console.error(`分享文件 ${file.file_name} 失败:`, error);
+
+      // 更新错误结果
+      if (shareResults.value[i]) {
+        shareResults.value[i] = {
+          file,
+          error: error instanceof Error ? error.message : '分享失败',
+          status: 'error',
+        };
+      }
+    }
+
+    // 如果不是最后一个文件，等待3秒
+    if (i < files.length - 1) {
+      await new Promise(resolve => setTimeout(resolve, 3000));
+    }
+  }
+
+    // 分享完成
+  shareProgress.value.isRunning = false;
+
+  const successCount = shareResults.value.filter(r => r.status === 'success').length;
+  const errorCount = shareResults.value.filter(r => r.status === 'error').length;
+
+    if (files.length > 1) {
+    message.success(`批量分享完成！成功：${successCount}个，失败：${errorCount}个`);
+    // 自动关闭进度模态框并显示结果
+    shareProgressModalApi.close();
+    setTimeout(() => {
+      showShareResults();
+    }, 300); // 稍微延迟一点让关闭动画完成
+  } else {
+    if (successCount > 0) {
+      message.success('分享创建成功');
+      // 单个分享直接显示结果
+      const firstSuccess = shareResults.value.find(r => r.status === 'success' && r.result);
+      if (firstSuccess && firstSuccess.result) {
+        showShareResult(firstSuccess.result);
+        return; // 单个分享不需要显示批量结果
+      }
+    } else {
+      message.error('分享创建失败');
+    }
+    // 单个分享失败的情况也显示结果
+    showShareResults();
+  }
+}
+
 // 显示分享结果
+function showShareResults() {
+  shareResultModalApi.open();
+}
+
+// 打开单个分享模态框
+function openShareModal(file: CoulddriveFileInfo) {
+  if (!formData.value.type || !formData.value.user_id) {
+    message.warning('请先选择账号');
+    return;
+  }
+
+  shareQueue.value = [file];
+
+  // 设置表单默认值
+  createShareFormApi.setValues({
+    file_list: file.file_name,
+    expired_type: 7,
+  });
+
+  createShareModalApi.open();
+}
+
+// 打开批量分享模态框
+function openBatchShareModal() {
+  if (!formData.value.type || !formData.value.user_id) {
+    message.warning('请先选择账号');
+    return;
+  }
+
+  const selectedRows = gridApi.grid.getCheckboxRecords(true) as CoulddriveFileInfo[];
+  if (selectedRows.length === 0) {
+    message.warning('请选择要分享的文件');
+    return;
+  }
+
+  shareQueue.value = selectedRows;
+
+  // 设置文件列表显示
+  const fileList = selectedRows.map(file => file.file_name).join('\n');
+  createShareFormApi.setValues({
+    file_list: fileList,
+    expired_type: 7,
+  });
+
+  createShareModalApi.open();
+}
+
+// 显示分享结果（兼容旧的单个分享）
 function showShareResult(shareInfo: CoulddriveShareInfo) {
   shareResultInfo.value = shareInfo;
   shareResultModalApi.open();
@@ -609,6 +779,15 @@ function showShareResult(shareInfo: CoulddriveShareInfo) {
 
 // 复制分享链接
 function copyShareLink() {
+  if (shareResults.value.length > 1) {
+    copyAllShareResults();
+  } else if (shareResultInfo.value) {
+    copySingleShareResult();
+  }
+}
+
+// 复制单个分享结果
+function copySingleShareResult() {
   if (!shareResultInfo.value) return;
 
   const driveTypeLabel = DRIVE_TYPE_OPTIONS.find(option => option.value === formData.value.type)?.label || '网盘';
@@ -623,6 +802,45 @@ function copyShareLink() {
   });
 }
 
+// 复制所有分享结果
+function copyAllShareResults() {
+  const driveTypeLabel = DRIVE_TYPE_OPTIONS.find(option => option.value === formData.value.type)?.label || '网盘';
+
+  const successResults = shareResults.value.filter(r => r.status === 'success' && r.result);
+
+  if (successResults.length === 0) {
+    message.warning('没有成功的分享链接可复制');
+    return;
+  }
+
+  const shareTexts = successResults.map(item => {
+    const result = item.result!;
+    return `我用${driveTypeLabel}分享了「${result.title}」，点击链接即可保存。打开「${driveTypeLabel}APP」在线查看，支持多种文档格式转换。
+链接：${result.url}`;
+  });
+
+  const allShareText = shareTexts.join('\n\n---\n\n');
+
+  navigator.clipboard.writeText(allShareText).then(() => {
+    message.success('所有分享链接已复制到剪贴板');
+  }).catch(() => {
+    message.error('复制失败，请手动复制分享链接');
+  });
+}
+
+// 复制单个分享链接
+function copySingleShareLink(shareInfo: CoulddriveShareInfo) {
+  const driveTypeLabel = DRIVE_TYPE_OPTIONS.find(option => option.value === formData.value.type)?.label || '网盘';
+
+  const shareText = `我用${driveTypeLabel}分享了「${shareInfo.title}」，点击链接即可保存。打开「${driveTypeLabel}APP」在线查看，支持多种文档格式转换。
+链接：${shareInfo.url}`;
+
+  navigator.clipboard.writeText(shareText).then(() => {
+    message.success(`「${shareInfo.title}」分享链接已复制到剪贴板`);
+  }).catch(() => {
+    message.error('复制失败，请手动复制分享链接');
+  });
+}
 
 </script>
 
@@ -671,6 +889,12 @@ function copyShareLink() {
             保存
           </button>
           <button
+            class="px-3 py-1 bg-yellow-500 text-white rounded hover:bg-yellow-600"
+            @click="openBatchShareModal"
+          >
+            批量分享
+          </button>
+          <button
             class="px-3 py-1 bg-red-500 text-white rounded hover:bg-red-600"
             @click="deleteSelectedFiles"
           >
@@ -695,9 +919,40 @@ function copyShareLink() {
       <CreateShareForm />
     </component>
 
-    <!-- 分享结果弹窗 -->
+    <!-- 分享进度弹窗（批量分享时显示） -->
+    <component :is="shareProgressModal">
+      <div v-if="shareProgress.total > 0" class="text-center">
+        <!-- 进度条 -->
+        <div class="mb-4">
+          <div class="w-full bg-gray-200 rounded-full h-2">
+            <div
+              class="bg-blue-600 h-2 rounded-full transition-all duration-300"
+              :style="{ width: `${(shareProgress.current / shareProgress.total) * 100}%` }"
+            ></div>
+          </div>
+        </div>
+
+        <!-- 进度文字 -->
+        <div class="text-sm text-gray-600 mb-2">
+          正在分享第 {{ shareProgress.current }} / {{ shareProgress.total }} 个文件
+        </div>
+
+        <!-- 当前分享的文件名 -->
+        <div v-if="shareProgress.current > 0 && shareResults[shareProgress.current - 1]" class="text-sm text-gray-800 mb-4">
+          {{ shareResults[shareProgress.current - 1]?.file.file_name }}
+        </div>
+
+        <!-- 等待提示 -->
+        <div v-if="shareProgress.isRunning" class="text-xs text-gray-500">
+          每个文件间隔3秒分享，请耐心等待...
+        </div>
+      </div>
+    </component>
+
+    <!-- 统一的分享结果弹窗 -->
     <component :is="shareResultModal">
-      <div v-if="shareResultInfo" class="text-center">
+      <!-- 单个分享结果 -->
+      <div v-if="shareResultInfo && shareResults.length <= 1" class="text-center">
         <!-- 成功图标 -->
         <div class="mb-4">
           <div class="mx-auto w-16 h-16 bg-green-100 rounded-full flex items-center justify-center">
@@ -727,6 +982,80 @@ function copyShareLink() {
             @click="copyShareLink"
           >
             复制链接
+          </button>
+        </div>
+      </div>
+
+      <!-- 批量分享结果 -->
+      <div v-else-if="shareResults.length > 1">
+        <!-- 统计信息 -->
+        <div class="text-center mb-6">
+          <div class="mb-4">
+            <div class="mx-auto w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center">
+              <svg class="w-8 h-8 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.367 2.684 3 3 0 00-5.367-2.684z"></path>
+              </svg>
+            </div>
+          </div>
+
+          <h3 class="text-lg font-medium text-gray-900 mb-2">批量分享完成</h3>
+
+          <div class="text-sm text-gray-600">
+            成功：{{ shareResults.filter((r: any) => r.status === 'success').length }}个，
+            失败：{{ shareResults.filter((r: any) => r.status === 'error').length }}个
+          </div>
+        </div>
+
+        <!-- 详细结果列表 -->
+        <div class="max-h-60 overflow-y-auto mb-6">
+          <div v-for="(item, index) in shareResults" :key="index" class="flex items-center justify-between py-2 px-3 border-b border-gray-100 last:border-b-0">
+            <div class="flex-1 text-sm text-gray-800 truncate">
+              {{ item.file.file_name }}
+            </div>
+            <div class="ml-2">
+              <span v-if="item.status === 'success'" class="inline-flex items-center px-2 py-1 rounded-full text-xs bg-green-100 text-green-800">
+                <svg class="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                  <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"></path>
+                </svg>
+                成功
+              </span>
+              <span v-else-if="item.status === 'error'" class="inline-flex items-center px-2 py-1 rounded-full text-xs bg-red-100 text-red-800">
+                <svg class="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                  <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"></path>
+                </svg>
+                失败
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <!-- 成功的分享链接 -->
+        <div v-if="shareResults.filter((r: any) => r.status === 'success' && r.result).length > 0" class="mb-6">
+          <h4 class="text-sm font-medium text-gray-900 mb-3">分享链接：</h4>
+          <div class="max-h-40 overflow-y-auto bg-gray-50 rounded-lg p-3 border">
+            <div v-for="(item, index) in shareResults.filter((r: any) => r.status === 'success' && r.result)" :key="index" class="mb-3 last:mb-0 p-2 bg-white rounded border">
+              <div class="text-xs text-gray-600 mb-1 font-medium">{{ item.result?.title }}</div>
+              <div class="flex items-center gap-2">
+                <div class="font-mono text-xs text-gray-800 break-all flex-1">{{ item.result?.url }}</div>
+                <button
+                  class="px-2 py-1 text-xs bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors whitespace-nowrap"
+                  @click="item.result && copySingleShareLink(item.result)"
+                >
+                  复制
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 复制按钮 -->
+        <div class="flex justify-center">
+          <button
+            v-if="shareResults.filter((r: any) => r.status === 'success' && r.result).length > 0"
+            class="px-6 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
+            @click="copyShareLink"
+          >
+            复制所有链接
           </button>
         </div>
       </div>
