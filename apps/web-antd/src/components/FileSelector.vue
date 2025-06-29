@@ -46,6 +46,14 @@ const loading = ref(false);
 const selectedFiles = ref<Set<string>>(new Set());
 const selectedFolder = ref<string>('');
 
+// 分页相关状态
+const pagination = ref({
+  current: 1,
+  pageSize: 20,
+  total: 0,
+  totalPages: 0
+});
+
 // 路径导航逻辑
 const pathNavigation = usePathNavigation({
   onNavigate: () => {
@@ -119,7 +127,7 @@ function buildPathNavigation(targetPath: string) {
 }
 
 // 加载文件列表
-async function loadFileList() {
+async function loadFileList(page = 1) {
   if (!props.authToken) {
     message.error('账号认证信息缺失');
     return;
@@ -133,9 +141,19 @@ async function loadFileList() {
         file_path: currentPath.value,
         file_id: currentFileId.value || undefined,
         recursive: false,
+        page,
+        size: pagination.value.pageSize,
       };
       const response = await getCoulddriveFileListApi(params, props.authToken);
       fileList.value = response.items || [];
+
+      // 更新分页信息
+      pagination.value = {
+        current: response.page || 1,
+        pageSize: response.size || 20,
+        total: response.total || 0,
+        totalPages: response.total_pages || 0
+      };
     } else if (props.mode === 'share' && props.shareParams) {
       const params: CoulddriveListShareFilesParams = {
         drive_type: props.driveType,
@@ -143,14 +161,31 @@ async function loadFileList() {
         source_id: props.shareParams.sourceId,
         file_path: currentPath.value,
         recursive: false,
+        page,
+        size: pagination.value.pageSize,
       };
       const response = await getCoulddriveShareFileListApi(params, props.authToken);
       fileList.value = response.items || [];
+
+      // 更新分页信息
+      pagination.value = {
+        current: response.page || 1,
+        pageSize: response.size || 20,
+        total: response.total || 0,
+        totalPages: response.total_pages || 0
+      };
     }
   } catch (error) {
     console.error('加载文件列表失败:', error);
     message.error('加载文件列表失败');
     fileList.value = [];
+    // 重置分页信息
+    pagination.value = {
+      current: 1,
+      pageSize: 20,
+      total: 0,
+      totalPages: 0
+    };
   } finally {
     loading.value = false;
   }
@@ -160,12 +195,16 @@ async function loadFileList() {
 function enterFolder(folder: CoulddriveFileInfo) {
   if (!folder.is_folder) return;
   resetSelection();
+  // 重置分页到第一页
+  pagination.value.current = 1;
   navigateToFolder(folder);
 }
 
 // 返回上级
 function goBackToParent() {
   resetSelection();
+  // 重置分页到第一页
+  pagination.value.current = 1;
   goBack();
 }
 
@@ -201,7 +240,32 @@ function handleFileClick(file: CoulddriveFileInfo) {
 // 面包屑导航跳转
 function navigateToBreadcrumbPath(pathItem: any) {
   resetSelection();
+  // 重置分页到第一页
+  pagination.value.current = 1;
   navigateToPath(pathItem.path, pathItem.file_id);
+}
+
+// 处理分页变化
+function handlePageChange(page: number) {
+  pagination.value.current = page;
+  loadFileList(page);
+}
+
+// 获取可见的页码
+function getVisiblePages(): number[] {
+  const current = pagination.value.current;
+  const total = pagination.value.totalPages;
+  const pages: number[] = [];
+
+  // 显示当前页前后各2页
+  const start = Math.max(1, current - 2);
+  const end = Math.min(total, current + 2);
+
+  for (let i = start; i <= end; i++) {
+    pages.push(i);
+  }
+
+  return pages;
 }
 
 // 确认选择
@@ -299,50 +363,125 @@ function formatDateTime(dateTime: string | number | null): string {
       </div>
 
       <!-- 文件列表 -->
-      <div class="flex-1 overflow-auto p-4">
-        <div v-if="loading" class="flex items-center justify-center h-32">
-          <div class="text-gray-500">加载中...</div>
-        </div>
-        <div v-else-if="fileList.length === 0" class="flex items-center justify-center h-32">
-          <div class="text-gray-500">暂无文件</div>
-        </div>
-        <div v-else class="grid gap-2">
-          <div
-            v-for="file in fileList"
-            :key="file.file_id"
-            class="flex items-center gap-3 p-3 border rounded hover:bg-gray-50 cursor-pointer"
-            :class="{
-              'bg-blue-50 border-blue-200': isFileSelected(file.file_id) || selectedFolder === file.file_id,
-            }"
-            @click="handleFileClick(file)"
-            @dblclick="file.is_folder ? enterFolder(file) : null"
-          >
-            <!-- 图标 -->
-            <div class="flex-shrink-0">
-              <FolderIcon v-if="file.is_folder" class="w-6 h-6 text-blue-500" />
-              <FileIcon v-else class="w-6 h-6 text-gray-500" />
-            </div>
+      <div class="flex-1 flex flex-col overflow-hidden">
+        <div class="flex-1 overflow-auto p-4">
+          <div v-if="loading" class="flex items-center justify-center h-32">
+            <div class="text-gray-500">加载中...</div>
+          </div>
+          <div v-else-if="fileList.length === 0" class="flex items-center justify-center h-32">
+            <div class="text-gray-500">暂无文件</div>
+          </div>
+          <div v-else class="grid gap-2">
+            <div
+              v-for="file in fileList"
+              :key="file.file_id"
+              class="flex items-center gap-3 p-3 border rounded hover:bg-gray-50 cursor-pointer"
+              :class="{
+                'bg-blue-50 border-blue-200': isFileSelected(file.file_id) || selectedFolder === file.file_id,
+              }"
+              @click="handleFileClick(file)"
+              @dblclick="file.is_folder ? enterFolder(file) : null"
+            >
+              <!-- 图标 -->
+              <div class="flex-shrink-0">
+                <FolderIcon v-if="file.is_folder" class="w-6 h-6 text-blue-500" />
+                <FileIcon v-else class="w-6 h-6 text-gray-500" />
+              </div>
 
-            <!-- 文件信息 -->
-            <div class="flex-1 min-w-0">
-              <div class="font-medium truncate">{{ file.file_name }}</div>
-              <div class="text-sm text-gray-500 flex items-center gap-4">
-                <span v-if="!file.is_folder">{{ formatFileSize(file.file_size || 0) }}</span>
-                <span v-if="file.updated_at">{{ formatDateTime(file.updated_at) }}</span>
+              <!-- 文件信息 -->
+              <div class="flex-1 min-w-0">
+                <div class="font-medium truncate">{{ file.file_name }}</div>
+                <div class="text-sm text-gray-500 flex items-center gap-4">
+                  <span v-if="!file.is_folder">{{ formatFileSize(file.file_size || 0) }}</span>
+                  <span v-if="file.updated_at">{{ formatDateTime(file.updated_at) }}</span>
+                </div>
+              </div>
+
+              <!-- 选中状态 -->
+              <div class="flex-shrink-0">
+                <div
+                  v-if="isFileSelected(file.file_id) || selectedFolder === file.file_id"
+                  class="w-5 h-5 bg-blue-500 rounded-full flex items-center justify-center"
+                >
+                  <svg class="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20">
+                    <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" />
+                  </svg>
+                </div>
               </div>
             </div>
+          </div>
+        </div>
 
-            <!-- 选中状态 -->
-            <div class="flex-shrink-0">
-              <div
-                v-if="isFileSelected(file.file_id) || selectedFolder === file.file_id"
-                class="w-5 h-5 bg-blue-500 rounded-full flex items-center justify-center"
+        <!-- 分页控件 -->
+        <div v-if="pagination.totalPages > 1" class="flex items-center justify-between px-4 py-3 border-t bg-gray-50">
+          <div class="text-sm text-gray-600">
+            共 {{ pagination.total }} 项，第 {{ pagination.current }} / {{ pagination.totalPages }} 页
+          </div>
+          <div class="flex items-center gap-2">
+            <button
+              :disabled="pagination.current <= 1"
+              @click="handlePageChange(pagination.current - 1)"
+              class="px-3 py-1 text-sm border rounded hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              上一页
+            </button>
+
+            <!-- 页码按钮 -->
+            <template v-if="pagination.totalPages <= 7">
+              <button
+                v-for="page in pagination.totalPages"
+                :key="page"
+                @click="handlePageChange(page)"
+                :class="{
+                  'bg-blue-500 text-white': page === pagination.current,
+                  'hover:bg-gray-100': page !== pagination.current
+                }"
+                class="px-3 py-1 text-sm border rounded min-w-[32px]"
               >
-                <svg class="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20">
-                  <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" />
-                </svg>
-              </div>
-            </div>
+                {{ page }}
+              </button>
+            </template>
+            <template v-else>
+              <!-- 复杂分页逻辑 -->
+              <button
+                v-if="pagination.current > 3"
+                @click="handlePageChange(1)"
+                class="px-3 py-1 text-sm border rounded hover:bg-gray-100 min-w-[32px]"
+              >
+                1
+              </button>
+              <span v-if="pagination.current > 4" class="px-2 text-gray-500">...</span>
+
+              <button
+                v-for="page in getVisiblePages()"
+                :key="page"
+                @click="handlePageChange(page)"
+                :class="{
+                  'bg-blue-500 text-white': page === pagination.current,
+                  'hover:bg-gray-100': page !== pagination.current
+                }"
+                class="px-3 py-1 text-sm border rounded min-w-[32px]"
+              >
+                {{ page }}
+              </button>
+
+              <span v-if="pagination.current < pagination.totalPages - 3" class="px-2 text-gray-500">...</span>
+              <button
+                v-if="pagination.current < pagination.totalPages - 2"
+                @click="handlePageChange(pagination.totalPages)"
+                class="px-3 py-1 text-sm border rounded hover:bg-gray-100 min-w-[32px]"
+              >
+                {{ pagination.totalPages }}
+              </button>
+            </template>
+
+            <button
+              :disabled="pagination.current >= pagination.totalPages"
+              @click="handlePageChange(pagination.current + 1)"
+              class="px-3 py-1 text-sm border rounded hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              下一页
+            </button>
           </div>
         </div>
       </div>
