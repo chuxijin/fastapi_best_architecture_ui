@@ -320,6 +320,7 @@ export interface CoulddriveShareInfo {
   share_id: string;
   pwd_id: string;
   url: string;
+  password: string;
   expired_type: number;
   view_count: number;
   expired_at?: string;

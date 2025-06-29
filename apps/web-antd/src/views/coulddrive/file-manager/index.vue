@@ -116,6 +116,10 @@ const handleFormChange = async (values: any) => {
     accountOptions.value = [];
     formData.value.user_id = null;
 
+    // 重置认证token和目录
+    authToken.value = '';
+    resetPath();
+
     await queryFormApi.setValues({
       type: values.type,
       user_id: null
@@ -136,6 +140,7 @@ const handleFormChange = async (values: any) => {
       message.success('已选择账号，正在加载文件列表...');
     } else {
       authToken.value = '';
+      resetPath();
     }
   }
 };
@@ -502,6 +507,11 @@ const shareProgress = ref({
   isRunning: false,
 });
 
+// 记录当前分享是否设置了提取码
+const currentShareHasPassword = ref(false);
+// 记录用户实际输入的提取码
+const currentSharePassword = ref('');
+
 // 创建分享表单（支持单个和批量）
 const [CreateShareForm, createShareFormApi] = useVbenForm({
   showDefaultActions: false,
@@ -531,6 +541,31 @@ const [CreateShareForm, createShareFormApi] = useVbenForm({
       label: '有效期',
       defaultValue: 7,
     },
+    {
+      component: 'Switch',
+      componentProps: {
+        checkedChildren: '开启',
+        unCheckedChildren: '关闭',
+      },
+      fieldName: 'need_password',
+      label: '是否需要提取码',
+      defaultValue: false,
+    },
+    {
+      component: 'Input',
+      componentProps: {
+        placeholder: '请输入4位提取码',
+        maxlength: 4,
+        showCount: true,
+      },
+      fieldName: 'password',
+      label: '提取码',
+      defaultValue: 'zyas',
+      dependencies: {
+        show: ({ need_password }) => need_password === true,
+        triggerFields: ['need_password'],
+      },
+    },
   ],
 });
 
@@ -555,11 +590,19 @@ const [createShareModal, createShareModalApi] = useVbenModal({
       try {
         const formValues = await createShareFormApi.getValues<{
           expired_type: number;
+          need_password: boolean;
+          password: string;
         }>();
+
+                // 记录是否设置了提取码和实际的提取码
+        currentShareHasPassword.value = formValues.need_password;
+        currentSharePassword.value = formValues.need_password ? formValues.password : '';
+
+
 
         // 关闭设置弹窗，开始执行分享
         await createShareModalApi.close();
-        await executeShare(shareQueue.value, formValues.expired_type);
+        await executeShare(shareQueue.value, formValues.expired_type, formValues.need_password ? formValues.password : undefined);
 
       } catch (error) {
         console.error('分享失败:', error);
@@ -573,8 +616,11 @@ const [createShareModal, createShareModalApi] = useVbenModal({
     if (!isOpen) {
       // 不要在这里清空shareQueue，因为onConfirm还需要使用它
       // shareQueue.value = [];
-      shareResults.value = [];
-      shareProgress.value = { current: 0, total: 0, isRunning: false };
+      // 也不要重置分享状态，因为后续的分享结果模态框还需要使用这些状态
+      // shareResults.value = [];
+      // shareProgress.value = { current: 0, total: 0, isRunning: false };
+      // currentShareHasPassword.value = false;
+      // currentSharePassword.value = '';
     }
   },
 });
@@ -604,18 +650,17 @@ const [shareResultModal, shareResultModalApi] = useVbenModal({
   confirmText: '确定',
   async onConfirm() {
     await shareResultModalApi.close();
-  },
-  onOpenChange(isOpen) {
-    if (!isOpen) {
-      shareResultInfo.value = null;
-      shareResults.value = [];
-      shareProgress.value = { current: 0, total: 0, isRunning: false };
-    }
+    // 在确认关闭时才重置状态
+    shareResultInfo.value = null;
+    shareResults.value = [];
+    shareProgress.value = { current: 0, total: 0, isRunning: false };
+    currentShareHasPassword.value = false;
+    currentSharePassword.value = '';
   },
 });
 
 // 统一的分享执行函数
-async function executeShare(files: CoulddriveFileInfo[], expiredType: number) {
+async function executeShare(files: CoulddriveFileInfo[], expiredType: number, password?: string) {
   if (!files || files.length === 0) {
     message.error('没有选择要分享的文件');
     return;
@@ -661,6 +706,7 @@ async function executeShare(files: CoulddriveFileInfo[], expiredType: number) {
         file_name: file.file_name,
         file_ids: [file.file_id],
         expired_type: expiredType,
+        ...(password && { password }),
       };
 
       const result = await createCoulddriveShareApi(shareParams, authToken.value);
@@ -741,6 +787,8 @@ function openShareModal(file: CoulddriveFileInfo) {
   createShareFormApi.setValues({
     file_list: file.file_name,
     expired_type: 7,
+    need_password: false,
+    password: 'zyas',
   });
 
   createShareModalApi.open();
@@ -766,6 +814,8 @@ function openBatchShareModal() {
   createShareFormApi.setValues({
     file_list: fileList,
     expired_type: 7,
+    need_password: false,
+    password: 'zyas',
   });
 
   createShareModalApi.open();
@@ -792,8 +842,15 @@ function copySingleShareResult() {
 
   const driveTypeLabel = DRIVE_TYPE_OPTIONS.find(option => option.value === formData.value.type)?.label || '网盘';
 
-  const shareText = `我用${driveTypeLabel}分享了「${shareResultInfo.value.title}」，点击链接即可保存。打开「${driveTypeLabel}APP」在线查看，支持多种文档格式转换。
+  let shareText = `我用${driveTypeLabel}分享了「${shareResultInfo.value.title}」，点击链接即可保存。打开「${driveTypeLabel}APP」在线查看，支持多种文档格式转换。
 链接：${shareResultInfo.value.url}`;
+
+
+
+  // 如果用户设置了提取码，添加提取码信息
+  if (currentShareHasPassword.value && currentSharePassword.value) {
+    shareText += `\n提取码：${currentSharePassword.value}`;
+  }
 
   navigator.clipboard.writeText(shareText).then(() => {
     message.success('分享链接已复制到剪贴板');
@@ -815,8 +872,15 @@ function copyAllShareResults() {
 
   const shareTexts = successResults.map(item => {
     const result = item.result!;
-    return `我用${driveTypeLabel}分享了「${result.title}」，点击链接即可保存。打开「${driveTypeLabel}APP」在线查看，支持多种文档格式转换。
+    let shareText = `我用${driveTypeLabel}分享了「${result.title}」，点击链接即可保存。打开「${driveTypeLabel}APP」在线查看，支持多种文档格式转换。
 链接：${result.url}`;
+
+    // 如果用户设置了提取码，添加提取码信息
+    if (currentShareHasPassword.value && currentSharePassword.value) {
+      shareText += `\n提取码：${currentSharePassword.value}`;
+    }
+
+    return shareText;
   });
 
   const allShareText = shareTexts.join('\n\n---\n\n');
@@ -832,8 +896,13 @@ function copyAllShareResults() {
 function copySingleShareLink(shareInfo: CoulddriveShareInfo) {
   const driveTypeLabel = DRIVE_TYPE_OPTIONS.find(option => option.value === formData.value.type)?.label || '网盘';
 
-  const shareText = `我用${driveTypeLabel}分享了「${shareInfo.title}」，点击链接即可保存。打开「${driveTypeLabel}APP」在线查看，支持多种文档格式转换。
+  let shareText = `我用${driveTypeLabel}分享了「${shareInfo.title}」，点击链接即可保存。打开「${driveTypeLabel}APP」在线查看，支持多种文档格式转换。
 链接：${shareInfo.url}`;
+
+  // 如果用户设置了提取码，添加提取码信息
+  if (currentShareHasPassword.value && currentSharePassword.value) {
+    shareText += `\n提取码：${currentSharePassword.value}`;
+  }
 
   navigator.clipboard.writeText(shareText).then(() => {
     message.success(`「${shareInfo.title}」分享链接已复制到剪贴板`);

@@ -231,10 +231,14 @@ const [EditModal, editModalApi] = useVbenModal({
       };
 
       // 过滤掉空字符串、null 和 undefined 值
+      // 但是某些字段即使是空字符串也要传递
+      const allowEmptyStringFields = ['extract_code', 'description', 'resource_intro', 'resource_image', 'remark'];
       const apiData: CreateResourceParams | UpdateResourceParams = {};
       Object.entries(rawData).forEach(([key, value]) => {
-        if (value !== null && value !== undefined && value !== '') {
-          (apiData as any)[key] = value;
+        if (value !== null && value !== undefined) {
+          if (value !== '' || allowEmptyStringFields.includes(key)) {
+            (apiData as any)[key] = value;
+          }
         }
       });
 
@@ -460,6 +464,25 @@ async function copyToClipboard(text: string) {
   }
 }
 
+// 复制完整分享链接（包含提取码）
+async function copyShareLinkWithExtractCode(resourceData: any) {
+  try {
+    const driveTypeLabel = DRIVE_TYPE_OPTIONS.find(option => option.value === resourceData.url_type)?.label || '网盘';
+
+    let shareText = `我用${driveTypeLabel}分享了「${resourceData.main_name || resourceData.title}」，点击链接即可保存。打开「${driveTypeLabel}APP」在线查看，支持多种文档格式转换。\n链接：${resourceData.url}`;
+
+    // 如果有提取码，添加提取码信息
+    if (resourceData.extract_code) {
+      shareText += `\n提取码：${resourceData.extract_code}`;
+    }
+
+    await navigator.clipboard.writeText(shareText);
+    message.success('完整分享链接已复制到剪贴板');
+  } catch (error) {
+    message.error('复制失败');
+  }
+}
+
 // 从查看详情中编辑资源
 function editResource(resourceData: any) {
   viewModalApi.close();
@@ -672,13 +695,9 @@ async function handleSmartRecognition() {
     return;
   }
 
-  console.log('开始智能识别，输入内容:', urlToRecognize);
-
   isRecognizing.value = true;
   try {
     const response: SmartRecognitionResponse = await smartRecognitionApi(urlToRecognize);
-
-    console.log('智能识别响应:', response);
 
     if (response.success) {
       // 根据识别结果自动填充表单
@@ -1348,6 +1367,12 @@ onMounted(async () => {
                   class="px-3 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 text-sm"
                 >
                   复制
+                </button>
+                <button
+                  @click="copyShareLinkWithExtractCode(viewResourceData)"
+                  class="px-3 py-2 bg-green-500 text-white rounded hover:bg-green-600 text-sm"
+                >
+                  复制完整分享
                 </button>
               </div>
             </div>
