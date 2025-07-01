@@ -258,13 +258,10 @@ export interface CoulddriveListFilesParams {
   drive_type: string;
   file_path?: string;
   file_id?: string;
-  recursive?: boolean;
   desc?: boolean;
   name?: boolean;
   time?: boolean;
   size_sort?: boolean;
-  recursion_speed?: RecursionSpeed;
-  exclude_rules?: string;
   page?: number;
   size?: number;
 }
@@ -274,9 +271,6 @@ export interface CoulddriveListShareFilesParams {
   source_type: string;
   source_id: string;
   file_path: string;
-  recursive?: boolean;
-  recursion_speed?: RecursionSpeed;
-  exclude_rules?: string;
   page?: number;
   size?: number;
 }
