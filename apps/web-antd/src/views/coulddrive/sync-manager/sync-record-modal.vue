@@ -125,7 +125,9 @@ function selectTask(task: SyncTaskDetail) {
   selectedItemStatus.value = '';
   selectedOperationType.value = '';
   // 查询任务项
-  taskItemGridApi.query();
+  setTimeout(() => {
+    taskItemGridApi.reload();
+  }, 100);
 }
 
 // 任务列表表格配置
@@ -385,19 +387,25 @@ const [TaskItemGrid, taskItemGridApi] = useVbenVxeGrid({
 watch(() => props.visible, (visible) => {
   if (visible) {
     selectedTask.value = null;
-    taskGridApi.query();
+    setTimeout(() => {
+      taskGridApi.reload();
+    }, 100);
   }
 });
 
 // 监听任务状态筛选变化
 watch(selectedTaskStatus, () => {
-  taskGridApi.query();
+  setTimeout(() => {
+    taskGridApi.reload();
+  }, 100);
 });
 
 // 监听任务项筛选变化
 watch([selectedItemStatus, selectedOperationType], () => {
   if (selectedTask.value) {
-    taskItemGridApi.query();
+    setTimeout(() => {
+      taskItemGridApi.reload();
+    }, 100);
   }
 });
 
@@ -465,6 +473,7 @@ function handleClose() {
     :title="modalTitle"
     width="95%"
     :footer="null"
+    :z-index="1000"
     @cancel="handleClose"
   >
     <div class="sync-record-container">
@@ -667,4 +676,25 @@ function handleClose() {
 :deep(.vxe-table .vxe-cell) {
   padding: 6px 8px;
 }
+
+/* 修复VXE表格tooltip在模态框中显示的z-index问题 */
+:deep(.vxe-table--tooltip-wrapper),
+:deep(.vxe-tooltip--wrapper) {
+  z-index: 9999 !important;
+}
+
+/* 更全面的tooltip修复 */
+:global(.vxe-table--tooltip-wrapper) {
+  z-index: 9999 !important;
+}
+
+:global(.vxe-tooltip--wrapper) {
+  z-index: 9999 !important;
+}
+
+:global(.vxe-table--tooltip) {
+  z-index: 9999 !important;
+}
+
+
 </style>
