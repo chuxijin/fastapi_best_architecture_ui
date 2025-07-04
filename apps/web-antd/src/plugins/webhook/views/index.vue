@@ -177,7 +177,10 @@ const [TestModal, testModalApi] = useVbenModal({
         // 尝试解析JSON数据
         if (typeof data.data === 'string') {
           try {
-            data.data = JSON.parse(data.data);
+            // 解析字符串为JSON对象
+            const parsedData = JSON.parse(data.data);
+            // 将解析后的对象赋值给data.data
+            data.data = parsedData;
           } catch {
             // 如果解析失败，保持原字符串
           }
@@ -304,9 +307,24 @@ const [ViewModal, viewModalApi] = useVbenModal({
     if (isOpen) {
       const data = viewModalApi.getData<WebhookEvent>();
       if (data) {
+        // 处理payload数据，将Unicode转义字符转换为实际字符
+        let formattedPayload = data.payload;
+        try {
+          // 尝试解析JSON
+          const parsedPayload = JSON.parse(data.payload);
+          // 重新格式化JSON，确保Unicode字符不被转义
+          formattedPayload = JSON.stringify(parsedPayload, null, 2);
+        } catch (e) {
+          // 如果不是有效的JSON，尝试解码可能的Unicode转义序列
+          formattedPayload = data.payload.replace(/\\u[\dA-F]{4}/gi, match => {
+            return String.fromCharCode(parseInt(match.replace(/\\u/g, ''), 16));
+          });
+        }
+
         viewFormApi.setValues({
           ...data,
           headers: JSON.stringify(data.headers, null, 2),
+          payload: formattedPayload
         });
       }
     }

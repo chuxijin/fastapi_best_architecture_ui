@@ -84,7 +84,12 @@ const getStatusText = (status: number) => {
 
 // 复制到剪贴板
 const copyToClipboard = (text: string) => {
-  navigator.clipboard.writeText(text).then(() => {
+  // 确保文本中的Unicode转义序列被正确处理
+  const processedText = text.replace(/\\u[\dA-F]{4}/gi, (match: string) => {
+    return String.fromCharCode(parseInt(match.replace(/\\u/g, ''), 16));
+  });
+
+  navigator.clipboard.writeText(processedText).then(() => {
     message.success('复制成功');
   }).catch(() => {
     message.error('复制失败');
@@ -213,7 +218,25 @@ export const useColumns = (
     width: 200,
     slots: {
       default: ({ row }: any) => {
-        const text = typeof row.payload === 'string' ? row.payload : JSON.stringify(row.payload);
+        // 处理payload数据，尝试解析JSON并正确显示Unicode字符
+        let text = '';
+        try {
+          if (typeof row.payload === 'string') {
+            // 尝试解析JSON
+            const parsedPayload = JSON.parse(row.payload);
+            // 重新格式化，确保Unicode字符不被转义
+            text = JSON.stringify(parsedPayload);
+          } else {
+            text = JSON.stringify(row.payload);
+          }
+        } catch (e) {
+          // 如果解析失败，使用原始字符串并尝试解码Unicode
+          text = typeof row.payload === 'string'
+            ? row.payload.replace(/\\u[\dA-F]{4}/gi, (match: string) =>
+                String.fromCharCode(parseInt(match.replace(/\\u/g, ''), 16)))
+            : String(row.payload);
+        }
+
         const preview = text.length > 50 ? text.substring(0, 50) + '...' : text;
 
         return h('div', { class: 'flex items-center gap-2' }, [
