@@ -94,6 +94,20 @@ const gridOptions: VxeTableGridOptions<WebhookEvent> = {
     pageSize: 10,
     pageSizes: [10, 20, 50, 100],
   },
+  resizeConfig: {
+    refreshDelay: 250,
+  },
+  scrollX: {
+    enabled: true,
+  },
+  scrollY: {
+    enabled: true,
+  },
+  columnConfig: {
+    resizable: true,
+    isCurrent: true,
+    isHover: true,
+  },
   columns: useColumns(onActionClick),
   proxyConfig: {
     ajax: {
@@ -129,6 +143,16 @@ function onActionClick({ code, row }: OnActionClickParams<WebhookEvent>) {
     }
     case 'view': {
       viewModalApi.setData(row).open();
+      break;
+    }
+    case 'retry': {
+      // 重试单个webhook事件
+      retryFailedWebhooksApi().then(() => {
+        message.success('重试操作完成');
+        onRefresh();
+      }).catch(() => {
+        message.error('重试操作失败');
+      });
       break;
     }
   }
@@ -179,8 +203,10 @@ const [TestModal, testModalApi] = useVbenModal({
 // 查看详情表单
 const [ViewForm, viewFormApi] = useVbenForm({
   layout: 'vertical',
+  wrapperClass: 'grid-cols-1 md:grid-cols-3',
   showDefaultActions: false,
   schema: [
+    // 第一行：ID、事件类型、来源
     {
       component: 'Input',
       fieldName: 'id',
@@ -205,6 +231,7 @@ const [ViewForm, viewFormApi] = useVbenForm({
         readonly: true,
       },
     },
+    // 第二行：处理状态、重试次数、处理时间
     {
       component: 'Select',
       fieldName: 'status',
@@ -234,37 +261,43 @@ const [ViewForm, viewFormApi] = useVbenForm({
         readonly: true,
       },
     },
+    // 第三行：错误信息（单独一行）
     {
       component: 'Input',
       fieldName: 'error_message',
       label: '错误信息',
+      formItemClass: 'col-span-3',
       componentProps: {
         readonly: true,
       },
     },
+    // 第四行：请求头（高度调高）
     {
       component: 'Textarea',
       fieldName: 'headers',
       label: '请求头',
+      formItemClass: 'col-span-3',
       componentProps: {
         readonly: true,
-        rows: 4,
+        rows: 8,
       },
     },
+    // 第五行：事件数据（高度调低）
     {
       component: 'Textarea',
       fieldName: 'payload',
       label: '事件数据',
+      formItemClass: 'col-span-3',
       componentProps: {
         readonly: true,
-        rows: 6,
+        rows: 4,
       },
     },
   ],
 });
 
 const [ViewModal, viewModalApi] = useVbenModal({
-  class: 'w-3/5',
+  class: 'w-1/2 webhook-detail-modal',
   destroyOnClose: true,
   footer: false,
   onOpenChange(isOpen) {
@@ -340,5 +373,37 @@ pre {
   font-size: 12px;
   max-height: 200px;
   overflow-y: auto;
+}
+
+/* 详情模态框基础样式 */
+:deep(.webhook-detail-modal) {
+  .ant-modal-body {
+    padding: 20px !important;
+  }
+}
+
+/* 额外的通用样式确保布局生效 */
+:deep(.webhook-detail-modal) {
+  .ant-modal-body {
+    padding: 20px !important;
+  }
+
+  .ant-form-item {
+    margin-bottom: 16px !important;
+  }
+
+  .ant-form-item-label {
+    font-weight: 500 !important;
+  }
+
+  /* 针对文本域的特殊处理 */
+  .ant-input[readonly] {
+    background-color: #f5f5f5 !important;
+    cursor: default !important;
+  }
+
+  textarea.ant-input[readonly] {
+    resize: vertical !important;
+  }
 }
 </style>
