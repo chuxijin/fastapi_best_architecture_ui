@@ -160,6 +160,26 @@ export interface SyncTaskResult {
   [key: string]: any;
 }
 
+// 异步任务提交结果
+export interface AsyncTaskSubmitResult {
+  task_id: string;
+  config_id: number;
+  status: string;
+  message: string;
+}
+
+// 异步任务状态
+export interface AsyncTaskStatus {
+  task_id: string;
+  status: string;
+  ready: boolean;
+  successful?: boolean;
+  failed?: boolean;
+  result?: SyncTaskResult;
+  error?: string;
+  message: string;
+}
+
 // 用户信息相关
 export interface CoulddriveUserInfo {
   user_id: string;
@@ -437,11 +457,20 @@ export interface DomainSubjectMapping {
 // ==================== 同步任务 API ====================
 
 /**
- * 执行同步任务
+ * 提交异步同步任务
  */
 export async function executeCoulddriveSyncTaskApi(configId: number) {
-  return requestClient.post<SyncTaskResult>(`/api/v1/couldsync/execute/${configId}`, {}, {
-    timeout: 60 * 60 * 1000, // 1小时超时
+  return requestClient.post<AsyncTaskSubmitResult>(`/api/v1/couldsync/execute/${configId}`, {}, {
+    timeout: 30 * 1000, // 30秒超时，仅用于提交任务
+  });
+}
+
+/**
+ * 查询异步任务状态
+ */
+export async function getAsyncTaskStatusApi(taskId: string) {
+  return requestClient.get<AsyncTaskStatus>(`/api/v1/couldsync/task/status/${taskId}`, {
+    timeout: 10 * 1000, // 10秒超时
   });
 }
 

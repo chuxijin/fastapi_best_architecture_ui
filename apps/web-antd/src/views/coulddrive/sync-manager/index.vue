@@ -3,7 +3,7 @@ import type { VbenFormProps } from '@vben/common-ui';
 import type { VxeTableGridOptions } from '#/adapter/vxe-table';
 import type { OnActionClickParams } from '#/adapter/vxe-table';
 
-import { ref, computed } from 'vue';
+import { ref, computed, onMounted, onUnmounted } from 'vue';
 
 import { Page, VbenButton, useVbenModal } from '@vben/common-ui';
 import { AddData } from '@vben/icons';
@@ -20,6 +20,7 @@ import {
   updateCoulddriveSyncConfigApi,
   deleteCoulddriveSyncConfigApi,
   executeCoulddriveSyncTaskApi,
+  getAsyncTaskStatusApi,
 } from '#/api';
 import {
   syncConfigQuerySchema,
@@ -50,6 +51,17 @@ const drawerEditData = ref<any>(null);
 
 // 开关加载状态
 const switchLoadingMap = ref<Map<number, boolean>>(new Map());
+
+// 任务执行状态
+const executingTasks = ref<Map<number, {
+  taskId: string;
+  polling: boolean;
+  startTime: Date;
+  progress?: string;
+}>>(new Map());
+
+// 当前时间，用于实时更新运行时间显示
+const currentTime = ref(new Date());
 
 // 查询表单配置
 const queryFormOptions: VbenFormProps = {
@@ -235,31 +247,220 @@ function onActionClick({ code, row }: OnActionClickParams) {
 // 执行同步
 async function executeSync(config: any) {
   try {
-    message.loading({ content: '正在执行同步任务...', key: 'sync_task' });
-    const result = await executeCoulddriveSyncTaskApi(config.id);
-
-    if (result.success) {
-      const stats = result.stats;
-      const addedTotal = stats.added_success + stats.added_fail;
-      const deletedTotal = stats.deleted_success + stats.deleted_fail;
-
-      let successMsg = '同步任务执行成功';
-      if (addedTotal > 0 || deletedTotal > 0) {
-        successMsg += `，添加 ${addedTotal} 个文件，删除 ${deletedTotal} 个文件`;
-      } else {
-        successMsg += '，文件已是最新状态';
-      }
-
-      message.success({ content: successMsg, key: 'sync_task' });
-    } else {
-      message.error({ content: `同步任务失败：${result.error}`, key: 'sync_task' });
+    // 检查是否已经有任务在执行
+    if (executingTasks.value.has(config.id)) {
+      message.warning('该配置的同步任务正在执行中，请稍后再试');
+      return;
     }
 
-    onRefresh();
+        // 设置执行中状态
+    executingTasks.value.set(config.id, {
+      taskId: `executing_${config.id}`,
+      polling: false,
+      startTime: new Date(),
+      progress: '正在执行同步任务...'
+    });
+
+    message.loading({ content: '正在执行同步任务...', key: `sync_task_${config.id}` });
+
+    // 提交同步任务
+    const submitResult = await executeCoulddriveSyncTaskApi(config.id);
+
+    if (submitResult.task_id) {
+            // 检查是否已经完成（直接执行模式）
+      if (submitResult.status === 'completed' && submitResult.result) {
+        // 清除执行中状态
+        executingTasks.value.delete(config.id);
+
+        // 任务已经完成，直接显示结果
+        const result = submitResult.result;
+        if (result.success) {
+          const stats = result.stats;
+          let successMsg = '同步任务执行成功';
+
+          if (stats) {
+            const processed = stats.files_processed || 0;
+            const transferred = stats.files_transferred || 0;
+            const deleted = stats.files_deleted || 0;
+
+            if (transferred > 0 || deleted > 0) {
+              successMsg += `，处理 ${processed} 个文件，转存 ${transferred} 个，删除 ${deleted} 个`;
+            } else {
+              successMsg += '，文件已是最新状态';
+            }
+          }
+
+          message.success({
+            content: successMsg,
+            key: `sync_task_${config.id}`
+          });
+        } else {
+          const errorMsg = result.error || '同步任务执行失败';
+          message.error({
+            content: `同步任务失败：${errorMsg}`,
+            key: `sync_task_${config.id}`
+          });
+        }
+
+        onRefresh();
+      } else {
+        // 异步执行模式，记录任务状态并开始轮询
+        executingTasks.value.set(config.id, {
+          taskId: submitResult.task_id,
+          polling: true,
+          startTime: new Date(),
+          progress: '正在初始化...'
+        });
+
+        message.success({
+          content: '同步任务已提交，正在后台执行...',
+          key: `sync_task_${config.id}`
+        });
+
+        // 开始轮询任务状态
+        pollTaskStatus(config.id, submitResult.task_id);
+      }
+        } else {
+      // 清除执行中状态
+      executingTasks.value.delete(config.id);
+      message.error({
+        content: '提交同步任务失败',
+        key: `sync_task_${config.id}`
+      });
+    }
   } catch (error) {
-    message.error({ content: '执行同步任务失败', key: 'sync_task' });
+    // 清除执行中状态
+    executingTasks.value.delete(config.id);
+    message.error({
+      content: '提交同步任务失败',
+      key: `sync_task_${config.id}`
+    });
   }
 }
+
+// 轮询任务状态
+async function pollTaskStatus(configId: number, taskId: string) {
+  const task = executingTasks.value.get(configId);
+  if (!task || !task.polling) {
+    return;
+  }
+
+  try {
+    const statusResult = await getAsyncTaskStatusApi(taskId);
+
+    if (statusResult.ready) {
+      // 任务完成
+      executingTasks.value.delete(configId);
+
+      if (statusResult.successful && statusResult.result?.success) {
+        const stats = statusResult.result.stats;
+        let successMsg = '同步任务执行成功';
+
+        if (stats) {
+          const processed = stats.files_processed || 0;
+          const transferred = stats.files_transferred || 0;
+          const deleted = stats.files_deleted || 0;
+
+          if (transferred > 0 || deleted > 0) {
+            successMsg += `，处理 ${processed} 个文件，转存 ${transferred} 个，删除 ${deleted} 个`;
+          } else {
+            successMsg += '，文件已是最新状态';
+          }
+        }
+
+        message.success({
+          content: successMsg,
+          key: `sync_task_${configId}`
+        });
+      } else {
+        const errorMsg = statusResult.error || statusResult.result?.error || '同步任务执行失败';
+        message.error({
+          content: `同步任务失败：${errorMsg}`,
+          key: `sync_task_${configId}`
+        });
+      }
+
+      onRefresh();
+    } else {
+      // 任务还在执行，更新进度信息
+      const task = executingTasks.value.get(configId);
+      if (task) {
+        // 根据任务状态更新进度描述
+        switch (statusResult.status) {
+          case 'PENDING':
+            task.progress = '等待执行...';
+            break;
+          case 'STARTED':
+            task.progress = '正在执行...';
+            break;
+          case 'PROGRESS':
+            task.progress = '处理中...';
+            break;
+          default:
+            task.progress = '执行中...';
+        }
+      }
+
+      // 继续轮询
+      setTimeout(() => pollTaskStatus(configId, taskId), 3000); // 3秒后再次检查
+    }
+  } catch (error) {
+    // 轮询出错，停止轮询
+    executingTasks.value.delete(configId);
+    message.error({
+      content: '查询任务状态失败',
+      key: `sync_task_${configId}`
+    });
+  }
+}
+
+// 停止任务轮询
+function stopTaskPolling(configId: number) {
+  const task = executingTasks.value.get(configId);
+  if (task) {
+    task.polling = false;
+    executingTasks.value.delete(configId);
+  }
+}
+
+// 计算任务运行时间
+function getRunningTime(configId: number): string {
+  const task = executingTasks.value.get(configId);
+  if (!task) return '';
+
+  // 使用响应式的当前时间
+  const now = currentTime.value;
+  const diff = now.getTime() - task.startTime.getTime();
+  const seconds = Math.max(0, Math.floor(diff / 1000)); // 确保不会出现负数
+  const minutes = Math.floor(seconds / 60);
+  const hours = Math.floor(minutes / 60);
+
+  if (hours > 0) {
+    return `${hours}时${minutes % 60}分${seconds % 60}秒`;
+  } else if (minutes > 0) {
+    return `${minutes}分${seconds % 60}秒`;
+  } else {
+    return `${seconds}秒`;
+  }
+}
+
+// 启动定时器更新当前时间
+let timeUpdateInterval: NodeJS.Timeout | null = null;
+
+// 组件挂载时启动定时器
+onMounted(() => {
+  timeUpdateInterval = setInterval(() => {
+    currentTime.value = new Date();
+  }, 1000); // 每秒更新一次
+});
+
+// 组件卸载时清理定时器
+onUnmounted(() => {
+  if (timeUpdateInterval) {
+    clearInterval(timeUpdateInterval);
+    timeUpdateInterval = null;
+  }
+});
 
 // 显示日志
 function showLogs(config: any) {
@@ -336,19 +537,53 @@ function onDrawerSuccess() {
   <Page auto-content-height>
     <Grid>
       <template #toolbar-actions>
-        <VbenButton @click="openCreateDrawer">
-          <AddData class="size-5" />
-          新增同步配置
-        </VbenButton>
+                <div class="flex items-center justify-between w-full">
+          <VbenButton @click="openCreateDrawer">
+            <AddData class="size-5" />
+            新增同步配置
+          </VbenButton>
+
+          <!-- 全局任务状态 -->
+          <div v-if="executingTasks.size > 0" class="flex items-center gap-2 text-blue-600">
+            <a-spin size="small" />
+            <span>{{ executingTasks.size }} 个任务执行中</span>
+          </div>
+        </div>
       </template>
 
-            <!-- 自定义开关列 -->
+      <!-- 自定义开关列 -->
       <template #enable="{ row }">
-                <a-switch
+        <a-switch
           :checked="Boolean(row.enable)"
           :loading="switchLoadingMap.get(row.id) || false"
           @change="(checked: boolean) => handleStatusChange(row, checked)"
         />
+      </template>
+
+            <!-- 执行状态列 -->
+      <template #execution_status="{ row }">
+        <div v-if="executingTasks.has(row.id)" class="flex flex-col gap-1">
+          <div class="flex items-center gap-2">
+            <a-spin size="small" />
+            <span class="text-blue-600">执行中</span>
+          </div>
+          <div class="text-xs text-gray-500">
+            {{ executingTasks.get(row.id)?.progress || '处理中...' }}
+          </div>
+          <div class="text-xs text-gray-400">
+            已运行: {{ getRunningTime(row.id) }}
+          </div>
+          <a-button
+            size="small"
+            type="text"
+            danger
+            class="text-xs"
+            @click="stopTaskPolling(row.id)"
+          >
+            停止监控
+          </a-button>
+        </div>
+        <span v-else class="text-gray-500">空闲</span>
       </template>
     </Grid>
 

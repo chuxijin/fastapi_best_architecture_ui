@@ -100,6 +100,13 @@ export function useSyncConfigColumns(
       slots: { default: 'enable' },
     },
     {
+      field: 'execution_status',
+      title: '执行状态',
+      width: 120,
+      align: 'center',
+      slots: { default: 'execution_status' },
+    },
+    {
       field: 'last_sync',
       title: '最后同步',
       width: 180,
