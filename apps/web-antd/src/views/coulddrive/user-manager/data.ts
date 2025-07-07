@@ -9,28 +9,31 @@ import { $t } from '@vben/locales';
 import { DRIVE_TYPE_OPTIONS, DRIVE_TYPE_TAG_OPTIONS } from '#/api';
 
 // 用户信息查询表单配置
-export const userInfoFormSchema: VbenFormSchema[] = [
-  {
-    component: 'Select',
-    componentProps: {
-      options: DRIVE_TYPE_OPTIONS,
-      placeholder: '请选择网盘类型',
+export function getUserInfoFormSchema(isEditMode: boolean = false): VbenFormSchema[] {
+  return [
+    {
+      component: 'Select',
+      componentProps: {
+        options: DRIVE_TYPE_OPTIONS,
+        placeholder: '请选择网盘类型',
+        disabled: isEditMode, // 编辑模式下禁用网盘类型选择
+      },
+      fieldName: 'drive_type',
+      label: '网盘类型',
+      rules: 'required',
     },
-    fieldName: 'drive_type',
-    label: '网盘类型',
-    rules: 'required',
-  },
-  {
-    component: 'Input',
-    componentProps: {
-      placeholder: '请输入认证令牌',
-      type: 'password',
+    {
+      component: 'Input',
+      componentProps: {
+        placeholder: '请输入认证令牌',
+        type: 'password',
+      },
+      fieldName: 'auth_token',
+      label: '认证令牌',
+      rules: 'required',
     },
-    fieldName: 'auth_token',
-    label: '认证令牌',
-    rules: 'required',
-  },
-];
+  ];
+}
 
 // 关系列表查询表单配置
 export const relationshipQuerySchema: VbenFormSchema[] = [
@@ -162,7 +165,7 @@ export function useUserListColumns(
     {
       field: 'username',
       title: '用户名',
-      minWidth: 80,
+      minWidth: 100,
     },
     {
       field: 'type',
@@ -176,7 +179,7 @@ export function useUserListColumns(
     {
       field: 'quota',
       title: '总空间',
-      width: 120,
+      minWidth: 100,
       formatter: ({ row }) => {
         return formatFileSize(row.quota || null);
       },
@@ -184,7 +187,7 @@ export function useUserListColumns(
     {
       field: 'used',
       title: '已使用',
-      width: 120,
+      minWidth: 100,
       formatter: ({ row }) => {
         return formatFileSize(row.used || null);
       },
@@ -192,25 +195,25 @@ export function useUserListColumns(
     {
       field: 'usage_rate',
       title: '使用率',
-      width: 150,
+      minWidth: 150,
       slots: { default: 'usage' },
     },
     {
       field: 'is_vip',
       title: 'VIP状态',
-      width: 120,
+      width: 110,
       slots: { default: 'vip' },
     },
     {
       field: 'is_valid',
       title: '账号状态',
-      width: 100,
+      width: 90,
       slots: { default: 'status' },
     },
     {
       field: 'created_time',
       title: '创建时间',
-      width: 180,
+      minWidth: 160,
       formatter: ({ row }) => {
         return new Date(row.created_time).toLocaleString();
       },
@@ -220,7 +223,7 @@ export function useUserListColumns(
       title: $t('page.table.operation'),
       align: 'center',
       fixed: 'right',
-      width: 160,
+      width: 200,
       cellRender: {
         attrs: {
           nameField: 'username',
@@ -228,7 +231,14 @@ export function useUserListColumns(
         },
         name: 'CellOperation',
         options: [
-          'edit',
+          {
+            code: 'refresh',
+            text: '刷新',
+          },
+          {
+            code: 'edit',
+            text: '编辑',
+          },
           {
             code: 'relationship',
             text: '关系',

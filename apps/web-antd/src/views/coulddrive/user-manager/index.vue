@@ -11,7 +11,7 @@ import type {
   CoulddriveDriveAccountDetail,
 } from '#/api';
 
-import { onMounted, ref } from 'vue';
+import { onMounted, ref, computed } from 'vue';
 
 import { Page, VbenButton, useVbenModal } from '@vben/common-ui';
 import { AddData } from '@vben/icons';
@@ -31,10 +31,12 @@ import {
   getCoulddriveUserListApi,
   createCoulddriveUserApi,
   deleteCoulddriveUserApi,
+  refreshCoulddriveUserApi,
   DRIVE_TYPE_OPTIONS,
+  getDriveTypeLabel,
 } from '#/api';
 import {
-  userInfoFormSchema,
+  getUserInfoFormSchema,
   userListQuerySchema,
   useUserListColumns,
 } from '#/views/coulddrive/user-manager/data';
@@ -43,6 +45,10 @@ const driveType = ref<string>(DRIVE_TYPE_OPTIONS[0].value);
 const authToken = ref<string>('');
 const userInfo = ref<CoulddriveUserInfo | null>(null);
 const fetchingUserInfo = ref<boolean>(false);
+
+// 编辑模式相关状态
+const isEditMode = ref<boolean>(false);
+const editingUser = ref<CoulddriveDriveAccountDetail | null>(null);
 
 // 关系查看相关状态
 const selectedUser = ref<CoulddriveDriveAccountDetail | null>(null);
@@ -59,7 +65,7 @@ const userFormOptions: VbenFormProps = {
     content: '获取用户信息',
   },
   handleSubmit: fetchUserInfoInModal,
-  schema: userInfoFormSchema,
+  schema: getUserInfoFormSchema(false), // 默认非编辑模式
 };
 
 
@@ -134,37 +140,80 @@ const [UserInfoModal, userInfoModalApi] = useVbenModal({
   class: 'w-[600px]',
   destroyOnClose: true,
   async onConfirm() {
-    if (userInfo.value && authToken.value && driveType.value) {
-      userInfoModalApi.lock();
-      try {
-        // 调用创建用户API，将用户信息保存到数据库
-        const params: CoulddriveUserInfoParams = {
-          drive_type: driveType.value,
-        };
+    if (isEditMode.value) {
+      // 编辑模式：获取最新用户信息并更新到数据库
+      const { valid } = await userInfoFormApi.validate();
+      if (valid && editingUser.value) {
+        userInfoModalApi.lock();
+        try {
+          const formData = await userInfoFormApi.getValues<{
+            drive_type: string;
+            auth_token: string;
+          }>();
 
-        await createCoulddriveUserApi(params, authToken.value);
-        message.success('用户信息已成功保存到数据库');
+          // 使用新的认证令牌获取用户信息
+          const params: CoulddriveUserInfoParams = {
+            drive_type: formData.drive_type,
+          };
+          const updatedUserInfo = await getCoulddriveUserInfoApi(params, formData.auth_token);
+
+          // 创建或更新用户信息到数据库
+          await createCoulddriveUserApi(params, formData.auth_token);
+
+          message.success('用户信息已更新');
           await userInfoModalApi.close();
           // 刷新用户列表
           userListGridApi.query();
-      } catch (error) {
-        message.error('保存用户信息失败，请重试');
-        console.error(error);
-      } finally {
-        userInfoModalApi.unlock();
+        } catch (error) {
+          message.error('更新用户信息失败，请检查认证令牌是否正确');
+          console.error(error);
+        } finally {
+          userInfoModalApi.unlock();
+        }
+      } else {
+        message.warning('请填写完整的认证信息');
       }
     } else {
-      message.warning('请先获取用户信息');
+      // 添加模式：保存用户信息到数据库
+      if (userInfo.value && authToken.value && driveType.value) {
+        userInfoModalApi.lock();
+        try {
+          const params: CoulddriveUserInfoParams = {
+            drive_type: driveType.value,
+          };
+
+          await createCoulddriveUserApi(params, authToken.value);
+          message.success('用户信息已成功保存到数据库');
+          await userInfoModalApi.close();
+          // 刷新用户列表
+          userListGridApi.query();
+        } catch (error) {
+          message.error('保存用户信息失败，请重试');
+          console.error(error);
+        } finally {
+          userInfoModalApi.unlock();
+        }
+      } else {
+        message.warning('请先获取用户信息');
+      }
     }
   },
   onOpenChange(isOpen) {
     if (isOpen) {
-      // 重置表单
-      userInfoFormApi.resetForm();
-      userInfo.value = null;
-      authToken.value = '';
-      driveType.value = DRIVE_TYPE_OPTIONS[0].value;
-    }
+      if (!isEditMode.value) {
+        // 添加模式：重置表单
+        userInfoFormApi.resetForm();
+        userInfo.value = null;
+        authToken.value = '';
+        driveType.value = DRIVE_TYPE_OPTIONS[0].value;
+      }
+          } else {
+        // 关闭时重置状态
+        isEditMode.value = false;
+        editingUser.value = null;
+        // 重置表单schema
+        userFormOptions.schema = getUserInfoFormSchema(false);
+      }
   },
 });
 
@@ -228,12 +277,59 @@ async function fetchRelationships(user: CoulddriveDriveAccountDetail, type: 'fri
   }
 }
 
+// 编辑用户信息
+function editUser(user: CoulddriveDriveAccountDetail) {
+  isEditMode.value = true;
+  editingUser.value = user;
+
+  // 更新表单schema以禁用网盘类型选择
+  userFormOptions.schema = getUserInfoFormSchema(true);
+
+  // 设置表单数据
+  userInfoFormApi.setValues({
+    drive_type: user.type,
+    auth_token: user.cookies || '',
+  });
+
+  // 设置用户信息显示
+  userInfo.value = {
+    user_id: user.user_id,
+    username: user.username,
+    avatar_url: user.avatar_url,
+    quota: user.quota,
+    used: user.used,
+    is_vip: user.is_vip,
+    is_supervip: user.is_supervip,
+  };
+
+  driveType.value = user.type;
+  authToken.value = user.cookies || '';
+
+  userInfoModalApi.open();
+}
+
 // 用户操作处理
 async function onUserActionClick({ code, row }: OnActionClickParams<CoulddriveDriveAccountDetail>) {
   switch (code) {
+    case 'refresh': {
+      try {
+        message.loading('正在刷新用户信息...', 0);
+        await refreshCoulddriveUserApi(row.id);
+        message.destroy();
+        message.success('用户信息刷新成功');
+        // 刷新用户列表
+        userListGridApi.query();
+      } catch (error) {
+        message.destroy();
+        message.error('刷新用户信息失败，请重试');
+        console.error(error);
+        // 刷新失败后也要刷新列表，因为可能账户状态已更新
+        userListGridApi.query();
+      }
+      break;
+    }
     case 'edit': {
-      message.info(`编辑用户: ${row.username}`);
-      // TODO: 实现编辑功能
+      editUser(row);
       break;
     }
     case 'relationship': {
@@ -421,11 +517,26 @@ onMounted(() => {
 
 
     <!-- 添加用户模态框 -->
-    <UserInfoModal title="添加用户">
+    <UserInfoModal :title="isEditMode ? '编辑用户' : '添加用户'">
       <div class="grid grid-cols-1 gap-6">
-        <!-- 认证表单 -->
+                <!-- 认证表单 -->
         <div>
           <UserInfoForm />
+        </div>
+
+        <!-- 编辑模式下显示当前用户信息 -->
+        <div v-if="isEditMode" class="bg-blue-50 p-4 rounded-lg">
+          <h4 class="text-lg font-semibold text-gray-800 mb-2">当前用户信息</h4>
+          <div class="grid grid-cols-2 gap-4 text-sm">
+            <div>
+              <span class="text-gray-600">网盘类型:</span>
+              <span class="ml-2 font-semibold">{{ getDriveTypeLabel(editingUser?.type || '') }}</span>
+            </div>
+            <div>
+              <span class="text-gray-600">用户名:</span>
+              <span class="ml-2 font-semibold">{{ editingUser?.username }}</span>
+            </div>
+          </div>
         </div>
 
         <!-- 用户信息展示 -->

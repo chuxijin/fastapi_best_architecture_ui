@@ -16,7 +16,7 @@ import { ref, computed } from 'vue';
 import { Page } from '@vben/common-ui';
 import { useVbenModal } from '@vben/common-ui';
 
-import { message } from 'ant-design-vue';
+import { message, Modal } from 'ant-design-vue';
 
 import { useVbenForm } from '#/adapter/form';
 import { useVbenVxeGrid } from '#/adapter/vxe-table';
@@ -258,15 +258,27 @@ function handleContextMenuClick(code: string, row: CoulddriveFileInfo) {
 
 // 删除文件
 function deleteFile(fileId: string, fileName: string) {
-  const params: CoulddriveRemoveParams = {
-    drive_type: formData.value.type,
-    file_ids: [fileId],
-  };
-  removeCoulddriveFilesApi(params, authToken.value).then(() => {
-    message.success(`删除文件 ${fileName} 成功`);
-    // 清除文件相关缓存
-    invalidateCache('file');
-    gridApi.query();
+  Modal.confirm({
+    title: '确认删除',
+    content: `确定要删除文件 "${fileName}" 吗？此操作不可恢复。`,
+    okText: '确认删除',
+    okType: 'danger',
+    cancelText: '取消',
+    onOk() {
+      const params: CoulddriveRemoveParams = {
+        drive_type: formData.value.type,
+        file_ids: [fileId],
+      };
+      return removeCoulddriveFilesApi(params, authToken.value).then(() => {
+        message.success(`删除文件 ${fileName} 成功`);
+        // 清除文件相关缓存
+        invalidateCache('file');
+        gridApi.query();
+      }).catch((error) => {
+        console.error('删除文件失败:', error);
+        message.error(`删除文件 ${fileName} 失败`);
+      });
+    },
   });
 }
 
@@ -278,16 +290,33 @@ function deleteSelectedFiles() {
     return;
   }
 
-  const params: CoulddriveRemoveParams = {
-    drive_type: formData.value.type,
-    file_ids: selectedRows.map((row: CoulddriveFileInfo) => row.file_id),
-  };
+  const fileNames = selectedRows.map(row => row.file_name).slice(0, 3); // 最多显示3个文件名
+  const displayNames = fileNames.length < selectedRows.length
+    ? `${fileNames.join('、')} 等${selectedRows.length}个文件`
+    : fileNames.join('、');
 
-  removeCoulddriveFilesApi(params, authToken.value).then(() => {
-    message.success(`成功删除 ${selectedRows.length} 个文件`);
-    // 清除文件相关缓存
-    invalidateCache('file');
-    gridApi.query();
+  Modal.confirm({
+    title: '确认批量删除',
+    content: `确定要删除 ${displayNames} 吗？此操作不可恢复。`,
+    okText: '确认删除',
+    okType: 'danger',
+    cancelText: '取消',
+    onOk() {
+      const params: CoulddriveRemoveParams = {
+        drive_type: formData.value.type,
+        file_ids: selectedRows.map((row: CoulddriveFileInfo) => row.file_id),
+      };
+
+      return removeCoulddriveFilesApi(params, authToken.value).then(() => {
+        message.success(`成功删除 ${selectedRows.length} 个文件`);
+        // 清除文件相关缓存
+        invalidateCache('file');
+        gridApi.query();
+      }).catch((error) => {
+        console.error('批量删除文件失败:', error);
+        message.error(`批量删除文件失败`);
+      });
+    },
   });
 }
 
@@ -455,30 +484,33 @@ async function handleFileSelectConfirm(data: any) {
     message.success(`成功保存 ${data.selectedFiles.length} 个文件到当前目录`);
     fileSelectorVisible.value = false;
 
-    // 清除所有文件相关缓存
+    // 清除所有相关缓存
     invalidateCache('file');
+    invalidateCache('all'); // 清除所有缓存，确保数据一致性
 
-    // 强制刷新文件列表，确保显示新转存的文件
-    try {
-      const params = {
-        drive_type: formData.value.type,
-        file_path: currentPath.value,
-        file_id: currentFileId.value,
-        page: 1,
-        size: 20,
-        recursive: false,
-      };
+    // 延迟刷新，给服务器一些时间同步数据
+    setTimeout(async () => {
+      try {
+        // 强制刷新文件列表，确保显示新转存的文件
+        const params = {
+          drive_type: formData.value.type,
+          file_path: currentPath.value,
+          file_id: currentFileId.value,
+          page: 1,
+          size: 20,
+        };
 
-      // 使用禁用缓存的配置强制获取最新数据
-      await getCoulddriveFileListApi(params, authToken.value, { disableCache: true });
+        // 使用禁用缓存的配置强制获取最新数据
+        await getCoulddriveFileListApi(params, authToken.value, { disableCache: true });
 
-      // 然后再调用正常的刷新
-      gridApi.query();
-    } catch (error) {
-      console.error('强制刷新失败:', error);
-      // 如果强制刷新失败，还是调用正常刷新
-      gridApi.query();
-    }
+        // 然后再调用正常的刷新
+        gridApi.query();
+      } catch (error) {
+        console.error('延迟刷新失败:', error);
+        // 如果延迟刷新失败，还是调用正常刷新
+        gridApi.query();
+      }
+    }, 1500); // 延迟1.5秒刷新
   } catch (error) {
     console.error('保存文件失败:', error);
     message.error('保存文件失败，请重试');

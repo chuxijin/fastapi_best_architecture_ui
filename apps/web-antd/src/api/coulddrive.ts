@@ -582,6 +582,13 @@ export async function deleteCoulddriveUserApi(userId: number) {
   return requestClient.delete<string>(`/api/v1/coulduser/${userId}`);
 }
 
+/**
+ * 刷新 Coulddrive 用户信息
+ */
+export async function refreshCoulddriveUserApi(userId: number) {
+  return requestClient.put<CoulddriveUserInfo>(`/api/v1/coulduser/${userId}/refresh`);
+}
+
 
 // ==================== 文件管理 API ====================
 

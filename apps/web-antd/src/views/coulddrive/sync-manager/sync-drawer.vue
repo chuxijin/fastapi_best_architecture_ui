@@ -185,6 +185,15 @@ watch([() => props.visible, () => props.editData], async ([visible, newData]) =>
       }
     }
 
+    // 解析 cron 表达式
+    if (newData.cron) {
+      parseCronExpression(newData.cron);
+    } else {
+      // 如果没有 cron 表达式，设置为手动执行
+      formData.value.cron_type = '';
+      formData.value.cron_display = '手动执行';
+    }
+
                 // 加载相关数据
     if (newData.type) {
       await loadAccountOptions(newData.type);
@@ -494,6 +503,119 @@ function getUnitText() {
 function getWeekdayText(weekday: number): string {
   const weekdays = ['周一', '周二', '周三', '周四', '周五', '周六', '周日'];
   return weekdays[weekday - 1] || '周一';
+}
+
+// 解析cron表达式
+function parseCronExpression(cronExpr: string) {
+  if (!cronExpr || cronExpr.trim() === '') {
+    formData.value.cron_type = '';
+    formData.value.cron_display = '手动执行';
+    return;
+  }
+
+  const parts = cronExpr.trim().split(/\s+/);
+
+  try {
+    if (parts.length === 5) {
+      // 标准 5 段 cron 表达式: minute hour day month weekday
+      const [minute, hour, day, month, weekday] = parts;
+
+      // 每天执行: 固定分钟和小时，日月周都是 *
+      if (day === '*' && month === '*' && weekday === '*' && !minute.includes('/') && !hour.includes('/')) {
+        formData.value.cron_type = 'daily';
+        formData.value.cron_hour = parseInt(hour);
+        formData.value.cron_minute = parseInt(minute);
+        formData.value.cron_display = `每天${hour.padStart(2, '0')}:${minute.padStart(2, '0')}执行`;
+        return;
+      }
+
+      // 每N天执行: 分钟和小时固定，日是 */N 格式
+      if (day.includes('/') && month === '*' && weekday === '*') {
+        const dayMatch = day.match(/^\*\/(\d+)$/);
+        if (dayMatch) {
+          formData.value.cron_type = 'n_days';
+          formData.value.cron_value = parseInt(dayMatch[1]);
+          formData.value.cron_hour = parseInt(hour);
+          formData.value.cron_minute = parseInt(minute);
+          formData.value.cron_display = `每${dayMatch[1]}天${hour.padStart(2, '0')}:${minute.padStart(2, '0')}执行`;
+          return;
+        }
+      }
+
+      // 每小时执行: 0 * * * *
+      if (minute === '0' && hour === '*' && day === '*' && month === '*' && weekday === '*') {
+        formData.value.cron_type = 'hourly';
+        formData.value.cron_display = '每小时执行';
+        return;
+      }
+
+      // 每N小时执行: 0 */N * * *
+      if (minute === '0' && hour.includes('/') && day === '*' && month === '*' && weekday === '*') {
+        const hourMatch = hour.match(/^\*\/(\d+)$/);
+        if (hourMatch) {
+          formData.value.cron_type = 'n_hours';
+          formData.value.cron_value = parseInt(hourMatch[1]);
+          formData.value.cron_display = `每${hourMatch[1]}小时执行`;
+          return;
+        }
+      }
+
+      // 每N分钟执行: */N * * * *
+      if (minute.includes('/') && hour === '*' && day === '*' && month === '*' && weekday === '*') {
+        const minuteMatch = minute.match(/^\*\/(\d+)$/);
+        if (minuteMatch) {
+          formData.value.cron_type = 'n_minutes';
+          formData.value.cron_value = parseInt(minuteMatch[1]);
+          formData.value.cron_display = `每${minuteMatch[1]}分钟执行`;
+          return;
+        }
+      }
+
+      // 每周执行: 分钟小时固定，日月是 *，周几固定
+      if (day === '*' && month === '*' && !weekday.includes('*') && !minute.includes('/') && !hour.includes('/')) {
+        formData.value.cron_type = 'weekly';
+        formData.value.cron_hour = parseInt(hour);
+        formData.value.cron_minute = parseInt(minute);
+        formData.value.cron_weekday = parseInt(weekday);
+        const weekdays = ['周一', '周二', '周三', '周四', '周五', '周六', '周日'];
+        const weekdayText = weekdays[parseInt(weekday) - 1] || '周一';
+        formData.value.cron_display = `每${weekdayText}${hour.padStart(2, '0')}:${minute.padStart(2, '0')}执行`;
+        return;
+      }
+
+      // 每月执行: 分钟小时固定，日固定，月和周是 *
+      if (!day.includes('*') && month === '*' && weekday === '*' && !minute.includes('/') && !hour.includes('/')) {
+        formData.value.cron_type = 'monthly';
+        formData.value.cron_hour = parseInt(hour);
+        formData.value.cron_minute = parseInt(minute);
+        formData.value.cron_day = parseInt(day);
+        formData.value.cron_display = `每月${day}号${hour.padStart(2, '0')}:${minute.padStart(2, '0')}执行`;
+        return;
+      }
+    } else if (parts.length === 6) {
+      // 6 段 cron 表达式（包含秒）: second minute hour day month weekday
+      const [second, minute, hour, day, month, weekday] = parts;
+
+      // 每N秒执行: */N * * * * *
+      if (second.includes('/') && minute === '*' && hour === '*' && day === '*' && month === '*' && weekday === '*') {
+        const secondMatch = second.match(/^\*\/(\d+)$/);
+        if (secondMatch) {
+          formData.value.cron_type = 'n_seconds';
+          formData.value.cron_value = parseInt(secondMatch[1]);
+          formData.value.cron_display = `每${secondMatch[1]}秒执行`;
+          return;
+        }
+      }
+    }
+
+    // 如果无法解析，显示原始 cron 表达式
+    formData.value.cron_type = '';
+    formData.value.cron_display = `自定义: ${cronExpr}`;
+  } catch (error) {
+    console.error('解析 cron 表达式失败:', error);
+    formData.value.cron_type = '';
+    formData.value.cron_display = `自定义: ${cronExpr}`;
+  }
 }
 
 // 更新cron表达式
