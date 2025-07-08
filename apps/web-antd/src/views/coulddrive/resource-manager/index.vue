@@ -7,11 +7,9 @@ import type {
   ResourceListParams,
   CreateResourceParams,
   UpdateResourceParams,
-  ResourceViewTrendData,
   CoulddriveDriveAccountDetail,
   CoulddriveUserListParams,
   ResourceStatistics,
-  ResourceViewTrendResponse,
   SmartRecognitionResponse,
 } from '#/api';
 
@@ -25,7 +23,7 @@ import { $t } from '@vben/locales';
 import { message } from 'ant-design-vue';
 
 import { useVbenForm } from '#/adapter/form';
-import { EchartsUI, useEcharts } from '@vben/plugins/echarts';
+
 import { useVbenVxeGrid } from '#/adapter/vxe-table';
 import {
   getResourceListApi,
@@ -33,28 +31,28 @@ import {
   updateResourceApi,
   deleteResourceApi,
   getResourceStatisticsApi,
-  getResourceViewTrendApi,
-  getDomainSubjectMappingApi,
-  getSubjectsByDomainApi,
   getCoulddriveUserListApi,
-  DOMAIN_SUBJECT_MAPPING,
-  RESOURCE_TYPE_OPTIONS,
   DRIVE_TYPE_OPTIONS,
   refreshResourceShareInfoApi,
   smartRecognitionApi,
   TEACHER_MAPPINGS,
 } from '#/api';
 import {
-  resourceQuerySchema,
+  createResourceQuerySchema,
   useResourceColumns,
   createResourceFormSchema,
+  getCategoryOptions,
 } from './data';
+import CategoryManager from './category-manager.vue';
+import TrendViewer from './trend-viewer.vue';
 
 // 创建图标组件
 const Edit = createIconifyIcon('mdi:pencil');
 const Delete = createIconifyIcon('mdi:delete');
 const Eye = createIconifyIcon('mdi:eye');
 const Database = createIconifyIcon('mdi:database');
+const Category = createIconifyIcon('mdi:folder-multiple');
+const Plus = createIconifyIcon('mdi:plus');
 
 // 编辑状态
 const editingResourceId = ref<number | null>(null);
@@ -64,15 +62,11 @@ const viewResourceData = ref<any>(null);
 
 // 趋势图状态
 const trendResourceData = ref<any>(null);
-const trendChartData = ref<any[]>([]);
-const chartRef = ref();
-const { renderEcharts } = useEcharts(chartRef);
 
 // 统计信息
 const statsData = ref<ResourceStatistics | null>(null);
 
-// 领域科目映射数据
-const domainSubjectMapping = ref<any>(null);
+
 
 // 智能识别相关状态
 const recognitionUrl = ref('');
@@ -84,14 +78,25 @@ const isRefreshing = ref(false);
 // 账号选项
 const accountOptions = ref<Array<{ label: string; value: number; cookies: string }>>([]);
 
-// 查询表单配置
+// 动态选项
+const domainOptions = ref<Array<{ label: string; value: string }>>([]);
+const subjectOptions = ref<Array<{ label: string; value: string }>>([]);
+const resourceTypeOptions = ref<Array<{ label: string; value: string }>>([]);
+
+// 完整的分类数据
+const allCategories = ref<any[]>([]);
+
+// 分类管理组件引用
+const categoryManagerRef = ref<InstanceType<typeof CategoryManager> | null>(null);
+
+// 查询表单配置（使用空选项的默认schema）
 const queryFormOptions: VbenFormProps = {
   collapsed: true,
   showCollapseButton: true,
   submitButtonOptions: {
     content: $t('page.form.query'),
   },
-  schema: resourceQuerySchema,
+  schema: createResourceQuerySchema(), // 使用默认的空选项
 };
 
 // 表格配置
@@ -151,11 +156,85 @@ const [Grid, gridApi] = useVbenVxeGrid({
 });
 
 // 编辑表单配置（用于模态框中的表单）
-const [Form, formApi] = useVbenForm({
-  wrapperClass: 'grid-cols-1 md:grid-cols-2',
-  showDefaultActions: false,
-  schema: createResourceFormSchema(),
-});
+let Form: any;
+let formApi: any;
+
+// 初始化表单的函数
+async function initializeForms() {
+  // 获取分类数据
+  const categoryOptions = await getCategoryOptions();
+
+  // 更新本地选项状态
+  domainOptions.value = categoryOptions.domainOptions;
+  resourceTypeOptions.value = categoryOptions.resourceTypeOptions;
+  allCategories.value = categoryOptions.allCategories;
+
+    // 直接更新查询表单的选项
+  const domainField = queryFormOptions.schema.find(item => item.fieldName === 'domain');
+  if (domainField && domainField.componentProps) {
+    domainField.componentProps.options = categoryOptions.domainOptions;
+  }
+
+  const resourceTypeField = queryFormOptions.schema.find(item => item.fieldName === 'resource_type');
+  if (resourceTypeField && resourceTypeField.componentProps) {
+    resourceTypeField.componentProps.options = categoryOptions.resourceTypeOptions;
+  }
+
+  // 创建编辑表单
+  const formResult = useVbenForm({
+    wrapperClass: 'grid-cols-1 md:grid-cols-2',
+    showDefaultActions: false,
+    schema: createResourceFormSchema(categoryOptions),
+  });
+
+  Form = formResult[0];
+  formApi = formResult[1];
+}
+
+// 刷新分类选项数据的函数
+async function refreshCategoryOptions() {
+  try {
+    // 获取最新的分类数据
+    const categoryOptions = await getCategoryOptions();
+
+    // 更新本地选项状态
+    domainOptions.value = categoryOptions.domainOptions;
+    resourceTypeOptions.value = categoryOptions.resourceTypeOptions;
+    allCategories.value = categoryOptions.allCategories;
+
+    // 更新查询表单的选项
+    const domainField = queryFormOptions.schema.find(item => item.fieldName === 'domain');
+    if (domainField && domainField.componentProps) {
+      domainField.componentProps.options = categoryOptions.domainOptions;
+    }
+
+    const resourceTypeField = queryFormOptions.schema.find(item => item.fieldName === 'resource_type');
+    if (resourceTypeField && resourceTypeField.componentProps) {
+      resourceTypeField.componentProps.options = categoryOptions.resourceTypeOptions;
+    }
+
+    // 如果编辑表单已创建，更新其选项
+    if (formApi) {
+      // 更新领域选项
+      formApi.updateSchema([
+        {
+          fieldName: 'domain',
+          componentProps: {
+            options: categoryOptions.domainOptions,
+          },
+        },
+        {
+          fieldName: 'resource_type',
+          componentProps: {
+            options: categoryOptions.resourceTypeOptions,
+          },
+        },
+      ]);
+    }
+  } catch (error) {
+    console.error('刷新分类选项失败:', error);
+  }
+}
 
 // 表单数据
 const formData = ref({
@@ -276,7 +355,7 @@ const [EditModal, editModalApi] = useVbenModal({
 
         // 如果有领域数据，需要更新科目选项
         if (data.domain) {
-          updateSubjectOptions(data.domain);
+          fetchSubjectsByDomain(data.domain);
         }
       } else {
         editingResourceId.value = null;
@@ -306,26 +385,47 @@ const [EditModal, editModalApi] = useVbenModal({
 
 // 更新科目选项的函数
 function updateSubjectOptions(domain: string) {
-  if (domain && DOMAIN_SUBJECT_MAPPING[domain as keyof typeof DOMAIN_SUBJECT_MAPPING]) {
-    const subjectOptions = DOMAIN_SUBJECT_MAPPING[domain as keyof typeof DOMAIN_SUBJECT_MAPPING];
+  if (!domain) {
+    subjectOptions.value = [];
+    return;
+  }
+
+  // 从动态分类数据中获取科目选项 - 使用中文名称匹配
+  const domainCategory = allCategories.value.find(
+    cat => cat.category_type === 'domain' && cat.name === domain
+  );
+
+  if (domainCategory) {
+    const subjects = allCategories.value.filter(
+      cat => cat.category_type === 'subject' &&
+             cat.parent_id === domainCategory.id &&
+             cat.status === 1
+    );
+
+    subjectOptions.value = subjects.map(subject => ({
+      label: subject.name,
+      value: subject.name,
+    }));
 
     // 更新表单中科目字段的选项
     formApi.updateSchema([
       {
         fieldName: 'subject',
         componentProps: {
-          options: subjectOptions,
+          options: subjectOptions.value,
           placeholder: '请选择科目',
         },
       },
     ]);
+  } else {
+    subjectOptions.value = [];
   }
 }
 
 // 监听领域变化
 function onDomainChange(domain: string) {
   formData.value.subject = ''; // 清空科目
-  updateSubjectOptions(domain);
+  fetchSubjectsByDomain(domain);
 }
 
 // 创建查看详情模态框
@@ -348,14 +448,19 @@ const [TrendModal, trendModalApi] = useVbenModal({
   class: 'w-[1000px]',
   destroyOnClose: true,
   closable: false, // 隐藏关闭按钮
+});
+
+// 创建分类管理模态框
+const [CategoryModal, categoryModalApi] = useVbenModal({
+  class: 'w-[1200px]',
+  destroyOnClose: true,
   onOpenChange(isOpen: boolean) {
-    if (isOpen) {
-      const data = trendModalApi.getData();
-      if (data) {
-        trendResourceData.value = data;
-        trendChartData.value = []; // 重置图表数据
-        // 注意：这里不要重复调用 fetchTrendData，在 onActionClick 中已经调用了
-      }
+    // 关闭时刷新主页面的分类数据，因为可能有变更
+    if (!isOpen) {
+      // 延迟刷新，确保分类管理组件的操作已完成
+      setTimeout(async () => {
+        await refreshCategoryOptions(); // 只刷新分类数据，不重新创建表单
+      }, 300);
     }
   },
 });
@@ -381,11 +486,8 @@ async function onActionClick({ code, row }: OnActionClickParams) {
     case 'trend':
       // 查看趋势功能
       trendResourceData.value = row;
-      trendChartData.value = []; // 重置图表数据
       trendModalApi.setData(row);
       trendModalApi.open();
-      // 获取趋势数据
-      await fetchTrendData(row);
       break;
   }
 }
@@ -444,14 +546,41 @@ async function fetchStats() {
   }
 }
 
-// 获取领域科目映射
-async function fetchDomainSubjectMapping() {
-  try {
-    const response = await getDomainSubjectMappingApi();
-    domainSubjectMapping.value = response;
-  } catch (error) {
-    console.error('获取领域科目映射失败:', error);
+
+
+// 根据领域获取科目选项
+function fetchSubjectsByDomain(domain: string) {
+  if (!domain) {
+    subjectOptions.value = [];
+    return;
   }
+
+  // 找到选择的领域分类 - 使用中文名称匹配
+  const domainCategory = allCategories.value.find(
+    item => item.category_type === 'domain' && item.name === domain
+  );
+
+  if (!domainCategory) {
+    subjectOptions.value = [];
+    return;
+  }
+
+  // 找到该领域下的所有科目 - 使用中文名称作为value
+  subjectOptions.value = allCategories.value
+    .filter(item =>
+      item.category_type === 'subject' &&
+      item.parent_id === domainCategory.id &&
+      item.status === 1
+    )
+    .map(item => ({
+      label: item.name,
+      value: item.name,
+    }));
+}
+
+// 打开分类管理
+function openCategoryManager() {
+  categoryModalApi.open();
 }
 
 // 复制到剪贴板
@@ -511,145 +640,6 @@ function formatDateTime(date: Date): string {
   return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
 }
 
-// 获取趋势数据
-async function fetchTrendData(resourceData: any) {
-  try {
-    if (!resourceData.pwd_id) {
-      message.error('资源缺少必要的标识信息');
-      return;
-    }
-
-    // 设置时间范围（最近30天）
-    const endTime = new Date();
-    endTime.setHours(23, 59, 59, 999); // 设置为当天的23:59:59.999
-
-    const startTime = new Date();
-    startTime.setDate(startTime.getDate() - 30);
-    startTime.setHours(0, 0, 0, 0); // 设置为30天前的00:00:00.000
-
-    // 调用真实的 API 获取趋势数据
-    const trendResponse = await getResourceViewTrendApi({
-      pwd_id: resourceData.pwd_id,
-      start_time: formatDateTime(startTime),
-      end_time: formatDateTime(endTime),
-    });
-
-    // 转换数据格式
-    const chartData = trendResponse.trend_data.map((item: ResourceViewTrendData) => ({
-      date: new Date(item.record_time).toLocaleString('zh-CN', {
-        month: '2-digit',
-        day: '2-digit',
-        hour: '2-digit',
-        minute: '2-digit'
-      }).replace(/\//g, '-'),
-      views: item.view_count,
-    }));
-
-    trendChartData.value = chartData;
-
-    // 渲染图表
-    setTimeout(() => {
-      renderTrendChart();
-    }, 100);
-  } catch (error) {
-    console.error('获取趋势数据失败:', error);
-    message.error('获取趋势数据失败');
-  }
-}
-
-// 渲染趋势图表
-function renderTrendChart() {
-  if (!chartRef.value) return;
-
-  if (!trendChartData.value || trendChartData.value.length === 0) {
-    // 没有数据时显示提示
-    renderEcharts({
-      title: {
-        text: '浏览量趋势',
-        left: 'center',
-      },
-      graphic: {
-        type: 'text',
-        left: 'center',
-        top: 'middle',
-        style: {
-          text: '暂无浏览量历史数据',
-          fontSize: 16,
-          fill: '#999'
-        }
-      }
-    });
-    return;
-  }
-
-  const dates = trendChartData.value.map(item => item.date);
-  const views = trendChartData.value.map(item => item.views);
-
-  renderEcharts({
-    title: {
-      text: '浏览量趋势',
-      left: 'center',
-    },
-    tooltip: {
-      trigger: 'axis',
-      axisPointer: {
-        type: 'cross',
-        label: {
-          backgroundColor: '#6a7985'
-        }
-      },
-      formatter: function(params: any) {
-        const data = params[0];
-        return `时间: ${data.axisValue}<br/>浏览量: ${data.value}`;
-      }
-    },
-    grid: {
-      left: '3%',
-      right: '4%',
-      bottom: '3%',
-      containLabel: true
-    },
-    xAxis: {
-      type: 'category',
-      boundaryGap: false,
-      data: dates,
-      axisLabel: {
-        rotate: 45,
-        fontSize: 10,
-        margin: 15
-      }
-    },
-    yAxis: {
-      type: 'value'
-    },
-    series: [
-      {
-        name: '浏览量',
-        type: 'line',
-        stack: 'Total',
-        areaStyle: {
-          color: {
-            type: 'linear',
-            x: 0,
-            y: 0,
-            x2: 0,
-            y2: 1,
-            colorStops: [{
-              offset: 0, color: 'rgba(24, 144, 255, 0.6)'
-            }, {
-              offset: 1, color: 'rgba(24, 144, 255, 0.1)'
-            }]
-          }
-        },
-        itemStyle: {
-          color: '#1890ff'
-        },
-        data: views
-      }
-    ]
-  });
-}
-
 // 获取账号列表
 async function loadAccountOptions(type?: string) {
   if (!type) {
@@ -702,13 +692,25 @@ async function handleSmartRecognition() {
     if (response.success) {
       // 根据识别结果自动填充表单
       if (response.domain) {
-        formData.value.domain = response.domain;
-        // 当领域改变时，更新科目选项
-        updateSubjectOptions(response.domain);
+        // 尝试匹配领域：先按代码匹配，再按名称匹配
+        const domainOption = domainOptions.value.find(
+          opt => opt.value === response.domain || opt.label === response.domain
+        );
+        if (domainOption) {
+          formData.value.domain = domainOption.value;
+          // 当领域改变时，更新科目选项
+          updateSubjectOptions(domainOption.value);
+        }
       }
 
       if (response.subject) {
-        formData.value.subject = response.subject;
+        // 尝试匹配科目：先按代码匹配，再按名称匹配
+        const subjectOption = subjectOptions.value.find(
+          opt => opt.value === response.subject || opt.label === response.subject
+        );
+        if (subjectOption) {
+          formData.value.subject = subjectOption.value;
+        }
       }
 
       if (response.main_name) {
@@ -716,7 +718,13 @@ async function handleSmartRecognition() {
       }
 
       if (response.resource_type) {
-        formData.value.resource_type = response.resource_type;
+        // 尝试匹配资源类型：先按代码匹配，再按名称匹配
+        const resourceTypeOption = resourceTypeOptions.value.find(
+          opt => opt.value === response.resource_type || opt.label === response.resource_type
+        );
+        if (resourceTypeOption) {
+          formData.value.resource_type = resourceTypeOption.value;
+        }
       }
 
       if (response.url) {
@@ -824,41 +832,15 @@ async function handleRefreshShareInfo() {
   }
 }
 
-// 计算增长最快的连续端点
-function getFastestGrowthPeriod() {
-  if (!trendChartData.value || trendChartData.value.length < 2) {
-    return null;
-  }
-
-  let maxGrowth = 0;
-  let maxGrowthPeriod = null;
-
-  for (let i = 0; i < trendChartData.value.length - 1; i++) {
-    const current = trendChartData.value[i];
-    const next = trendChartData.value[i + 1];
-    const growth = next.views - current.views;
-
-    if (growth > maxGrowth) {
-      maxGrowth = growth;
-      maxGrowthPeriod = {
-        startDate: current.date,
-        endDate: next.date,
-        startViews: current.views,
-        endViews: next.views,
-        growth: growth
-      };
-    }
-  }
-
-  return maxGrowthPeriod;
-}
-
 // 初始化数据
 onMounted(async () => {
   await fetchStats();
-  await fetchDomainSubjectMapping();
+  await initializeForms(); // 只调用一次，内部会获取分类数据
 });
+
 </script>
+
+
 
 <template>
   <Page auto-content-height>
@@ -932,6 +914,10 @@ onMounted(async () => {
           <AddData class="mr-1" />
           新增资源
         </VbenButton>
+        <VbenButton @click="openCategoryManager" type="default">
+          <Category class="mr-1" />
+          分类管理
+        </VbenButton>
       </template>
     </Grid>
 
@@ -993,9 +979,13 @@ onMounted(async () => {
               class="w-full rounded-md border border-gray-300 px-3 py-2 focus:border-blue-500 focus:outline-none"
             >
               <option value="">请选择领域</option>
-              <option value="教育">教育</option>
-              <option value="科技">科技</option>
-              <option value="影视">影视</option>
+              <option
+                v-for="option in domainOptions"
+                :key="option.value"
+                :value="option.value"
+              >
+                {{ option.label }}
+              </option>
             </select>
           </div>
           <div>
@@ -1006,15 +996,13 @@ onMounted(async () => {
               :disabled="!formData.domain"
             >
               <option value="">{{ formData.domain ? '请选择科目' : '请先选择领域' }}</option>
-              <template v-if="formData.domain && (DOMAIN_SUBJECT_MAPPING as any)[formData.domain]">
-                <option
-                  v-for="subject in (DOMAIN_SUBJECT_MAPPING as any)[formData.domain]"
-                  :key="subject.value"
-                  :value="subject.value"
-                >
-                  {{ subject.label }}
-                </option>
-              </template>
+              <option
+                v-for="option in subjectOptions"
+                :key="option.value"
+                :value="option.value"
+              >
+                {{ option.label }}
+              </option>
             </select>
           </div>
         </div>
@@ -1038,11 +1026,11 @@ onMounted(async () => {
             >
               <option value="">请选择资源类型</option>
               <option
-                v-for="type in RESOURCE_TYPE_OPTIONS"
-                :key="type.value"
-                :value="type.value"
+                v-for="option in resourceTypeOptions"
+                :key="option.value"
+                :value="option.value"
               >
-                {{ type.label }}
+                {{ option.label }}
               </option>
             </select>
           </div>
@@ -1449,83 +1437,13 @@ onMounted(async () => {
 
     <!-- 趋势模态框 -->
     <TrendModal :title="trendResourceData ? `${trendResourceData.main_name} - 浏览量趋势` : '浏览量趋势'">
-      <div class="space-y-4">
-        <!-- 资源基本信息 -->
-        <div v-if="trendResourceData" class="bg-gray-50 rounded-lg p-4">
-          <h4 class="text-md font-semibold mb-2">资源信息</h4>
-          <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
-            <div>
-              <span class="font-medium text-gray-700">主要名字：</span>
-              <span class="text-gray-900">{{ trendResourceData.main_name }}</span>
-            </div>
-            <div>
-              <span class="font-medium text-gray-700">当前浏览量：</span>
-              <span class="text-blue-600 font-semibold">{{ trendResourceData.view_count || 0 }}</span>
-            </div>
-            <div>
-              <span class="font-medium text-gray-700">领域：</span>
-              <span class="text-gray-900">{{ trendResourceData.domain }}</span>
-            </div>
-          </div>
-        </div>
-
-        <!-- 图表容器 -->
-        <div class="bg-white rounded-lg border p-4">
-          <EchartsUI ref="chartRef" style="height: 400px;" />
-        </div>
-
-        <!-- 统计信息 -->
-        <div v-if="trendChartData && trendChartData.length > 0" class="bg-gray-50 rounded-lg p-4">
-          <h4 class="text-md font-semibold mb-2">统计信息</h4>
-          <div class="grid grid-cols-1 md:grid-cols-4 gap-4 text-sm mb-4">
-            <div class="text-center">
-              <div class="text-2xl font-bold text-blue-600">{{ trendChartData.length }}</div>
-              <div class="text-gray-600">数据点</div>
-            </div>
-            <div class="text-center">
-              <div class="text-2xl font-bold text-green-600">{{ Math.max(...trendChartData.map(d => d.views)) }}</div>
-              <div class="text-gray-600">最高浏览量</div>
-            </div>
-            <div class="text-center">
-              <div class="text-2xl font-bold text-orange-600">{{ Math.min(...trendChartData.map(d => d.views)) }}</div>
-              <div class="text-gray-600">最低浏览量</div>
-            </div>
-            <div class="text-center">
-              <div class="text-2xl font-bold text-purple-600">{{ Math.round(trendChartData.reduce((sum, d) => sum + d.views, 0) / trendChartData.length) }}</div>
-              <div class="text-gray-600">平均浏览量</div>
-            </div>
-          </div>
-
-          <!-- 增长最快的连续端点 -->
-          <div v-if="getFastestGrowthPeriod()" class="bg-white rounded-lg p-4 border border-red-200">
-            <h5 class="text-sm font-semibold text-red-700 mb-2">🚀 增长最快的连续端点</h5>
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
-              <div>
-                <span class="font-medium text-gray-700">时间段：</span>
-                <span class="text-gray-900">{{ getFastestGrowthPeriod()?.startDate }} → {{ getFastestGrowthPeriod()?.endDate }}</span>
-              </div>
-              <div>
-                <span class="font-medium text-gray-700">增长量：</span>
-                <span class="text-red-600 font-bold">+{{ getFastestGrowthPeriod()?.growth }}</span>
-                <span class="text-gray-500 ml-1">({{ getFastestGrowthPeriod()?.startViews }} → {{ getFastestGrowthPeriod()?.endViews }})</span>
-              </div>
-            </div>
-          </div>
-
-          <!-- 无增长数据提示 -->
-          <div v-else class="bg-white rounded-lg p-4 border border-gray-200">
-            <h5 class="text-sm font-semibold text-gray-700 mb-2">📊 增长分析</h5>
-            <p class="text-sm text-gray-600">暂无明显增长趋势或数据点不足</p>
-          </div>
-        </div>
-
-        <!-- 无数据提示 -->
-        <div v-else-if="trendChartData && trendChartData.length === 0" class="bg-gray-50 rounded-lg p-4 text-center">
-          <p class="text-gray-600">暂无浏览量历史数据</p>
-        </div>
-
-      </div>
+      <TrendViewer :resource="trendResourceData" />
     </TrendModal>
+
+    <!-- 分类管理模态框 -->
+    <CategoryModal title="分类管理">
+      <CategoryManager ref="categoryManagerRef" />
+    </CategoryModal>
   </Page>
 </template>
 

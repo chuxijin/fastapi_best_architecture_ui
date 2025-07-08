@@ -4,15 +4,14 @@ import type { OnActionClickFn, VxeGridProps } from '#/adapter/vxe-table';
 
 import { $t } from '@vben/locales';
 import {
-  RESOURCE_DOMAIN_OPTIONS,
-  RESOURCE_TYPE_OPTIONS,
-  DOMAIN_SUBJECT_MAPPING,
   DRIVE_TYPE_TAG_OPTIONS,
   DRIVE_TYPE_LABEL_MAP,
   DRIVE_TYPE_COLOR_MAP,
-  getDomainSubjectMappingApi,
-  getSubjectsByDomainApi
+  getCategoryTreeApi,
+  type CategoryTreeNode
 } from '#/api';
+
+
 
 // 资源状态选项
 export const RESOURCE_STATUS_OPTIONS = [
@@ -201,8 +200,12 @@ export const DEFAULT_STATISTICS = {
   total_views: 0,
 };
 
-// 查询表单配置
-export const resourceQuerySchema: VbenFormSchema[] = [
+// 动态查询表单配置函数
+export function createResourceQuerySchema(categoryOptions?: { domainOptions: any[]; resourceTypeOptions: any[] }): VbenFormSchema[] {
+  const domainOptions = categoryOptions?.domainOptions || [];
+  const resourceTypeOptions = categoryOptions?.resourceTypeOptions || [];
+
+  return [
   {
     component: 'Input',
     componentProps: {
@@ -214,7 +217,7 @@ export const resourceQuerySchema: VbenFormSchema[] = [
   {
     component: 'Select',
     componentProps: {
-      options: RESOURCE_DOMAIN_OPTIONS,
+      options: domainOptions,
       placeholder: '请选择领域',
       allowClear: true,
     },
@@ -234,7 +237,7 @@ export const resourceQuerySchema: VbenFormSchema[] = [
   {
     component: 'Select',
     componentProps: {
-      options: RESOURCE_TYPE_OPTIONS,
+      options: resourceTypeOptions,
       placeholder: '请选择资源类型',
     },
     fieldName: 'resource_type',
@@ -274,7 +277,11 @@ export const resourceQuerySchema: VbenFormSchema[] = [
     fieldName: 'audit_status',
     label: '审核状态',
   },
-];
+  ];
+}
+
+// 保持向后兼容性
+export const resourceQuerySchema = createResourceQuerySchema();
 
 // 工具函数
 export const getUrlTypeLabel = (type: string) => {
@@ -490,13 +497,69 @@ export function useResourceColumns(
   ];
 }
 
+// 递归扁平化分类树的函数
+function flattenCategoryTree(categories: any[]): any[] {
+  const flattened: any[] = [];
+
+  function traverse(nodes: any[]) {
+    for (const node of nodes) {
+      flattened.push(node);
+      if (node.children && node.children.length > 0) {
+        traverse(node.children);
+      }
+    }
+  }
+
+  traverse(categories);
+  return flattened;
+}
+
+// 动态获取分类选项的函数
+export async function getCategoryOptions() {
+  try {
+    const categoryResponse = await getCategoryTreeApi();
+
+    // API直接返回数组，不需要.data
+    const categories = categoryResponse.data || categoryResponse || [];
+
+    // 扁平化整个分类树
+    const flattenedCategories = flattenCategoryTree(categories);
+
+    // 提取各类型的选项 - 使用中文名称作为value
+    const domainOptions = flattenedCategories
+      .filter(cat => cat.category_type === 'domain' && cat.status === 1)
+      .map(cat => ({ label: cat.name, value: cat.name }));
+
+    const resourceTypeOptions = flattenedCategories
+      .filter(cat => cat.category_type === 'resource_type' && cat.status === 1)
+      .map(cat => ({ label: cat.name, value: cat.name }));
+
+    return {
+      domainOptions,
+      resourceTypeOptions,
+      allCategories: flattenedCategories,
+    };
+  } catch (error) {
+    console.error('获取分类选项失败:', error);
+    return {
+      domainOptions: [],
+      resourceTypeOptions: [],
+      allCategories: [],
+    };
+  }
+}
+
 // 表单配置函数
-export function createResourceFormSchema(): VbenFormSchema[] {
+export function createResourceFormSchema(categoryOptions?: { domainOptions: any[]; resourceTypeOptions: any[]; allCategories: CategoryTreeNode[] }): VbenFormSchema[] {
+  const domainOptions = categoryOptions?.domainOptions || [];
+  const resourceTypeOptions = categoryOptions?.resourceTypeOptions || [];
+  const allCategories = categoryOptions?.allCategories || [];
+
   return [
     {
       component: 'Select',
       componentProps: {
-        options: RESOURCE_DOMAIN_OPTIONS,
+        options: domainOptions,
         placeholder: '请选择领域',
         onChange: async (value: string, formApi: any) => {
           // 当领域改变时，清空科目并更新科目选项
@@ -504,21 +567,66 @@ export function createResourceFormSchema(): VbenFormSchema[] {
 
           if (value) {
             try {
-              // 从本地映射获取科目选项
-              const subjectOptions = DOMAIN_SUBJECT_MAPPING[value as keyof typeof DOMAIN_SUBJECT_MAPPING] || [];
+              // 使用传入的分类数据（已经是扁平化的）
+              const categories = allCategories;
 
-              // 更新科目字段的选项
+              if (categories.length === 0) {
+                console.warn('分类数据为空，无法更新科目选项');
+                return;
+              }
+
+              // 找到对应的领域分类 - 使用中文名称匹配
+              const domainCategory = categories.find(
+                cat => cat.category_type === 'domain' && cat.name === value
+              );
+
+              if (domainCategory) {
+                // 获取该领域下的科目选项
+                const subjects = categories.filter(
+                  cat => cat.category_type === 'subject' &&
+                         cat.parent_id === domainCategory.id &&
+                         cat.status === 1
+                );
+
+                const subjectOptions = subjects.map(subject => ({
+                  label: subject.name,
+                  value: subject.name,
+                }));
+
+                // 更新科目字段的选项
+                formApi.updateSchema([
+                  {
+                    fieldName: 'subject',
+                    componentProps: {
+                      options: subjectOptions,
+                      placeholder: '请选择科目',
+                    },
+                  },
+                ]);
+              } else {
+                // 清空科目选项
+                formApi.updateSchema([
+                  {
+                    fieldName: 'subject',
+                    componentProps: {
+                      options: [],
+                      placeholder: '暂无科目选项',
+                    },
+                  },
+                ]);
+              }
+            } catch (error) {
+              console.error('获取科目选项失败:', error);
+              // 清空科目选项
               formApi.updateSchema([
                 {
                   fieldName: 'subject',
                   componentProps: {
-                    options: subjectOptions,
-                    placeholder: '请选择科目',
+                    options: [],
+                    placeholder: '获取科目选项失败',
                   },
                 },
               ]);
-            } catch (error) {
-              console.error('获取科目选项失败:', error);
             }
           } else {
             // 清空科目选项
@@ -560,7 +668,7 @@ export function createResourceFormSchema(): VbenFormSchema[] {
     {
       component: 'Select',
       componentProps: {
-        options: RESOURCE_TYPE_OPTIONS,
+        options: resourceTypeOptions,
         placeholder: '请选择资源类型',
       },
       fieldName: 'resource_type',

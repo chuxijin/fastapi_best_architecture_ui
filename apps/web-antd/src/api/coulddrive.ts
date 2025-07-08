@@ -16,24 +16,6 @@ export type TemplateType = 'exclusion' | 'rename' | 'custom';
 // 模板分类枚举
 export type TemplateCategory = '文件过滤' | '开发工具' | '文件命名' | '备份管理' | '自动分类' | '文件去重';
 
-// 资源领域枚举
-export type ResourceDomain = '教育' | '科技' | '影视';
-
-// 资源类型枚举
-export type ResourceType = '课程' | '电子书' | '笔记' | '软件' | '真题';
-
-// 教育领域科目枚举
-export type EducationSubject = '26考研英语' | '26考研数学' | '26考研政治' | '26考研统考' | '26考研非统考';
-
-// 科技领域科目枚举
-export type TechnologySubject = '编程开发' | '人工智能' | '数据科学' | '网络安全' | '云计算';
-
-// 影视领域科目枚举
-export type EntertainmentSubject = '电影' | '短剧' | '电视剧' | '综艺';
-
-// 所有科目类型的联合类型
-export type ResourceSubject = EducationSubject | TechnologySubject | EntertainmentSubject;
-
 // ==================== 常量定义 ====================
 
 // 递归速度数值映射（用于后端API）
@@ -112,46 +94,82 @@ export const TEMPLATE_CATEGORY_OPTIONS = [
   { label: '文件去重', value: '文件去重' as TemplateCategory },
 ] as const;
 
-// 资源领域选项（用于前端显示）
-export const RESOURCE_DOMAIN_OPTIONS = [
-  { label: '教育', value: '教育' as ResourceDomain },
-  { label: '科技', value: '科技' as ResourceDomain },
-  { label: '影视', value: '影视' as ResourceDomain },
-] as const;
-
-// 资源类型选项（用于前端显示）
-export const RESOURCE_TYPE_OPTIONS = [
-  { label: '课程', value: '课程' as ResourceType },
-  { label: '电子书', value: '电子书' as ResourceType },
-  { label: '软件', value: '软件' as ResourceType },
-  { label: '真题', value: '真题' as ResourceType },
-] as const;
-
-// 领域和科目的映射关系（用于前端联动）
-export const DOMAIN_SUBJECT_MAPPING = {
-  '教育': [
-    { label: '26考研英语', value: '26考研英语' },
-    { label: '26考研数学', value: '26考研数学' },
-    { label: '26考研政治', value: '26考研政治' },
-    { label: '26考研统考', value: '26考研统考' },
-    { label: '26考研非统考', value: '26考研非统考' },
-  ],
-  '科技': [
-    { label: '编程开发', value: '编程开发' },
-    { label: '人工智能', value: '人工智能' },
-    { label: '数据科学', value: '数据科学' },
-    { label: '网络安全', value: '网络安全' },
-    { label: '云计算', value: '云计算' },
-  ],
-  '影视': [
-    { label: '电影', value: '电影' },
-    { label: '短剧', value: '短剧' },
-    { label: '电视剧', value: '电视剧' },
-    { label: '综艺', value: '综艺' },
-  ],
-} as const;
 
 // ==================== 类型定义 ====================
+
+// 分类管理相关
+export interface CategoryDetail {
+  id: number;
+  name: string;
+  code: string;
+  description?: string;
+  category_type: 'domain' | 'subject' | 'resource_type';
+  parent_id?: number;
+  level: number;
+  path: string;
+  sort: number;
+  status: number;
+  is_system: boolean;
+  created_time: string;
+  updated_time?: string;
+  children?: CategoryDetail[];
+}
+
+export interface CategoryTreeNode {
+  id: number;
+  name: string;
+  code: string;
+  description?: string;
+  category_type: 'domain' | 'subject' | 'resource_type';
+  parent_id?: number;
+  level: number;
+  sort: number;
+  status: number;
+  is_system: boolean;
+  children?: CategoryTreeNode[];
+}
+
+export interface CategoryListParams {
+  category_type?: 'domain' | 'subject' | 'resource_type';
+  parent_id?: number;
+  status?: number;
+  keyword?: string;
+  page?: number;
+  size?: number;
+}
+
+export interface CreateCategoryParams {
+  name: string;
+  code: string;
+  description?: string;
+  category_type: 'domain' | 'subject' | 'resource_type';
+  parent_id?: number;
+  sort?: number;
+  status?: number;
+}
+
+export interface UpdateCategoryParams {
+  name?: string;
+  code?: string;
+  description?: string;
+  parent_id?: number;
+  sort?: number;
+  status?: number;
+}
+
+export interface CategoryOption {
+  label: string;
+  value: string;
+  code: string;
+}
+
+export interface CategoryStatistics {
+  total_count: number;
+  active_count: number;
+  domain_count: number;
+  subject_count: number;
+  resource_type_count: number;
+}
 
 // 同步任务相关
 export interface SyncTaskResult {
@@ -1284,8 +1302,84 @@ const AI_CONFIG = {
   model: 'gpt-4o',
 };
 
-// 智能识别提示词
-const SMART_RECOGNITION_PROMPT = `
+// 分类数据缓存
+let categoryCache: CategoryTreeNode[] | null = null;
+let cacheExpireTime: number = 0;
+const CACHE_DURATION = 5 * 60 * 1000; // 5分钟缓存
+
+// 获取分类数据（带缓存）
+async function getCachedCategoryData(): Promise<CategoryTreeNode[]> {
+  const now = Date.now();
+
+  // 检查缓存是否有效
+  if (categoryCache && now < cacheExpireTime) {
+    return categoryCache;
+  }
+
+  try {
+    const response = await getCategoryTreeApi();
+    // API直接返回数组，不需要.data
+    categoryCache = response.data || response || [];
+    cacheExpireTime = now + CACHE_DURATION;
+    return categoryCache;
+  } catch (error) {
+    console.warn('获取分类数据失败:', error);
+    // 如果有过期缓存，使用过期缓存
+    if (categoryCache) {
+      return categoryCache;
+    }
+    // 否则返回空数组
+    return [];
+  }
+}
+
+// 清除分类数据缓存
+export function clearCategoryCache(): void {
+  categoryCache = null;
+  cacheExpireTime = 0;
+}
+
+// 动态生成智能识别提示词
+function buildSmartRecognitionPrompt(categories: CategoryTreeNode[]): string {
+  // 扁平化分类树以获取所有分类
+  function flattenCategories(nodes: CategoryTreeNode[]): CategoryTreeNode[] {
+    const result: CategoryTreeNode[] = [];
+    for (const node of nodes) {
+      result.push(node);
+      if (node.children && node.children.length > 0) {
+        result.push(...flattenCategories(node.children));
+      }
+    }
+    return result;
+  }
+
+  const flatCategories = flattenCategories(categories);
+
+  // 从扁平化的分类中提取各级分类
+  const domains = flatCategories.filter(cat => cat.category_type === 'domain');
+  const subjects = flatCategories.filter(cat => cat.category_type === 'subject');
+  const resourceTypes = flatCategories.filter(cat => cat.category_type === 'resource_type');
+
+  // 构建领域分类说明
+  const domainSection = domains.map(domain => {
+    const domainSubjects = subjects.filter(sub => sub.parent_id === domain.id);
+    const subjectList = domainSubjects.map(sub => sub.name).join('、');
+    return `- ${domain.name}：${domain.description || '包含相关内容'}${subjectList ? `（包含：${subjectList}）` : ''}`;
+  }).join('\n');
+
+  // 构建科目分类说明
+  const subjectSection = domains.map(domain => {
+    const domainSubjects = subjects.filter(sub => sub.parent_id === domain.id);
+    if (domainSubjects.length === 0) return '';
+
+    const subjectList = domainSubjects.map(sub => sub.name).join('、');
+    return `${domain.name}领域：\n- ${subjectList}`;
+  }).filter(Boolean).join('\n\n');
+
+  // 构建资源类型说明
+  const resourceTypeSection = resourceTypes.map(rt => rt.name).join('、');
+
+  return `
 你是一个专业的网盘资源信息提取助手。请从用户提供的分享文本中提取资源信息，并以JSON格式返回。
 
 提取规则：
@@ -1298,22 +1392,13 @@ const SMART_RECOGNITION_PROMPT = `
 7. 识别教师名字并设置对应的排序值
 
 领域分类（必须使用以下值）：
-- 教育：包含学科、课程、教学相关内容
-- 科技：包含软件、编程、技术相关内容
-- 影视：包含电影、电视剧、综艺等内容
+${domainSection}
 
 科目分类（必须使用以下值）：
-教育领域：
-- 26考研英语、26考研数学、26考研政治、26考研统考、26考研非统考
-
-科技领域：
-- 编程开发、人工智能、数据科学、网络安全、云计算
-
-影视领域：
-- 电影、短剧、电视剧、综艺
+${subjectSection}
 
 资源类型（必须使用以下值）：
-- 课程、电子书、笔记、软件、真题
+- ${resourceTypeSection}
 
 网盘类型映射（必须使用以下值）：
 - 夸克网盘/夸克 -> QuarkDrive
@@ -1327,10 +1412,10 @@ const SMART_RECOGNITION_PROMPT = `
 
 请严格按照以下JSON格式返回，不要包含任何其他文本：
 {
-  "domain": "领域（教育/科技/影视）",
+  "domain": "领域（从上述枚举中选择）",
   "subject": "科目（必须从上述枚举中选择）",
   "main_name": "资源主要名称",
-  "resource_type": "资源类型（课程/电子书/软件/真题）",
+  "resource_type": "资源类型（从上述枚举中选择）",
   "url": "分享链接",
   "url_type": "网盘类型（QuarkDrive/BaiduDrive/AlistDrive）",
   "extract_code": "提取码（如果有）",
@@ -1343,16 +1428,107 @@ const SMART_RECOGNITION_PROMPT = `
 }
 
 如果无法识别某些字段，请设为空字符串或null。confidence表示识别置信度(0-1)。
-特别注意：科目字段必须从上述枚举列表中精确选择，不能使用其他值。
+特别注意：领域、科目、资源类型字段必须从上述枚举列表中精确选择，不能使用其他值。
 如果识别到教师名字，请根据上述映射表设置对应的排序值。
 `;
+}
 
 // 智能识别API
+// ==================== 分类管理 API ====================
+
+export async function getCategoryListApi(params: CategoryListParams) {
+  return requestClient.get<PaginationResult<CategoryDetail>>('/api/v1/category/list', {
+    params,
+  });
+}
+
+export async function getCategoryTreeApi(categoryType?: 'domain' | 'subject' | 'resource_type') {
+  const params = categoryType ? { category_type: categoryType } : {};
+  return requestClient.get<CategoryTreeNode[]>('/api/v1/category/tree', {
+    params,
+  });
+}
+
+export async function getCategoryDetailApi(categoryId: number) {
+  return requestClient.get<CategoryDetail>(`/api/v1/category/${categoryId}`);
+}
+
+export async function createCategoryApi(params: CreateCategoryParams) {
+  const result = await requestClient.post<CategoryDetail>('/api/v1/category', params);
+  // 清除缓存以确保下次获取最新数据
+  clearCategoryCache();
+  return result;
+}
+
+export async function updateCategoryApi(categoryId: number, params: UpdateCategoryParams) {
+  const result = await requestClient.patch<CategoryDetail>(`/api/v1/category/${categoryId}`, params);
+  // 清除缓存以确保下次获取最新数据
+  clearCategoryCache();
+  return result;
+}
+
+export async function deleteCategoryApi(categoryId: number) {
+  const result = await requestClient.delete(`/api/v1/category/${categoryId}`);
+  // 清除缓存以确保下次获取最新数据
+  clearCategoryCache();
+  return result;
+}
+
+export async function getCategoryOptionsApi(categoryType?: 'domain' | 'subject' | 'resource_type') {
+  const params = categoryType ? { category_type: categoryType } : {};
+  return requestClient.get<CategoryOption[]>('/api/v1/category/options', {
+    params,
+  });
+}
+
+export async function getCategoryStatisticsApi() {
+  return requestClient.get<CategoryStatistics>('/api/v1/category/statistics');
+}
+
 export async function smartRecognitionApi(content: string): Promise<SmartRecognitionResponse> {
   // 输入验证
   if (!content || content.trim().length < 10) {
     throw new Error('输入内容太短，请提供完整的分享文本');
   }
+
+  // 动态获取分类数据
+  const categories = await getCachedCategoryData();
+
+  const dynamicPrompt = categories.length > 0
+    ? buildSmartRecognitionPrompt(categories)
+    : `
+你是一个专业的网盘资源信息提取助手。请从用户提供的分享文本中提取资源信息，并以JSON格式返回。
+
+提取规则：
+1. 从文本中识别资源名称（通常在「」或[]中）
+2. 判断网盘类型（百度网盘、夸克网盘、阿里云盘等）
+3. 提取分享链接
+4. 提取提取码（如果有）
+5. 根据资源名称推断领域和科目
+6. 推断资源类型（课程、电子书、软件、真题等）
+
+网盘类型映射（必须使用以下值）：
+- 夸克网盘/夸克 -> QuarkDrive
+- 百度网盘/百度 -> BaiduDrive
+- 阿里云盘/阿里 -> AlistDrive
+
+请严格按照以下JSON格式返回，不要包含任何其他文本：
+{
+  "domain": "领域",
+  "subject": "科目",
+  "main_name": "资源主要名称",
+  "resource_type": "资源类型",
+  "url": "分享链接",
+  "url_type": "网盘类型（QuarkDrive/BaiduDrive/AlistDrive）",
+  "extract_code": "提取码（如果有）",
+  "description": "简要描述",
+  "resource_intro": "详细介绍",
+  "sort": 0,
+  "confidence": 0.95,
+  "success": true,
+  "message": "识别成功"
+}
+`;
 
   // 设置请求超时
   const controller = new AbortController();
@@ -1370,7 +1546,7 @@ export async function smartRecognitionApi(content: string): Promise<SmartRecogni
         messages: [
           {
             role: 'system',
-            content: SMART_RECOGNITION_PROMPT,
+            content: dynamicPrompt,
           },
           {
             role: 'user',
