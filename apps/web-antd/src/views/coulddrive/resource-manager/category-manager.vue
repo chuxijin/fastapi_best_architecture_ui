@@ -415,12 +415,6 @@ const CategoryTreeItem = {
     </div>
   `,
 };
-
-// 暴露给父组件的方法
-defineExpose({
-  fetchCategoryTree,
-  fetchCategoryStats,
-});
 </script>
 
 <template>
