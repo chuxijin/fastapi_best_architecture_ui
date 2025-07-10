@@ -30,11 +30,12 @@ import {
   createCoulddriveShareApi,
   DRIVE_TYPE_OPTIONS,
 } from '#/api';
-import { invalidateCache } from '#/api/request';
+
 
 import { getQueryFormConfig, getTableColumns } from './data';
 import { usePathNavigation } from '#/composables/usePathNavigation';
 import FileSelector from '#/components/FileSelector.vue';
+
 
 // 路径导航逻辑
 const pathNavigation = usePathNavigation({
@@ -271,8 +272,6 @@ function deleteFile(fileId: string, fileName: string) {
       };
       return removeCoulddriveFilesApi(params, authToken.value).then(() => {
         message.success(`删除文件 ${fileName} 成功`);
-        // 清除文件相关缓存
-        invalidateCache('file');
         gridApi.query();
       }).catch((error) => {
         console.error('删除文件失败:', error);
@@ -309,8 +308,6 @@ function deleteSelectedFiles() {
 
       return removeCoulddriveFilesApi(params, authToken.value).then(() => {
         message.success(`成功删除 ${selectedRows.length} 个文件`);
-        // 清除文件相关缓存
-        invalidateCache('file');
         gridApi.query();
       }).catch((error) => {
         console.error('批量删除文件失败:', error);
@@ -351,8 +348,6 @@ const [createFolderModal, createFolderModalApi] = useVbenModal({
         await createCoulddriveFolderApi(params, authToken.value);
         await createFolderModalApi.close();
         message.success('创建文件夹成功');
-        // 清除文件相关缓存
-        invalidateCache('file');
         gridApi.query();
       } finally {
         createFolderModalApi.unlock();
@@ -368,6 +363,7 @@ const [createFolderModal, createFolderModalApi] = useVbenModal({
 
 // 保存分享文件相关状态
 const fileSelectorVisible = ref(false);
+
 const shareLink = ref('');
 const loadingShareFiles = ref(false);
 
@@ -484,32 +480,9 @@ async function handleFileSelectConfirm(data: any) {
     message.success(`成功保存 ${data.selectedFiles.length} 个文件到当前目录`);
     fileSelectorVisible.value = false;
 
-    // 清除所有相关缓存
-    invalidateCache('file');
-    invalidateCache('all'); // 清除所有缓存，确保数据一致性
-
     // 延迟刷新，给服务器一些时间同步数据
-    setTimeout(async () => {
-      try {
-        // 强制刷新文件列表，确保显示新转存的文件
-        const params = {
-          drive_type: formData.value.type,
-          file_path: currentPath.value,
-          file_id: currentFileId.value,
-          page: 1,
-          size: 20,
-        };
-
-        // 使用禁用缓存的配置强制获取最新数据
-        await getCoulddriveFileListApi(params, authToken.value, { disableCache: true });
-
-        // 然后再调用正常的刷新
-        gridApi.query();
-      } catch (error) {
-        console.error('延迟刷新失败:', error);
-        // 如果延迟刷新失败，还是调用正常刷新
-        gridApi.query();
-      }
+    setTimeout(() => {
+      gridApi.query();
     }, 1500); // 延迟1.5秒刷新
   } catch (error) {
     console.error('保存文件失败:', error);
@@ -521,6 +494,8 @@ async function handleFileSelectConfirm(data: any) {
 function handleFileSelectCancel() {
   fileSelectorVisible.value = false;
 }
+
+
 
 // 分享结果相关状态
 const shareResultInfo = ref<CoulddriveShareInfo | null>(null);
@@ -1001,6 +976,7 @@ function copySingleShareLink(shareInfo: CoulddriveShareInfo) {
           >
             批量删除
           </button>
+
         </div>
       </template>
     </Grid>
@@ -1176,5 +1152,7 @@ function copySingleShareLink(shareInfo: CoulddriveShareInfo) {
       @confirm="handleFileSelectConfirm"
       @cancel="handleFileSelectCancel"
     />
+
+
   </Page>
 </template>

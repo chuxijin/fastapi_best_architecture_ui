@@ -10,6 +10,7 @@ import type {
 import { ref, onMounted } from 'vue';
 
 import { VbenButton, useVbenModal } from '@vben/common-ui';
+import { VbenTree } from '@vben/common-ui';
 import { createIconifyIcon } from '@vben/icons';
 
 import { message, Modal } from 'ant-design-vue';
@@ -30,8 +31,7 @@ const Plus = createIconifyIcon('mdi:plus');
 const categoryTreeData = ref<CategoryTreeNode[]>([]);
 const categoryStats = ref<CategoryStatistics | null>(null);
 const editingCategoryId = ref<number | null>(null);
-const expandedKeys = ref<string[]>([]);
-const selectedKeys = ref<string[]>([]);
+
 
 // 分类表单数据
 const categoryFormData = ref({
@@ -122,8 +122,6 @@ async function fetchCategoryTree() {
   try {
     const response = await getCategoryTreeApi();
     categoryTreeData.value = response;
-    // 默认展开第一级节点
-    expandedKeys.value = response.map(item => item.id.toString());
   } catch (error) {
     console.error('获取分类树失败:', error);
     message.error('获取分类树失败');
@@ -284,217 +282,100 @@ defineExpose({
   fetchCategoryStats,
 });
 
-// 分类树项组件
-const CategoryTreeItem = {
-  name: 'CategoryTreeItem',
-  props: {
-    node: {
-      type: Object,
-      required: true,
-    },
-  },
-  emits: ['edit', 'delete', 'add-child'],
-  setup(props: any, { emit }: any) {
-    const expanded = ref(true);
+// 将分类数据转换为VbenTree需要的格式
+function transformToTreeData(categories: CategoryTreeNode[]) {
+  return categories.map(category => ({
+    ...category,
+    label: category.name,
+    value: category.id,
+    children: category.children ? transformToTreeData(category.children) : undefined,
+  }));
+}
 
-    const toggleExpanded = () => {
-      expanded.value = !expanded.value;
-    };
-
-    const handleEdit = () => {
-      emit('edit', props.node);
-    };
-
-    const handleDelete = () => {
-      emit('delete', props.node);
-    };
-
-    const handleAddChild = () => {
-      emit('add-child', props.node);
-    };
-
-    // 为递归组件创建事件处理函数
-    const handleChildEdit = (node: any) => {
-      emit('edit', node);
-    };
-
-    const handleChildDelete = (node: any) => {
-      emit('delete', node);
-    };
-
-    const handleChildAddChild = (node: any) => {
-      emit('add-child', node);
-    };
-
-    return {
-      expanded,
-      toggleExpanded,
-      handleEdit,
-      handleDelete,
-      handleAddChild,
-      handleChildEdit,
-      handleChildDelete,
-      handleChildAddChild,
-      getCategoryTypeLabel,
-      getCategoryTypeColor,
-    };
-  },
-  template: `
-    <div class="border rounded-lg p-3 bg-gray-50">
-      <div class="flex items-center justify-between">
-        <div class="flex items-center space-x-3">
-          <button
-            v-if="node.children && node.children.length > 0"
-            @click="toggleExpanded"
-            class="text-gray-500 hover:text-gray-700 focus:outline-none"
-          >
-            <span v-if="expanded">▼</span>
-            <span v-else>▶</span>
-          </button>
-          <div v-else class="w-4"></div>
-
-          <div class="flex items-center space-x-2">
-            <span class="font-medium text-gray-900">{{ node.name }}</span>
-            <span class="text-xs px-2 py-1 rounded-full"
-                  :class="getCategoryTypeColor(node.category_type) === 'blue' ? 'bg-blue-100 text-blue-800' :
-                         getCategoryTypeColor(node.category_type) === 'green' ? 'bg-green-100 text-green-800' :
-                         getCategoryTypeColor(node.category_type) === 'orange' ? 'bg-orange-100 text-orange-800' :
-                         'bg-gray-100 text-gray-800'">
-              {{ getCategoryTypeLabel(node.category_type) }}
-            </span>
-            <span class="text-xs text-gray-500">{{ node.code }}</span>
-            <span v-if="node.is_system" class="text-xs px-2 py-1 rounded-full bg-red-100 text-red-800">
-              系统
-            </span>
-            <span v-if="node.status === 0" class="text-xs px-2 py-1 rounded-full bg-gray-100 text-gray-800">
-              停用
-            </span>
-          </div>
-        </div>
-
-        <div class="flex items-center space-x-2">
-          <button
-            @click="handleEdit"
-            class="text-blue-600 hover:text-blue-800 text-sm"
-          >
-            编辑
-          </button>
-          <button
-            @click="handleAddChild"
-            class="text-green-600 hover:text-green-800 text-sm"
-          >
-            新增子分类
-          </button>
-          <button
-            v-if="!node.is_system"
-            @click="handleDelete"
-            class="text-red-600 hover:text-red-800 text-sm"
-          >
-            删除
-          </button>
-        </div>
-      </div>
-
-      <div v-if="node.description" class="mt-2 text-sm text-gray-600">
-        {{ node.description }}
-      </div>
-
-      <div
-        v-if="node.children && node.children.length > 0 && expanded"
-        class="mt-3 ml-6 space-y-2"
-      >
-        <CategoryTreeItem
-          v-for="child in node.children"
-          :key="child.id"
-          :node="child"
-          @edit="handleChildEdit"
-          @delete="handleChildDelete"
-          @add-child="handleChildAddChild"
-        />
-      </div>
-    </div>
-  `,
-};
+// 处理树节点选择
+function onTreeSelect(item: any) {
+  // 可以在这里处理节点选择逻辑，如高亮显示等
+}
 </script>
 
 <template>
   <div class="space-y-6">
     <!-- 统计信息 -->
-    <div v-if="categoryStats" class="grid grid-cols-1 gap-4 md:grid-cols-5">
-      <div class="rounded-lg bg-blue-50 p-4">
+    <div v-if="categoryStats" class="grid grid-cols-2 gap-3 md:grid-cols-3">
+      <div class="rounded-lg bg-blue-50 p-3">
         <div class="flex items-center">
           <div class="flex-shrink-0">
-            <Database class="h-8 w-8 text-blue-500" />
+            <Database class="h-6 w-6 text-blue-500" />
           </div>
-          <div class="ml-4">
-            <p class="text-sm font-medium text-blue-700">总分类数</p>
-            <p class="text-2xl font-semibold text-blue-900">
+          <div class="ml-3">
+            <p class="text-xs font-medium text-blue-700">总分类数</p>
+            <p class="text-xl font-semibold text-blue-900">
               {{ categoryStats.total_count || 0 }}
             </p>
           </div>
         </div>
       </div>
 
-      <div class="rounded-lg bg-green-50 p-4">
+      <div class="rounded-lg bg-green-50 p-3">
         <div class="flex items-center">
           <div class="flex-shrink-0">
-            <div class="h-8 w-8 rounded-full bg-green-100 flex items-center justify-center">
-              <span class="text-green-600 text-sm font-medium">✓</span>
+            <div class="h-6 w-6 rounded-full bg-green-100 flex items-center justify-center">
+              <span class="text-green-600 text-xs font-medium">✓</span>
             </div>
           </div>
-          <div class="ml-4">
-            <p class="text-sm font-medium text-green-700">启用状态</p>
-            <p class="text-2xl font-semibold text-green-900">
+          <div class="ml-3">
+            <p class="text-xs font-medium text-green-700">启用状态</p>
+            <p class="text-xl font-semibold text-green-900">
               {{ categoryStats.active_count || 0 }}
             </p>
           </div>
         </div>
       </div>
 
-      <div class="rounded-lg bg-blue-50 p-4">
+      <div class="rounded-lg bg-blue-50 p-3">
         <div class="flex items-center">
           <div class="flex-shrink-0">
-            <div class="h-8 w-8 rounded-full bg-blue-100 flex items-center justify-center">
-              <span class="text-blue-600 text-sm font-medium">🌐</span>
+            <div class="h-6 w-6 rounded-full bg-blue-100 flex items-center justify-center">
+              <span class="text-blue-600 text-xs font-medium">🌐</span>
             </div>
           </div>
-          <div class="ml-4">
-            <p class="text-sm font-medium text-blue-700">领域分类</p>
-                         <p class="text-2xl font-semibold text-blue-900">
-               {{ categoryStats.by_type?.domain || 0 }}
-             </p>
+          <div class="ml-3">
+            <p class="text-xs font-medium text-blue-700">领域分类</p>
+            <p class="text-xl font-semibold text-blue-900">
+              {{ categoryStats.by_type?.domain || 0 }}
+            </p>
           </div>
         </div>
       </div>
 
-      <div class="rounded-lg bg-green-50 p-4">
+      <div class="rounded-lg bg-green-50 p-3">
         <div class="flex items-center">
           <div class="flex-shrink-0">
-            <div class="h-8 w-8 rounded-full bg-green-100 flex items-center justify-center">
-              <span class="text-green-600 text-sm font-medium">📚</span>
+            <div class="h-6 w-6 rounded-full bg-green-100 flex items-center justify-center">
+              <span class="text-green-600 text-xs font-medium">📚</span>
             </div>
           </div>
-          <div class="ml-4">
-            <p class="text-sm font-medium text-green-700">科目分类</p>
-                         <p class="text-2xl font-semibold text-green-900">
-               {{ categoryStats.by_type?.subject || 0 }}
-             </p>
+          <div class="ml-3">
+            <p class="text-xs font-medium text-green-700">科目分类</p>
+            <p class="text-xl font-semibold text-green-900">
+              {{ categoryStats.by_type?.subject || 0 }}
+            </p>
           </div>
         </div>
       </div>
 
-      <div class="rounded-lg bg-orange-50 p-4">
+      <div class="rounded-lg bg-orange-50 p-3">
         <div class="flex items-center">
           <div class="flex-shrink-0">
-            <div class="h-8 w-8 rounded-full bg-orange-100 flex items-center justify-center">
-              <span class="text-orange-600 text-sm font-medium">🔧</span>
+            <div class="h-6 w-6 rounded-full bg-orange-100 flex items-center justify-center">
+              <span class="text-orange-600 text-xs font-medium">🔧</span>
             </div>
           </div>
-          <div class="ml-4">
-            <p class="text-sm font-medium text-orange-700">资源类型</p>
-                         <p class="text-2xl font-semibold text-orange-900">
-               {{ categoryStats.by_type?.resource_type || 0 }}
-             </p>
+          <div class="ml-3">
+            <p class="text-xs font-medium text-orange-700">资源类型</p>
+            <p class="text-xl font-semibold text-orange-900">
+              {{ categoryStats.by_type?.resource_type || 0 }}
+            </p>
           </div>
         </div>
       </div>
@@ -509,21 +390,81 @@ const CategoryTreeItem = {
       </VbenButton>
     </div>
 
-    <!-- 分类树 -->
+        <!-- 分类树 -->
     <div class="bg-white rounded-lg border p-4 max-h-96 overflow-auto">
       <div v-if="categoryTreeData.length === 0" class="text-center text-gray-500 py-8">
         暂无分类数据
       </div>
-      <div v-else>
-        <div v-for="node in categoryTreeData" :key="node.id" class="mb-2">
-          <CategoryTreeItem
-            :node="node"
-            @edit="onEditCategory"
-            @delete="onDeleteCategory"
-            @add-child="onCreateCategory"
-          />
-        </div>
-      </div>
+      <VbenTree
+        v-else
+        :tree-data="transformToTreeData(categoryTreeData)"
+        :default-expanded-level="2"
+        :show-icon="false"
+        @select="onTreeSelect"
+        class="w-full min-w-0"
+      >
+                        <template #node="{ value: item }">
+          <div class="flex items-center justify-between w-full group">
+                        <!-- 左侧：分类信息 -->
+            <div class="flex items-center space-x-2 flex-1 min-w-0">
+              <!-- 分类名称 -->
+              <span class="font-medium text-gray-900 flex-shrink-0">{{ item.name }}</span>
+
+              <!-- 分类类型标签 -->
+              <span
+                class="text-xs px-2 py-1 rounded-full flex-shrink-0"
+                :class="{
+                  'bg-blue-100 text-blue-800': getCategoryTypeColor(item.category_type) === 'blue',
+                  'bg-green-100 text-green-800': getCategoryTypeColor(item.category_type) === 'green',
+                  'bg-orange-100 text-orange-800': getCategoryTypeColor(item.category_type) === 'orange',
+                  'bg-gray-100 text-gray-800': getCategoryTypeColor(item.category_type) === 'default'
+                }"
+              >
+                {{ getCategoryTypeLabel(item.category_type) }}
+              </span>
+
+              <!-- 状态标签 -->
+              <span v-if="item.is_system" class="text-xs px-2 py-1 rounded-full bg-red-100 text-red-800 flex-shrink-0">
+                系统
+              </span>
+              <span v-if="item.status === 0" class="text-xs px-2 py-1 rounded-full bg-gray-100 text-gray-800 flex-shrink-0">
+                停用
+              </span>
+
+              <!-- 描述信息 -->
+              <span v-if="item.description" class="text-xs text-gray-500 truncate min-w-0">
+                {{ item.description }}
+              </span>
+            </div>
+
+            <!-- 右侧：操作按钮 -->
+            <div class="flex items-center space-x-0.5 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0">
+              <button
+                @click.stop="onEditCategory(item)"
+                class="text-blue-600 hover:text-blue-800 text-xs px-1 py-0.5 rounded hover:bg-blue-50 whitespace-nowrap min-w-0"
+                title="编辑分类"
+              >
+                ✏️
+              </button>
+              <button
+                @click.stop="onCreateCategory(item)"
+                class="text-green-600 hover:text-green-800 text-xs px-1 py-0.5 rounded hover:bg-green-50 whitespace-nowrap min-w-0"
+                title="新增子分类"
+              >
+                ➕
+              </button>
+              <button
+                v-if="!item.is_system"
+                @click.stop="onDeleteCategory(item)"
+                class="text-red-600 hover:text-red-800 text-xs px-1 py-0.5 rounded hover:bg-red-50 whitespace-nowrap min-w-0"
+                title="删除分类"
+              >
+                🗑️
+              </button>
+            </div>
+          </div>
+        </template>
+      </VbenTree>
     </div>
 
     <!-- 分类编辑模态框 -->

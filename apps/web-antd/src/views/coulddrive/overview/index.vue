@@ -1,9 +1,20 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue';
+import type { ResourceStatistics, CoulddriveUserListParams, CoulddriveSyncConfigListParams, OverallStatisticsTrendResponse } from '#/api';
+import type { EchartsUIType } from '@vben/plugins/echarts';
+
+import { ref, onMounted, computed } from 'vue';
 import { useRouter } from 'vue-router';
 
 import { VbenButton } from '@vben/common-ui';
 import { createIconifyIcon } from '@vben/icons';
+import { EchartsUI, useEcharts } from '@vben/plugins/echarts';
+
+import {
+  getResourceStatisticsApi,
+  getCoulddriveUserListApi,
+  getCoulddriveSyncConfigListApi,
+  getOverallStatisticsTrendApi
+} from '#/api';
 
 const router = useRouter();
 
@@ -14,92 +25,261 @@ const Sync = createIconifyIcon('mdi:sync');
 const CloudUpload = createIconifyIcon('mdi:cloud-upload');
 const ArrowRight = createIconifyIcon('mdi:arrow-right');
 const Info = createIconifyIcon('mdi:information');
-const Database = createIconifyIcon('mdi:database');
-const ChartLine = createIconifyIcon('mdi:chart-line');
-const Star = createIconifyIcon('mdi:star');
 const TrendingUp = createIconifyIcon('mdi:trending-up');
-const Shield = createIconifyIcon('mdi:shield-check');
+const ChartLine = createIconifyIcon('mdi:chart-line');
+const Database = createIconifyIcon('mdi:database');
+const Star = createIconifyIcon('mdi:star');
 const Clock = createIconifyIcon('mdi:clock');
 
-const features = ref([
+// 数据状态
+const loading = ref(false);
+const resourceStats = ref<ResourceStatistics | null>(null);
+const userCount = ref(0);
+const syncConfigCount = ref(0);
+const trendData = ref<OverallStatisticsTrendResponse | null>(null);
+
+// 图表相关
+const chartRef = ref<EchartsUIType>();
+const { renderEcharts } = useEcharts(chartRef);
+
+// 渲染图表
+const renderChart = () => {
+  if (!trendData.value?.trend_data?.length) return;
+
+  const chartOptions = {
+    title: {
+      text: '资源增长趋势',
+      left: 'center',
+      textStyle: {
+        fontSize: 14,
+        fontWeight: 'bold' as const,
+      },
+    },
+    tooltip: {
+      trigger: 'axis',
+      axisPointer: {
+        type: 'cross',
+        lineStyle: {
+          color: '#019680',
+          width: 1,
+        },
+      }
+    },
+    legend: {
+      data: ['总资源数', '总浏览量', '新增资源'],
+      bottom: 10
+    },
+    grid: {
+      left: '3%',
+      right: '4%',
+      bottom: '15%',
+      top: '15%',
+      containLabel: true
+    },
+    xAxis: {
+      type: 'category',
+      boundaryGap: false,
+      axisTick: {
+        show: false,
+      },
+      data: trendData.value.trend_data.map(item => {
+        const date = new Date(item.date);
+        return `${date.getMonth() + 1}/${date.getDate()}`;
+      })
+    },
+    yAxis: [
+      {
+        type: 'value',
+        name: '数量',
+        position: 'left',
+        axisTick: {
+          show: false,
+        },
+        splitArea: {
+          show: true,
+        },
+        axisLabel: {
+          formatter: '{value}'
+        }
+      },
+      {
+        type: 'value',
+        name: '浏览量',
+        position: 'right',
+        axisTick: {
+          show: false,
+        },
+        axisLabel: {
+          formatter: '{value}'
+        }
+      }
+    ],
+    series: [
+      {
+        name: '总资源数',
+        type: 'line',
+        data: trendData.value.trend_data.map(item => item.total_count),
+        smooth: true,
+        lineStyle: {
+          color: '#3b82f6'
+        },
+        itemStyle: {
+          color: '#3b82f6'
+        },
+        areaStyle: {
+          opacity: 0.1,
+          color: '#3b82f6'
+        }
+      },
+      {
+        name: '总浏览量',
+        type: 'line',
+        yAxisIndex: 1,
+        data: trendData.value.trend_data.map(item => item.total_views),
+        smooth: true,
+        lineStyle: {
+          color: '#10b981'
+        },
+        itemStyle: {
+          color: '#10b981'
+        },
+        areaStyle: {
+          opacity: 0.1,
+          color: '#10b981'
+        }
+      },
+      {
+        name: '新增资源',
+        type: 'bar',
+        data: trendData.value.trend_data.map(item => item.new_resources),
+        itemStyle: {
+          color: '#f59e0b'
+        }
+      }
+    ]
+  };
+
+  renderEcharts(chartOptions);
+};
+
+// 统计数据
+const stats = computed(() => [
   {
-    title: '文件管理',
-    description: '浏览、管理云盘文件，支持创建文件夹、删除文件等操作',
+    title: '资源总数',
+    value: resourceStats.value?.total_count || 0,
     icon: FolderOpen,
-    color: 'text-blue-600 bg-blue-100',
-    route: '/coulddrive/file-manager',
-    stats: '支持多种网盘',
-    isNew: false,
+    bgColor: 'bg-blue-50',
+    iconColor: 'text-blue-600',
+    route: '/coulddrive/resource-manager'
   },
   {
-    title: '用户管理',
-    description: '管理云盘账户信息，查看存储空间使用情况和好友关系',
+    title: '用户数量',
+    value: userCount.value,
     icon: User,
-    color: 'text-green-600 bg-green-100',
-    route: '/coulddrive/user-manager',
-    stats: '实时同步信息',
-    isNew: false,
+    bgColor: 'bg-green-50',
+    iconColor: 'text-green-600',
+    route: '/coulddrive/sync-manager'
   },
   {
-    title: '资源管理',
-    description: '管理云盘资源链接，支持批量导入、分类管理和浏览量统计',
-    icon: Database,
-    color: 'text-orange-600 bg-orange-100',
-    route: '/coulddrive/resource-manager',
-    stats: '新增功能',
-    isNew: true,
-  },
-  {
-    title: '同步任务',
-    description: '执行文件同步任务，监控同步状态和历史记录',
+    title: '同步配置',
+    value: syncConfigCount.value,
     icon: Sync,
-    color: 'text-purple-600 bg-purple-100',
-    route: '/coulddrive/sync-manager',
-    stats: '自动化同步',
-    isNew: false,
+    bgColor: 'bg-purple-50',
+    iconColor: 'text-purple-600',
+    route: '/coulddrive/sync-manager'
   },
+  {
+    title: '今日增长',
+    value: resourceStats.value?.today_growth || 0,
+    icon: TrendingUp,
+    bgColor: 'bg-orange-50',
+    iconColor: 'text-orange-600',
+    route: '/coulddrive/resource-manager'
+  }
 ]);
 
+// 功能模块
+
+
+// 刷新数据
+const refreshStats = async () => {
+  await loadStats();
+};
+
+// 加载统计数据
+const loadStats = async () => {
+  try {
+    loading.value = true;
+
+    // 并行加载所有统计数据
+    const [resourceStatsRes, userListRes, syncConfigRes, trendRes] = await Promise.all([
+      getResourceStatisticsApi(),
+      getCoulddriveUserListApi({ page: 1, size: 1 }),
+      getCoulddriveSyncConfigListApi({ page: 1, size: 1 }),
+      getOverallStatisticsTrendApi({ days: 7 })
+    ]);
+
+    resourceStats.value = resourceStatsRes;
+    userCount.value = userListRes?.total || 0;
+    syncConfigCount.value = syncConfigRes?.total || 0;
+    trendData.value = trendRes;
+
+    // 数据加载完成后渲染图表
+    setTimeout(() => {
+      renderChart();
+    }, 100);
+
+  } catch (error) {
+    console.error('加载统计数据失败:', error);
+  } finally {
+    loading.value = false;
+  }
+};
+
+// 格式化数字
+const formatNumber = (num: number) => {
+  if (num >= 10000) {
+    return (num / 10000).toFixed(1) + 'w';
+  }
+  if (num >= 1000) {
+    return (num / 1000).toFixed(1) + 'k';
+  }
+  return num.toString();
+};
+
+// 计算增长率
+const calculateGrowthRate = (current?: number, previous?: number) => {
+  if (current !== undefined && previous !== undefined) {
+    if (previous === 0) return '+100';
+    const rate = ((current - previous) / previous * 100).toFixed(1);
+    return rate.startsWith('-') ? rate : '+' + rate;
+  }
+
+  // 默认计算资源增长率
+  if (!trendData.value?.trend_data?.length) return '0';
+  const firstItem = trendData.value.trend_data[0];
+  const lastItem = trendData.value.trend_data[trendData.value.trend_data.length - 1];
+
+  if (firstItem.total_count === 0) return '+100';
+  const rate = ((lastItem.total_count - firstItem.total_count) / firstItem.total_count * 100).toFixed(1);
+  return rate.startsWith('-') ? rate : '+' + rate;
+};
+
+// 页面跳转
+const navigateTo = (route: string) => {
+  router.push(route);
+};
+
+// 组件挂载时加载数据
+onMounted(async () => {
+  await loadStats();
+});
+
+// 支持的云盘平台
 const supportedDrives = ref([
   { name: '百度网盘', icon: '🔵', status: '已支持', features: ['文件管理', '资源管理'] },
   { name: '夸克网盘', icon: '🟣', status: '已支持', features: ['文件管理', '资源管理'] },
   { name: '阿里云盘', icon: '🟠', status: '开发中', features: ['文件管理'] },
-]);
-
-// 统计数据
-const stats = ref([
-  {
-    title: '总资源数',
-    value: '1,234',
-    change: '+12%',
-    icon: Database,
-    color: 'text-blue-600',
-    bgColor: 'bg-blue-50',
-  },
-  {
-    title: '总浏览量',
-    value: '45.6K',
-    change: '+8.5%',
-    icon: ChartLine,
-    color: 'text-green-600',
-    bgColor: 'bg-green-50',
-  },
-  {
-    title: '活跃用户',
-    value: '89',
-    change: '+15%',
-    icon: User,
-    color: 'text-purple-600',
-    bgColor: 'bg-purple-50',
-  },
-  {
-    title: '同步任务',
-    value: '156',
-    change: '+3.2%',
-    icon: Sync,
-    color: 'text-orange-600',
-    bgColor: 'bg-orange-50',
-  },
 ]);
 
 // 最新功能
@@ -119,23 +299,42 @@ const newFeatures = ref([
     type: 'enhancement',
   },
   {
-    title: '资源审核系统',
-    description: '新增资源审核状态管理，确保资源质量和合规性',
-    icon: Shield,
-    date: '2024-01-05',
+    title: '整体统计趋势',
+    description: '新增整体资源统计趋势图表，实时展示资源增长和浏览量变化',
+    icon: ChartLine,
+    date: '2024-01-20',
     type: 'feature',
   },
 ]);
 
-function navigateTo(route: string) {
-  router.push(route);
-}
+// 获取趋势洞察
+const getTrendInsights = () => {
+  if (!trendData.value?.trend_data?.length) return [];
 
-// 模拟加载统计数据
-onMounted(() => {
-  // 这里可以调用真实的API获取统计数据
-  console.log('加载统计数据...');
-});
+  const insights: string[] = [];
+  const lastItem = trendData.value.trend_data[trendData.value.trend_data.length - 1];
+  const firstItem = trendData.value.trend_data[0];
+
+  const totalResourcesGrowth = lastItem.total_count - firstItem.total_count;
+  const totalViewsGrowth = lastItem.total_views - firstItem.total_views;
+  const averageDailyNewResources = trendData.value.summary.average_daily_new_resources;
+  const totalResourcesGrowthRate = calculateGrowthRate(lastItem.total_count, firstItem.total_count);
+
+  if (totalResourcesGrowth > 0) {
+    insights.push(`资源总数在过去 ${trendData.value.summary.period_days} 天内增长了 ${totalResourcesGrowth} 个。`);
+  }
+  if (totalViewsGrowth > 0) {
+    insights.push(`总浏览量在过去 ${trendData.value.summary.period_days} 天内增长了 ${formatNumber(totalViewsGrowth)}。`);
+  }
+  if (averageDailyNewResources > 0) {
+    insights.push(`平均每天新增 ${Math.round(averageDailyNewResources)} 个资源。`);
+  }
+  if (totalResourcesGrowthRate.startsWith('+')) {
+    insights.push(`资源总数在过去 ${trendData.value.summary.period_days} 天内增长了 ${totalResourcesGrowthRate}。`);
+  }
+
+  return insights;
+};
 </script>
 
 <template>
@@ -147,6 +346,14 @@ onMounted(() => {
         <p class="text-gray-600 mt-1">统一管理多个云盘平台，实现文件同步和资源管理自动化</p>
       </div>
       <div class="flex items-center gap-2">
+        <VbenButton
+          @click="refreshStats"
+          :loading="loading"
+          variant="outline"
+          size="sm"
+        >
+          刷新数据
+        </VbenButton>
         <CloudUpload class="text-blue-600 text-3xl" />
       </div>
     </div>
@@ -156,89 +363,154 @@ onMounted(() => {
       <div
         v-for="stat in stats"
         :key="stat.title"
-        :class="`${stat.bgColor} rounded-lg p-4 border border-gray-200`"
+        :class="`${stat.bgColor} rounded-lg p-4 border border-gray-200 relative cursor-pointer hover:shadow-md transition-all duration-200`"
+        @click="navigateTo(stat.route)"
       >
+        <!-- 加载状态覆盖层 -->
+        <div
+          v-if="loading"
+          class="absolute inset-0 bg-white bg-opacity-75 rounded-lg flex items-center justify-center"
+        >
+          <div class="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600"></div>
+        </div>
+
+        <!-- 统计内容 -->
         <div class="flex items-center justify-between">
           <div>
             <p class="text-sm text-gray-600 mb-1">{{ stat.title }}</p>
-            <p class="text-2xl font-bold text-gray-900">{{ stat.value }}</p>
-            <p :class="`text-sm ${stat.color} font-medium`">{{ stat.change }}</p>
+            <p class="text-2xl font-bold text-gray-900">{{ formatNumber(stat.value) }}</p>
+            <p :class="`text-sm ${stat.iconColor} font-medium mt-1`">
+              <component :is="stat.icon" class="inline w-4 h-4 mr-1" />
+              点击查看详情
+            </p>
           </div>
-          <div :class="`p-3 rounded-lg ${stat.color} bg-white bg-opacity-80`">
+          <div :class="`p-3 rounded-lg ${stat.iconColor} bg-white bg-opacity-80`">
             <component :is="stat.icon" class="text-xl" />
           </div>
         </div>
       </div>
     </div>
 
-    <!-- 功能概览 -->
-    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-      <div
-        v-for="feature in features"
-        :key="feature.title"
-        class="bg-white rounded-lg shadow-md hover:shadow-lg transition-all duration-300 cursor-pointer border border-gray-200 relative"
-        @click="navigateTo(feature.route)"
-      >
-        <!-- 新功能标签 -->
-        <div v-if="feature.isNew" class="absolute -top-2 -right-2 z-10">
-          <div class="bg-red-500 text-white text-xs px-2 py-1 rounded-full flex items-center gap-1">
-            <Star class="text-xs" />
-            NEW
-          </div>
-        </div>
-
-        <div class="p-6">
-          <div class="flex items-center justify-between mb-4">
-            <div :class="`p-3 rounded-lg ${feature.color}`">
-              <component :is="feature.icon" class="text-xl" />
-            </div>
-            <ArrowRight class="text-gray-400" />
-          </div>
-
-          <h3 class="text-lg font-semibold text-gray-900 mb-2">{{ feature.title }}</h3>
-          <p class="text-gray-600 text-sm mb-3">{{ feature.description }}</p>
-
-          <div class="flex items-center justify-between">
-            <span class="text-xs text-gray-500">{{ feature.stats }}</span>
-            <VbenButton variant="outline" size="sm">
-              进入管理
-            </VbenButton>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- 最新功能和更新 -->
-    <div class="bg-white rounded-lg shadow-md border border-gray-200 mb-8">
+    <!-- 资源趋势统计 -->
+    <div v-if="resourceStats" class="bg-white rounded-lg shadow-md border border-gray-200 mb-8">
       <div class="p-6">
-        <div class="flex items-center justify-between mb-4">
-          <h2 class="text-lg font-semibold text-gray-900">最新功能</h2>
-          <div class="flex items-center gap-2 text-sm text-gray-500">
-            <Clock class="text-sm" />
-            最近更新
-          </div>
-        </div>
-        <div class="space-y-4">
-          <div
-            v-for="newFeature in newFeatures"
-            :key="newFeature.title"
-            class="flex items-start gap-4 p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"
-          >
-            <div class="flex-shrink-0 p-2 bg-white rounded-lg shadow-sm">
-              <component :is="newFeature.icon" class="text-lg text-blue-600" />
-            </div>
-            <div class="flex-1">
-              <div class="flex items-center gap-2 mb-1">
-                <h4 class="font-medium text-gray-900">{{ newFeature.title }}</h4>
-                <span
-                  :class="newFeature.type === 'feature' ? 'bg-blue-100 text-blue-800' : 'bg-green-100 text-green-800'"
-                  class="text-xs px-2 py-1 rounded-full"
-                >
-                  {{ newFeature.type === 'feature' ? '新功能' : '优化' }}
-                </span>
+        <h2 class="text-lg font-semibold text-gray-900 mb-4">资源趋势统计</h2>
+
+        <!-- 资源趋势图表 -->
+        <div class="mb-6">
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+            <!-- 今日增长趋势 -->
+            <div class="bg-gradient-to-r from-blue-50 to-blue-100 rounded-lg p-4">
+              <div class="flex items-center justify-between mb-2">
+                <h4 class="text-sm font-medium text-blue-800">今日增长</h4>
+                <TrendingUp class="text-blue-600" />
               </div>
-              <p class="text-gray-600 text-sm mb-2">{{ newFeature.description }}</p>
-              <span class="text-xs text-gray-500">{{ newFeature.date }}</span>
+              <div class="text-2xl font-bold text-blue-900">{{ resourceStats.today_growth }}</div>
+              <div class="text-xs text-blue-700">
+                比昨日 {{ calculateGrowthRate(resourceStats.total_views, resourceStats.today_start_views) }}
+              </div>
+            </div>
+
+            <!-- 总浏览量趋势 -->
+            <div class="bg-gradient-to-r from-green-50 to-green-100 rounded-lg p-4">
+              <div class="flex items-center justify-between mb-2">
+                <h4 class="text-sm font-medium text-green-800">总浏览量</h4>
+                <ChartLine class="text-green-600" />
+              </div>
+              <div class="text-2xl font-bold text-green-900">{{ formatNumber(resourceStats.total_views) }}</div>
+              <div class="text-xs text-green-700">
+                起始: {{ formatNumber(resourceStats.today_start_views) }}
+              </div>
+            </div>
+
+            <!-- 活跃资源比例 -->
+            <div class="bg-gradient-to-r from-purple-50 to-purple-100 rounded-lg p-4">
+              <div class="flex items-center justify-between mb-2">
+                <h4 class="text-sm font-medium text-purple-800">活跃率</h4>
+                <Database class="text-purple-600" />
+              </div>
+              <div class="text-2xl font-bold text-purple-900">
+                {{ resourceStats.total_count > 0 ? Math.round((resourceStats.active_count / resourceStats.total_count) * 100) : 0 }}%
+              </div>
+              <div class="text-xs text-purple-700">
+                {{ resourceStats.active_count }}/{{ resourceStats.total_count }} 个资源
+              </div>
+            </div>
+          </div>
+
+          <!-- 浏览量趋势图表 -->
+          <div class="bg-gray-50 rounded-lg p-4">
+            <h4 class="text-sm font-medium text-gray-800 mb-4">浏览量趋势图</h4>
+            <div v-if="trendData?.trend_data?.length" class="h-64">
+              <EchartsUI ref="chartRef" height="256px" />
+            </div>
+            <div v-else class="h-64 flex items-center justify-center text-gray-500">
+              <div class="text-center">
+                <ChartLine class="text-4xl text-gray-400 mb-2 mx-auto" />
+                <p>暂无趋势数据</p>
+                <p class="text-sm text-gray-400">系统将自动收集数据</p>
+              </div>
+            </div>
+
+            <!-- 数据分析 -->
+            <div v-if="trendData?.trend_data?.length" class="mt-6 pt-4 border-t border-gray-200">
+              <h5 class="text-sm font-medium text-gray-800 mb-3">📊 数据分析</h5>
+              <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                <!-- 资源增长趋势 -->
+                <div class="bg-white rounded-lg p-3 border border-gray-200">
+                  <div class="text-xs text-gray-500 mb-1">资源增长</div>
+                  <div class="text-lg font-semibold text-blue-600">
+                    +{{ trendData.summary.total_resources_growth }}
+                  </div>
+                  <div class="text-xs text-gray-600">
+                    {{ trendData.summary.period_days }}天内
+                  </div>
+                </div>
+
+                <!-- 浏览量增长 -->
+                <div class="bg-white rounded-lg p-3 border border-gray-200">
+                  <div class="text-xs text-gray-500 mb-1">浏览量增长</div>
+                  <div class="text-lg font-semibold text-green-600">
+                    +{{ formatNumber(trendData.summary.total_views_growth) }}
+                  </div>
+                  <div class="text-xs text-gray-600">
+                    {{ trendData.summary.period_days }}天内
+                  </div>
+                </div>
+
+                <!-- 平均日增 -->
+                <div class="bg-white rounded-lg p-3 border border-gray-200">
+                  <div class="text-xs text-gray-500 mb-1">平均日增资源</div>
+                  <div class="text-lg font-semibold text-orange-600">
+                    {{ Math.round(trendData.summary.average_daily_new_resources) }}
+                  </div>
+                  <div class="text-xs text-gray-600">
+                    个/天
+                  </div>
+                </div>
+
+                <!-- 增长率 -->
+                <div class="bg-white rounded-lg p-3 border border-gray-200">
+                  <div class="text-xs text-gray-500 mb-1">资源增长率</div>
+                  <div class="text-lg font-semibold text-purple-600">
+                    {{ calculateGrowthRate() }}%
+                  </div>
+                  <div class="text-xs text-gray-600">
+                    相对增长
+                  </div>
+                </div>
+              </div>
+
+              <!-- 趋势洞察 -->
+              <div class="mt-4 p-3 bg-blue-50 rounded-lg border border-blue-200">
+                <div class="text-sm font-medium text-blue-800 mb-2">🔍 趋势洞察</div>
+                <div class="text-sm text-blue-700 space-y-1">
+                  <div v-for="insight in getTrendInsights()" :key="insight" class="flex items-start">
+                    <span class="text-blue-500 mr-2">•</span>
+                    <span>{{ insight }}</span>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         </div>
@@ -253,31 +525,28 @@ onMounted(() => {
           <div
             v-for="drive in supportedDrives"
             :key="drive.name"
-            class="flex flex-col gap-3 p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"
+            class="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow"
           >
-            <div class="flex items-center justify-between">
-              <div class="flex items-center gap-3">
-                <span class="text-2xl">{{ drive.icon }}</span>
-                <div>
-                  <h4 class="font-medium text-gray-900">{{ drive.name }}</h4>
-                  <span
-                    :class="drive.status === '已支持' ? 'text-green-600' : 'text-yellow-600'"
-                    class="text-sm"
-                  >
-                    {{ drive.status }}
-                  </span>
-                </div>
+            <div class="flex items-center justify-between mb-3">
+              <div class="flex items-center">
+                <span class="text-2xl mr-2">{{ drive.icon }}</span>
+                <h3 class="font-medium text-gray-900">{{ drive.name }}</h3>
               </div>
-              <div
-                :class="drive.status === '已支持' ? 'bg-green-500' : 'bg-yellow-500'"
-                class="w-2 h-2 rounded-full"
-              ></div>
+              <span
+                :class="{
+                  'bg-green-100 text-green-800': drive.status === '已支持',
+                  'bg-yellow-100 text-yellow-800': drive.status === '开发中'
+                }"
+                class="px-2 py-1 text-xs font-medium rounded-full"
+              >
+                {{ drive.status }}
+              </span>
             </div>
             <div class="flex flex-wrap gap-1">
               <span
                 v-for="feature in drive.features"
                 :key="feature"
-                class="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded-full"
+                class="px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded"
               >
                 {{ feature }}
               </span>
@@ -287,89 +556,47 @@ onMounted(() => {
       </div>
     </div>
 
-    <!-- 快速开始指南 -->
-    <div class="bg-white rounded-lg shadow-md border border-gray-200 mb-6">
+    <!-- 最新功能 -->
+    <div class="bg-white rounded-lg shadow-md border border-gray-200 mb-8">
       <div class="p-6">
-        <h2 class="text-lg font-semibold text-gray-900 mb-4">快速开始</h2>
+        <h2 class="text-lg font-semibold text-gray-900 mb-4">最新功能</h2>
         <div class="space-y-4">
-          <div class="flex items-start gap-4 p-4 bg-blue-50 rounded-lg">
-            <div class="flex-shrink-0 w-8 h-8 bg-blue-600 text-white rounded-full flex items-center justify-center text-sm font-semibold">
-              1
-            </div>
-            <div>
-              <h4 class="font-medium text-gray-900 mb-1">配置云盘账户</h4>
-              <p class="text-gray-600 text-sm">
-                前往
-                <button
-                  @click="navigateTo('/coulddrive/user-manager')"
-                  class="text-blue-600 hover:underline font-medium"
-                >
-                  用户管理页面
-                </button>
-                ，输入您的云盘认证令牌，获取账户信息
-              </p>
-            </div>
-          </div>
-
-          <div class="flex items-start gap-4 p-4 bg-green-50 rounded-lg">
-            <div class="flex-shrink-0 w-8 h-8 bg-green-600 text-white rounded-full flex items-center justify-center text-sm font-semibold">
-              2
-            </div>
-            <div>
-              <h4 class="font-medium text-gray-900 mb-1">浏览文件</h4>
-              <p class="text-gray-600 text-sm">
-                在
-                <button
-                  @click="navigateTo('/coulddrive/file-manager')"
-                  class="text-green-600 hover:underline font-medium"
-                >
-                  文件管理页面
-                </button>
-                浏览您的云盘文件，支持文件夹导航和文件操作
-              </p>
-            </div>
-          </div>
-
-          <div class="flex items-start gap-4 p-4 bg-orange-50 rounded-lg">
-            <div class="flex-shrink-0 w-8 h-8 bg-orange-600 text-white rounded-full flex items-center justify-center text-sm font-semibold">
-              3
-            </div>
-            <div>
-              <h4 class="font-medium text-gray-900 mb-1">管理资源</h4>
-              <p class="text-gray-600 text-sm">
-                在
-                <button
-                  @click="navigateTo('/coulddrive/resource-manager')"
-                  class="text-orange-600 hover:underline font-medium"
-                >
-                  资源管理页面
-                </button>
-                管理云盘资源链接，查看浏览量趋势和统计数据
-              </p>
-            </div>
-          </div>
-
-          <div class="flex items-start gap-4 p-4 bg-purple-50 rounded-lg">
-            <div class="flex-shrink-0 w-8 h-8 bg-purple-600 text-white rounded-full flex items-center justify-center text-sm font-semibold">
-              4
-            </div>
-            <div>
-              <h4 class="font-medium text-gray-900 mb-1">执行同步任务</h4>
-              <p class="text-gray-600 text-sm">
-                配置同步规则后，在
-                <button
-                  @click="navigateTo('/coulddrive/sync-manager')"
-                  class="text-purple-600 hover:underline font-medium"
-                >
-                  同步任务页面
-                </button>
-                执行自动化文件同步
-              </p>
+          <div
+            v-for="feature in newFeatures"
+            :key="feature.title"
+            class="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow"
+          >
+            <div class="flex items-start">
+              <div class="flex-shrink-0 mr-4">
+                <div class="p-2 bg-blue-100 rounded-lg">
+                  <component :is="feature.icon" class="text-blue-600 text-xl" />
+                </div>
+              </div>
+              <div class="flex-1">
+                <div class="flex items-center justify-between mb-2">
+                  <h3 class="font-medium text-gray-900">{{ feature.title }}</h3>
+                  <div class="flex items-center space-x-2">
+                    <span
+                      :class="{
+                        'bg-green-100 text-green-800': feature.type === 'feature',
+                        'bg-blue-100 text-blue-800': feature.type === 'enhancement'
+                      }"
+                      class="px-2 py-1 text-xs font-medium rounded-full"
+                    >
+                      {{ feature.type === 'feature' ? '新功能' : '功能增强' }}
+                    </span>
+                    <span class="text-sm text-gray-500">{{ feature.date }}</span>
+                  </div>
+                </div>
+                <p class="text-gray-600 text-sm">{{ feature.description }}</p>
+              </div>
             </div>
           </div>
         </div>
       </div>
     </div>
+
+
 
     <!-- 注意事项 -->
     <div class="bg-white rounded-lg shadow-md border border-gray-200">

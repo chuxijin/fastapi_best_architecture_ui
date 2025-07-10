@@ -140,7 +140,6 @@ async function loadFileList(page = 1) {
         drive_type: props.driveType,
         file_path: currentPath.value,
         file_id: currentFileId.value || undefined,
-        recursive: false,
         page,
         size: pagination.value.pageSize,
       };
@@ -160,7 +159,6 @@ async function loadFileList(page = 1) {
         source_type: props.shareParams.sourceType,
         source_id: props.shareParams.sourceId,
         file_path: currentPath.value,
-        recursive: false,
         page,
         size: pagination.value.pageSize,
       };

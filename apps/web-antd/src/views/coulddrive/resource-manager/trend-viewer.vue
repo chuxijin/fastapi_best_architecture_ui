@@ -17,6 +17,7 @@ const props = defineProps<Props>();
 
 // 趋势数据
 const trendChartData = ref<ResourceViewTrendData[]>([]);
+const currentViewCount = ref<number>(0);
 const loading = ref(false);
 
 // 图表实例
@@ -30,7 +31,7 @@ const chartConfig = computed(() => ({
     left: 'center',
     textStyle: {
       fontSize: 16,
-      fontWeight: 'bold',
+      fontWeight: 'bold' as const,
     },
   },
   tooltip: {
@@ -38,7 +39,7 @@ const chartConfig = computed(() => ({
     formatter: (params: any) => {
       const data = params[0];
       const date = new Date(data.name);
-      return `${date.getFullYear()}/${date.getMonth() + 1}/${date.getDate()}<br/>浏览量: ${data.value} 次`;
+      return `${data.name}<br/>浏览量: ${data.value} 次`;
     },
   },
   xAxis: {
@@ -87,6 +88,77 @@ const chartConfig = computed(() => ({
   },
 }));
 
+// 获取实际天数
+function getActualDays() {
+  if (trendChartData.value.length < 2) return 0;
+
+  const firstDate = new Date(trendChartData.value[0]?.record_time || '');
+  const lastDate = new Date(trendChartData.value[trendChartData.value.length - 1]?.record_time || '');
+
+  const diffTime = Math.abs(lastDate.getTime() - firstDate.getTime());
+  const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+  return diffDays || 1; // 至少为1天
+}
+
+// 计算增长最快的连续端点（使用每日最早数据点）
+function getFastestGrowthPeriod() {
+  if (!trendChartData.value || trendChartData.value.length < 2) {
+    return null;
+  }
+
+  // 按日期分组，获取每日最早的数据点
+  const dailyEarliestPoints = new Map<string, ResourceViewTrendData>();
+
+  trendChartData.value.forEach(item => {
+    const dateStr = new Date(item.record_time).toDateString();
+    const existing = dailyEarliestPoints.get(dateStr);
+
+    if (!existing || new Date(item.record_time) < new Date(existing.record_time)) {
+      dailyEarliestPoints.set(dateStr, item);
+    }
+  });
+
+  // 转换为数组并按时间排序
+  const dailyPoints = Array.from(dailyEarliestPoints.values()).sort(
+    (a, b) => new Date(a.record_time).getTime() - new Date(b.record_time).getTime()
+  );
+
+  if (dailyPoints.length < 2) return null;
+
+  let maxGrowth = 0;
+  let maxGrowthPeriod: {
+    startDate: string;
+    endDate: string;
+    startViews: number;
+    endViews: number;
+    growth: number;
+  } | null = null;
+
+  // 计算相邻日期间的增长
+  for (let i = 0; i < dailyPoints.length - 1; i++) {
+    const current = dailyPoints[i];
+    const next = dailyPoints[i + 1];
+
+    if (!current || !next) continue;
+
+    const growth = next.view_count - current.view_count;
+
+    if (growth > maxGrowth) {
+      maxGrowth = growth;
+      maxGrowthPeriod = {
+        startDate: current.record_time,
+        endDate: next.record_time,
+        startViews: current.view_count,
+        endViews: next.view_count,
+        growth: growth
+      };
+    }
+  }
+
+  return maxGrowthPeriod;
+}
+
 // 获取趋势数据
 async function fetchTrendData() {
   if (!props.resource || !props.resource.pwd_id) return;
@@ -101,12 +173,14 @@ async function fetchTrendData() {
     };
     const response = await getResourceViewTrendApi(params);
     trendChartData.value = response.trend_data || [];
+    currentViewCount.value = response.current_view_count || 0;
 
     // 更新图表
     renderChart();
   } catch (error) {
     console.error('获取趋势数据失败:', error);
     trendChartData.value = [];
+    currentViewCount.value = 0;
   } finally {
     loading.value = false;
   }
@@ -141,35 +215,6 @@ watch(() => props.resource, async (newResource) => {
     await fetchTrendData();
   }
 }, { immediate: true });
-
-// 计算增长最快的连续端点
-function getFastestGrowthPeriod() {
-  if (!trendChartData.value || trendChartData.value.length < 2) {
-    return null;
-  }
-
-  let maxGrowth = 0;
-  let maxGrowthPeriod = null;
-
-  for (let i = 0; i < trendChartData.value.length - 1; i++) {
-    const current = trendChartData.value[i];
-    const next = trendChartData.value[i + 1];
-    const growth = next.view_count - current.view_count;
-
-    if (growth > maxGrowth) {
-      maxGrowth = growth;
-      maxGrowthPeriod = {
-        startDate: current.record_time,
-        endDate: next.record_time,
-        startViews: current.view_count,
-        endViews: next.view_count,
-        growth: growth
-      };
-    }
-  }
-
-  return maxGrowthPeriod;
-}
 
 // 监听数据变化，重新渲染图表
 watch(() => trendChartData.value, () => {
@@ -259,34 +304,6 @@ watch(() => trendChartData.value, () => {
       </div>
     </div>
 
-    <!-- 数据统计 -->
-    <div v-if="!loading && trendChartData.length > 0" class="grid grid-cols-1 gap-4 md:grid-cols-4">
-      <div class="bg-blue-50 rounded-lg p-4">
-        <div class="text-sm font-medium text-blue-700">总浏览量</div>
-        <div class="text-2xl font-semibold text-blue-900">
-          {{ trendChartData.reduce((sum, item) => sum + item.view_count, 0) }}
-        </div>
-      </div>
-      <div class="bg-green-50 rounded-lg p-4">
-        <div class="text-sm font-medium text-green-700">平均日浏览量</div>
-        <div class="text-2xl font-semibold text-green-900">
-          {{ Math.round(trendChartData.reduce((sum, item) => sum + item.view_count, 0) / trendChartData.length) }}
-        </div>
-      </div>
-      <div class="bg-orange-50 rounded-lg p-4">
-        <div class="text-sm font-medium text-orange-700">最高日浏览量</div>
-        <div class="text-2xl font-semibold text-orange-900">
-          {{ Math.max(...trendChartData.map(item => item.view_count)) }}
-        </div>
-      </div>
-      <div class="bg-purple-50 rounded-lg p-4">
-        <div class="text-sm font-medium text-purple-700">数据天数</div>
-        <div class="text-2xl font-semibold text-purple-900">
-          {{ trendChartData.length }}
-        </div>
-      </div>
-    </div>
-
     <!-- 趋势分析 -->
     <div v-if="!loading && trendChartData.length > 0" class="bg-white rounded-lg border p-6">
       <h4 class="text-lg font-semibold text-gray-900 mb-4">
@@ -297,15 +314,15 @@ watch(() => trendChartData.value, () => {
       <div v-if="getFastestGrowthPeriod()" class="bg-green-50 rounded-lg p-4 border border-green-200">
         <h5 class="text-sm font-semibold text-green-700 mb-2 flex items-center">
           <span class="mr-2">🚀</span>
-          增长最快的连续端点
+          增长最快的连续增长点
         </h5>
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
           <div>
             <span class="font-medium text-gray-700">时间段：</span>
             <span class="text-gray-900">
-              {{ new Date(getFastestGrowthPeriod()?.startDate).toLocaleDateString() }}
+              {{ getFastestGrowthPeriod() ? getFastestGrowthPeriod()!.startDate : '' }}
               →
-              {{ new Date(getFastestGrowthPeriod()?.endDate).toLocaleDateString() }}
+              {{ getFastestGrowthPeriod() ? getFastestGrowthPeriod()!.endDate : '' }}
             </span>
           </div>
           <div>
@@ -328,27 +345,39 @@ watch(() => trendChartData.value, () => {
       </div>
 
       <!-- 总体趋势分析 -->
-      <div class="mt-4 grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div class="mt-4 grid grid-cols-1 md:grid-cols-5 gap-4">
         <div class="bg-blue-50 rounded-lg p-4 text-center">
           <div class="text-2xl font-bold text-blue-600">
-            {{ trendChartData.length > 1 ?
-                Math.round(((trendChartData[trendChartData.length - 1].view_count - trendChartData[0].view_count) / trendChartData[0].view_count) * 100) : 0 }}%
+            {{ currentViewCount }}
           </div>
-          <div class="text-sm text-blue-700">总增长率</div>
+          <div class="text-sm text-blue-700">当前浏览量</div>
         </div>
-        <div class="bg-orange-50 rounded-lg p-4 text-center">
-          <div class="text-2xl font-bold text-orange-600">
-            {{ trendChartData.length > 1 ?
-                Math.round((trendChartData[trendChartData.length - 1].view_count - trendChartData[0].view_count) / (trendChartData.length - 1)) : 0 }}
+        <div class="bg-green-50 rounded-lg p-4 text-center">
+          <div class="text-2xl font-bold text-green-600">
+            {{ trendChartData.length }}
           </div>
-          <div class="text-sm text-orange-700">平均日增长</div>
+          <div class="text-sm text-green-700">数据点数</div>
         </div>
         <div class="bg-purple-50 rounded-lg p-4 text-center">
           <div class="text-2xl font-bold text-purple-600">
+            {{ trendChartData.length > 1 && trendChartData[0] ?
+                Math.round(((trendChartData[trendChartData.length - 1]?.view_count || 0) - trendChartData[0].view_count) / trendChartData[0].view_count * 100) : 0 }}%
+          </div>
+          <div class="text-sm text-purple-700">总增长率</div>
+        </div>
+        <div class="bg-orange-50 rounded-lg p-4 text-center">
+          <div class="text-2xl font-bold text-orange-600">
+            {{ trendChartData.length > 1 && trendChartData[0] ?
+                Math.round(((trendChartData[trendChartData.length - 1]?.view_count || 0) - trendChartData[0].view_count) / getActualDays()) : 0 }}
+          </div>
+          <div class="text-sm text-orange-700">平均日增长</div>
+        </div>
+        <div class="bg-red-50 rounded-lg p-4 text-center">
+          <div class="text-2xl font-bold text-red-600">
             {{ trendChartData.length > 0 ?
                 Math.max(...trendChartData.map(item => item.view_count)) - Math.min(...trendChartData.map(item => item.view_count)) : 0 }}
           </div>
-          <div class="text-sm text-purple-700">最大波动</div>
+          <div class="text-sm text-red-700">最大波动</div>
         </div>
       </div>
     </div>

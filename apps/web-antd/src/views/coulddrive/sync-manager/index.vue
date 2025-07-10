@@ -22,7 +22,7 @@ import {
   executeCoulddriveSyncTaskApi,
   getAsyncTaskStatusApi,
 } from '#/api';
-import { invalidateCache } from '#/api/request';
+
 import {
   syncConfigQuerySchema,
   useSyncConfigColumns,
@@ -289,8 +289,8 @@ async function executeSync(config: any) {
             key: `sync_task_${config.id}`
           });
 
-          // 同步成功后清除配置缓存，以便刷新最后同步时间等信息
-          invalidateCache('config');
+          // 同步成功后刷新表格数据
+          // 刷新表格数据以显示最新的同步时间等信息
         } else {
           const errorMsg = result.error || '同步任务执行失败';
           message.error({
@@ -304,8 +304,7 @@ async function executeSync(config: any) {
           key: `sync_task_${config.id}`
         });
 
-        // 任务提交成功后也清除配置缓存
-        invalidateCache('config');
+        // 任务提交成功
       }
 
       // 3秒后重置为空闲状态并刷新表格

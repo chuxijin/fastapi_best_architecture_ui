@@ -170,14 +170,14 @@ async function initializeForms() {
   allCategories.value = categoryOptions.allCategories;
 
     // 直接更新查询表单的选项
-  const domainField = queryFormOptions.schema.find(item => item.fieldName === 'domain');
-  if (domainField && domainField.componentProps) {
-    domainField.componentProps.options = categoryOptions.domainOptions;
+  const domainField = queryFormOptions.schema?.find(item => item.fieldName === 'domain');
+  if (domainField && domainField.componentProps && typeof domainField.componentProps === 'object' && !('options' in domainField.componentProps ? false : true)) {
+    (domainField.componentProps as any).options = categoryOptions.domainOptions;
   }
 
-  const resourceTypeField = queryFormOptions.schema.find(item => item.fieldName === 'resource_type');
-  if (resourceTypeField && resourceTypeField.componentProps) {
-    resourceTypeField.componentProps.options = categoryOptions.resourceTypeOptions;
+  const resourceTypeField = queryFormOptions.schema?.find(item => item.fieldName === 'resource_type');
+  if (resourceTypeField && resourceTypeField.componentProps && typeof resourceTypeField.componentProps === 'object' && !('options' in resourceTypeField.componentProps ? false : true)) {
+    (resourceTypeField.componentProps as any).options = categoryOptions.resourceTypeOptions;
   }
 
   // 创建编辑表单
@@ -203,14 +203,14 @@ async function refreshCategoryOptions() {
     allCategories.value = categoryOptions.allCategories;
 
     // 更新查询表单的选项
-    const domainField = queryFormOptions.schema.find(item => item.fieldName === 'domain');
-    if (domainField && domainField.componentProps) {
-      domainField.componentProps.options = categoryOptions.domainOptions;
+    const domainField = queryFormOptions.schema?.find(item => item.fieldName === 'domain');
+    if (domainField && domainField.componentProps && typeof domainField.componentProps === 'object' && !('options' in domainField.componentProps ? false : true)) {
+      (domainField.componentProps as any).options = categoryOptions.domainOptions;
     }
 
-    const resourceTypeField = queryFormOptions.schema.find(item => item.fieldName === 'resource_type');
-    if (resourceTypeField && resourceTypeField.componentProps) {
-      resourceTypeField.componentProps.options = categoryOptions.resourceTypeOptions;
+    const resourceTypeField = queryFormOptions.schema?.find(item => item.fieldName === 'resource_type');
+    if (resourceTypeField && resourceTypeField.componentProps && typeof resourceTypeField.componentProps === 'object' && !('options' in resourceTypeField.componentProps ? false : true)) {
+      (resourceTypeField.componentProps as any).options = categoryOptions.resourceTypeOptions;
     }
 
     // 如果编辑表单已创建，更新其选项

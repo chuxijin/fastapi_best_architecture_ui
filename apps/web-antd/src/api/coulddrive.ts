@@ -616,15 +616,9 @@ export async function refreshCoulddriveUserApi(userId: number) {
 export async function getCoulddriveFileListApi(
   params: CoulddriveListFilesParams,
   token: string,
-  options?: { disableCache?: boolean }
 ) {
-  // 如果需要禁用缓存，添加时间戳参数
-  const finalParams = options?.disableCache
-    ? { ...params, _t: Date.now() }
-    : params;
-
   return requestClient.get<PaginationResult>('/api/v1/couldfile/list', {
-    params: finalParams,
+    params,
     headers: {
       'X-Token': token,
     },
@@ -862,6 +856,31 @@ export interface ResourceStatistics {
   today_growth: number;
 }
 
+// 整体统计趋势相关类型
+export interface OverallStatisticsTrendData {
+  date: string; // YYYY-MM-DD
+  total_count: number;
+  total_views: number;
+  active_count: number;
+  new_resources: number;
+}
+
+export interface OverallStatisticsTrendParams {
+  start_date?: string; // YYYY-MM-DD
+  end_date?: string; // YYYY-MM-DD
+  days?: number; // 默认7天
+}
+
+export interface OverallStatisticsTrendResponse {
+  trend_data: OverallStatisticsTrendData[];
+  summary: {
+    total_resources_growth: number;
+    total_views_growth: number;
+    average_daily_new_resources: number;
+    period_days: number;
+  };
+}
+
 export interface ResourceListParams {
   domain?: string;
   subject?: string;
@@ -1074,6 +1093,15 @@ export async function deleteResourceApi(resourceId: number) {
 export async function getResourceStatisticsApi(userId?: number) {
   const params = userId ? { user_id: userId } : {};
   return requestClient.get<ResourceStatistics>('/api/v1/resources/statistics', {
+    params,
+  });
+}
+
+/**
+ * 获取整体资源统计趋势
+ */
+export async function getOverallStatisticsTrendApi(params: OverallStatisticsTrendParams) {
+  return requestClient.get<OverallStatisticsTrendResponse>('/api/v1/resources/statistics/trend', {
     params,
   });
 }
@@ -1302,41 +1330,17 @@ const AI_CONFIG = {
   model: 'gpt-4o',
 };
 
-// 分类数据缓存
-let categoryCache: CategoryTreeNode[] | null = null;
-let cacheExpireTime: number = 0;
-const CACHE_DURATION = 5 * 60 * 1000; // 5分钟缓存
-
-// 获取分类数据（带缓存）
-async function getCachedCategoryData(): Promise<CategoryTreeNode[]> {
-  const now = Date.now();
-
-  // 检查缓存是否有效
-  if (categoryCache && now < cacheExpireTime) {
-    return categoryCache;
-  }
-
+// 获取分类数据
+async function getCategoryData(): Promise<CategoryTreeNode[]> {
   try {
     const response = await getCategoryTreeApi();
     // API直接返回数组，不需要.data
-    categoryCache = response.data || response || [];
-    cacheExpireTime = now + CACHE_DURATION;
-    return categoryCache;
+    const data = Array.isArray(response) ? response : (response as any)?.data || [];
+    return data;
   } catch (error) {
     console.warn('获取分类数据失败:', error);
-    // 如果有过期缓存，使用过期缓存
-    if (categoryCache) {
-      return categoryCache;
-    }
-    // 否则返回空数组
     return [];
   }
-}
-
-// 清除分类数据缓存
-export function clearCategoryCache(): void {
-  categoryCache = null;
-  cacheExpireTime = 0;
 }
 
 // 动态生成智能识别提示词
@@ -1437,7 +1441,7 @@ ${subjectSection}
 // ==================== 分类管理 API ====================
 
 export async function getCategoryListApi(params: CategoryListParams) {
-  return requestClient.get<PaginationResult<CategoryDetail>>('/api/v1/category/list', {
+  return requestClient.get<PaginationResult>('/api/v1/category/list', {
     params,
   });
 }
@@ -1454,24 +1458,15 @@ export async function getCategoryDetailApi(categoryId: number) {
 }
 
 export async function createCategoryApi(params: CreateCategoryParams) {
-  const result = await requestClient.post<CategoryDetail>('/api/v1/category', params);
-  // 清除缓存以确保下次获取最新数据
-  clearCategoryCache();
-  return result;
+  return requestClient.post<CategoryDetail>('/api/v1/category', params);
 }
 
 export async function updateCategoryApi(categoryId: number, params: UpdateCategoryParams) {
-  const result = await requestClient.patch<CategoryDetail>(`/api/v1/category/${categoryId}`, params);
-  // 清除缓存以确保下次获取最新数据
-  clearCategoryCache();
-  return result;
+  return requestClient.put<CategoryDetail>(`/api/v1/category/${categoryId}`, params);
 }
 
 export async function deleteCategoryApi(categoryId: number) {
-  const result = await requestClient.delete(`/api/v1/category/${categoryId}`);
-  // 清除缓存以确保下次获取最新数据
-  clearCategoryCache();
-  return result;
+  return requestClient.delete(`/api/v1/category/${categoryId}`);
 }
 
 export async function getCategoryOptionsApi(categoryType?: 'domain' | 'subject' | 'resource_type') {
@@ -1492,7 +1487,7 @@ export async function smartRecognitionApi(content: string): Promise<SmartRecogni
   }
 
   // 动态获取分类数据
-  const categories = await getCachedCategoryData();
+  const categories = await getCategoryData();
 
   const dynamicPrompt = categories.length > 0
     ? buildSmartRecognitionPrompt(categories)
