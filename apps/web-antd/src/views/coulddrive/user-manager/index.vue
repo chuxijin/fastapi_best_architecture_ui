@@ -1,45 +1,46 @@
 <script setup lang="ts">
 import type { VbenFormProps } from '@vben/common-ui';
-import type { VxeTableGridOptions } from '#/adapter/vxe-table';
-import type { OnActionClickParams } from '#/adapter/vxe-table';
+
 import type {
+  OnActionClickParams,
+  VxeTableGridOptions,
+} from '#/adapter/vxe-table';
+import type {
+  CoulddriveDriveAccountDetail,
+  CoulddriveRelationshipItem,
+  CoulddriveRelationshipParams,
   CoulddriveUserInfo,
   CoulddriveUserInfoParams,
-  CoulddriveRelationshipParams,
-  CoulddriveRelationshipItem,
   CoulddriveUserListParams,
-  CoulddriveDriveAccountDetail,
 } from '#/api';
 
-import { onMounted, ref, computed } from 'vue';
+import { onMounted, ref } from 'vue';
 
-import { Page, VbenButton, useVbenModal } from '@vben/common-ui';
+import { Page, useVbenModal, VbenButton } from '@vben/common-ui';
 import { AddData } from '@vben/icons';
-import { createIconifyIcon } from '@vben/icons';
 import { $t } from '@vben/locales';
-
-// 创建图标组件
-const Refresh = createIconifyIcon('mdi:refresh');
 
 import { message, Modal } from 'ant-design-vue';
 
 import { useVbenForm } from '#/adapter/form';
 import { useVbenVxeGrid } from '#/adapter/vxe-table';
 import {
-  getCoulddriveUserInfoApi,
-  getCoulddriveRelationshipListApi,
-  getCoulddriveUserListApi,
   createCoulddriveUserApi,
   deleteCoulddriveUserApi,
-  refreshCoulddriveUserApi,
   DRIVE_TYPE_OPTIONS,
+  getCoulddriveRelationshipListApi,
+  getCoulddriveUserInfoApi,
+  getCoulddriveUserListApi,
   getDriveTypeLabel,
+  refreshCoulddriveUserApi,
 } from '#/api';
 import {
   getUserInfoFormSchema,
   userListQuerySchema,
   useUserListColumns,
 } from '#/views/coulddrive/user-manager/data';
+
+// 创建图标组件（如需更多图标可按需添加）
 
 const driveType = ref<string>(DRIVE_TYPE_OPTIONS[0].value);
 const authToken = ref<string>('');
@@ -68,14 +69,12 @@ const userFormOptions: VbenFormProps = {
   schema: getUserInfoFormSchema(false), // 默认非编辑模式
 };
 
-
-
 // 用户列表查询表单
 const userListFormOptions: VbenFormProps = {
   collapsed: true,
   showCollapseButton: true,
   submitButtonOptions: {
-    content: $t('page.form.query'),
+    content: $t('common.search'),
   },
   schema: userListQuerySchema,
 };
@@ -104,7 +103,8 @@ const userListGridOptions: VxeTableGridOptions<CoulddriveDriveAccountDetail> = {
       query: async ({ page }, formValues) => {
         const params: CoulddriveUserListParams = {
           type: formValues.type || undefined,
-          is_valid: formValues.is_valid !== '' ? formValues.is_valid : undefined,
+          is_valid:
+            formValues.is_valid === '' ? undefined : formValues.is_valid,
           page: page.currentPage,
           size: page.pageSize,
         };
@@ -147,15 +147,15 @@ const [UserInfoModal, userInfoModalApi] = useVbenModal({
         userInfoModalApi.lock();
         try {
           const formData = await userInfoFormApi.getValues<{
-            drive_type: string;
             auth_token: string;
+            drive_type: string;
           }>();
 
           // 使用新的认证令牌获取用户信息
           const params: CoulddriveUserInfoParams = {
             drive_type: formData.drive_type,
           };
-          const updatedUserInfo = await getCoulddriveUserInfoApi(params, formData.auth_token);
+          await getCoulddriveUserInfoApi(params, formData.auth_token);
 
           // 创建或更新用户信息到数据库
           await createCoulddriveUserApi(params, formData.auth_token);
@@ -207,13 +207,13 @@ const [UserInfoModal, userInfoModalApi] = useVbenModal({
         authToken.value = '';
         driveType.value = DRIVE_TYPE_OPTIONS[0].value;
       }
-          } else {
-        // 关闭时重置状态
-        isEditMode.value = false;
-        editingUser.value = null;
-        // 重置表单schema
-        userFormOptions.schema = getUserInfoFormSchema(false);
-      }
+    } else {
+      // 关闭时重置状态
+      isEditMode.value = false;
+      editingUser.value = null;
+      // 重置表单schema
+      userFormOptions.schema = getUserInfoFormSchema(false);
+    }
   },
 });
 
@@ -223,8 +223,8 @@ async function fetchUserInfoInModal() {
   if (valid) {
     fetchingUserInfo.value = true;
     const formData = await userInfoFormApi.getValues<{
-      drive_type: string;
       auth_token: string;
+      drive_type: string;
     }>();
 
     driveType.value = formData.drive_type;
@@ -234,7 +234,10 @@ async function fetchUserInfoInModal() {
       const params: CoulddriveUserInfoParams = {
         drive_type: formData.drive_type,
       };
-      userInfo.value = await getCoulddriveUserInfoApi(params, formData.auth_token);
+      userInfo.value = await getCoulddriveUserInfoApi(
+        params,
+        formData.auth_token,
+      );
       message.success('用户信息获取成功');
     } catch (error) {
       message.error('获取用户信息失败，请检查认证令牌是否正确');
@@ -247,7 +250,10 @@ async function fetchUserInfoInModal() {
 }
 
 // 获取关系列表
-async function fetchRelationships(user: CoulddriveDriveAccountDetail, type: 'friend' | 'group') {
+async function fetchRelationships(
+  user: CoulddriveDriveAccountDetail,
+  type: 'friend' | 'group',
+) {
   if (!user.cookies) {
     message.error('用户认证信息不完整');
     return;
@@ -262,7 +268,10 @@ async function fetchRelationships(user: CoulddriveDriveAccountDetail, type: 'fri
       size: 100,
     };
 
-    const response = await getCoulddriveRelationshipListApi(params, user.cookies);
+    const response = await getCoulddriveRelationshipListApi(
+      params,
+      user.cookies,
+    );
 
     if (type === 'friend') {
       friendList.value = response.items || [];
@@ -309,40 +318,15 @@ function editUser(user: CoulddriveDriveAccountDetail) {
 }
 
 // 用户操作处理
-async function onUserActionClick({ code, row }: OnActionClickParams<CoulddriveDriveAccountDetail>) {
+async function onUserActionClick({
+  code,
+  row,
+}: OnActionClickParams<CoulddriveDriveAccountDetail>) {
   switch (code) {
-    case 'refresh': {
-      try {
-        message.loading('正在刷新用户信息...', 0);
-        await refreshCoulddriveUserApi(row.id);
-        message.destroy();
-        message.success('用户信息刷新成功');
-        // 刷新用户列表
-        userListGridApi.query();
-      } catch (error) {
-        message.destroy();
-        message.error('刷新用户信息失败，请重试');
-        console.error(error);
-        // 刷新失败后也要刷新列表，因为可能账户状态已更新
-        userListGridApi.query();
-      }
-      break;
-    }
-    case 'edit': {
-      editUser(row);
-      break;
-    }
-    case 'relationship': {
-      selectedUser.value = row;
-      relationshipModalApi.open();
-      // 默认加载好友列表
-      fetchRelationships(row, 'friend');
-      break;
-    }
     case 'delete': {
       // 确认删除
       const confirmed = await new Promise((resolve) => {
-        const modal = Modal.confirm({
+        Modal.confirm({
           title: '确认删除',
           content: `确定要删除用户 "${row.username}" 吗？此操作不可恢复。`,
           okText: '确定',
@@ -365,44 +349,46 @@ async function onUserActionClick({ code, row }: OnActionClickParams<CoulddriveDr
       }
       break;
     }
-  }
-}
-
-// 获取用户信息
-async function fetchUserInfo() {
-  const { valid } = await userInfoFormApi.validate();
-  if (valid) {
-    const formData = await userInfoFormApi.getValues<{
-      drive_type: string;
-      auth_token: string;
-    }>();
-
-    driveType.value = formData.drive_type;
-    authToken.value = formData.auth_token;
-
-    try {
-      const params: CoulddriveUserInfoParams = {
-        drive_type: formData.drive_type,
-      };
-      userInfo.value = await getCoulddriveUserInfoApi(params, formData.auth_token);
-
-      // 保存到本地存储
-      localStorage.setItem('coulddrive_token', formData.auth_token);
-      localStorage.setItem('coulddrive_drive_type', formData.drive_type);
-    } catch (error) {
-      message.error('获取用户信息失败，请检查认证令牌是否正确');
-      console.error(error);
+    case 'edit': {
+      editUser(row);
+      break;
+    }
+    case 'refresh': {
+      try {
+        message.loading('正在刷新用户信息...', 0);
+        await refreshCoulddriveUserApi(row.id);
+        message.destroy();
+        message.success('用户信息刷新成功');
+        // 刷新用户列表
+        userListGridApi.query();
+      } catch (error) {
+        message.destroy();
+        message.error('刷新用户信息失败，请重试');
+        console.error(error);
+        // 刷新失败后也要刷新列表，因为可能账户状态已更新
+        userListGridApi.query();
+      }
+      break;
+    }
+    case 'relationship': {
+      selectedUser.value = row;
+      relationshipModalApi.open();
+      // 默认加载好友列表
+      fetchRelationships(row, 'friend');
+      break;
     }
   }
 }
 
+// 保留占位以便后续拓展（当前不使用）
+
 // 格式化文件大小
-function formatFileSize(bytes: number | null): string {
+function formatFileSize(bytes: null | number): string {
   if (!bytes) return '0 B';
   const k = 1024;
   const sizes = ['B', 'KB', 'MB', 'GB', 'TB'];
   const i = Math.floor(Math.log(bytes) / Math.log(k));
-  return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+  return `${Number.parseFloat((bytes / k ** i).toFixed(2))} ${sizes[i]}`;
 }
 
 // 计算使用率
@@ -410,8 +396,6 @@ function getUsagePercentage(): number {
   if (!userInfo.value?.quota || !userInfo.value?.used) return 0;
   return Math.round((userInfo.value.used / userInfo.value.quota) * 100);
 }
-
-
 
 // 切换关系类型
 function onRelationshipTypeChange(type: 'friend' | 'group') {
@@ -425,9 +409,7 @@ function onRelationshipTypeChange(type: 'friend' | 'group') {
   }
 }
 
-function onRefreshUserList() {
-  userListGridApi.query();
-}
+// 刷新用户列表（已通过 toolbar refresh 触发，无需单独方法）
 
 onMounted(() => {
   // 从本地存储恢复数据
@@ -458,25 +440,28 @@ onMounted(() => {
 
       <!-- 头像插槽 -->
       <template #avatar="{ row }">
-        <a-avatar
-          :src="row.avatar_url"
-          :size="40"
-        >
+        <a-avatar :src="row.avatar_url" :size="40">
           <template #icon>
             <AddData />
           </template>
         </a-avatar>
       </template>
 
-
-
       <!-- 使用率插槽 -->
       <template #usage="{ row }">
         <div class="w-full">
           <a-progress
-            :percent="row.quota && row.used ? Math.round((row.used / row.quota) * 100) : 0"
-            :size="'small'"
-            :status="row.quota && row.used && (row.used / row.quota) > 0.9 ? 'exception' : 'normal'"
+            :percent="
+              row.quota && row.used
+                ? Math.round((row.used / row.quota) * 100)
+                : 0
+            "
+            size="small"
+            :status="
+              row.quota && row.used && row.used / row.quota > 0.9
+                ? 'exception'
+                : 'normal'
+            "
             :show-info="true"
           />
         </div>
@@ -484,77 +469,66 @@ onMounted(() => {
 
       <!-- VIP状态插槽 -->
       <template #vip="{ row }">
-        <a-tag
-          v-if="row.is_supervip"
-          color="purple"
-        >
-          超级会员
-        </a-tag>
-        <a-tag
-          v-else-if="row.is_vip"
-          color="gold"
-        >
-          VIP
-        </a-tag>
-        <a-tag
-          v-else
-          color="default"
-        >
-          普通用户
-        </a-tag>
+        <a-tag v-if="row.is_supervip" color="purple"> 超级会员 </a-tag>
+        <a-tag v-else-if="row.is_vip" color="gold"> VIP </a-tag>
+        <a-tag v-else color="default"> 普通用户 </a-tag>
       </template>
 
       <!-- 账号状态插槽 -->
       <template #status="{ row }">
-        <a-tag
-          :color="row.is_valid ? 'success' : 'error'"
-        >
+        <a-tag :color="row.is_valid ? 'success' : 'error'">
           {{ row.is_valid ? '有效' : '无效' }}
         </a-tag>
       </template>
     </UserListGrid>
 
-
-
     <!-- 添加用户模态框 -->
     <UserInfoModal :title="isEditMode ? '编辑用户' : '添加用户'">
       <div class="grid grid-cols-1 gap-6">
-                <!-- 认证表单 -->
+        <!-- 认证表单 -->
         <div>
           <UserInfoForm />
         </div>
 
         <!-- 编辑模式下显示当前用户信息 -->
-        <div v-if="isEditMode" class="bg-blue-50 p-4 rounded-lg">
-          <h4 class="text-lg font-semibold text-gray-800 mb-2">当前用户信息</h4>
+        <div v-if="isEditMode" class="rounded-lg bg-blue-50 p-4">
+          <h4 class="mb-2 text-lg font-semibold text-gray-800">当前用户信息</h4>
           <div class="grid grid-cols-2 gap-4 text-sm">
             <div>
               <span class="text-gray-600">网盘类型:</span>
-              <span class="ml-2 font-semibold">{{ getDriveTypeLabel(editingUser?.type || '') }}</span>
+              <span class="ml-2 font-semibold">{{
+                getDriveTypeLabel(editingUser?.type || '')
+              }}</span>
             </div>
             <div>
               <span class="text-gray-600">用户名:</span>
-              <span class="ml-2 font-semibold">{{ editingUser?.username }}</span>
+              <span class="ml-2 font-semibold">{{
+                editingUser?.username
+              }}</span>
             </div>
           </div>
         </div>
 
         <!-- 用户信息展示 -->
         <div v-if="userInfo" class="space-y-4">
-          <div class="bg-gradient-to-r from-blue-50 to-indigo-50 p-4 rounded-lg">
-            <div class="flex items-center mb-3">
+          <div
+            class="rounded-lg bg-gradient-to-r from-blue-50 to-indigo-50 p-4"
+          >
+            <div class="mb-3 flex items-center">
               <AddData class="mr-2 text-blue-600" />
-              <h3 class="text-lg font-semibold text-gray-800">{{ userInfo.username }}</h3>
+              <h3 class="text-lg font-semibold text-gray-800">
+                {{ userInfo.username }}
+              </h3>
               <div class="ml-auto flex gap-2">
                 <span
                   v-if="userInfo.is_vip"
-                  class="px-2 py-1 bg-yellow-100 text-yellow-800 text-xs rounded-full"
+                  class="rounded-full bg-yellow-100 px-2 py-1 text-xs text-yellow-800"
                 >
                   VIP
                 </span>
                 <span
                   v-if="userInfo.is_supervip"
-                  class="px-2 py-1 bg-purple-100 text-purple-800 text-xs rounded-full"
+                  class="rounded-full bg-purple-100 px-2 py-1 text-xs text-purple-800"
                 >
                   超级会员
                 </span>
@@ -568,27 +542,33 @@ onMounted(() => {
               </div>
               <div>
                 <span class="text-gray-600">总空间:</span>
-                <span class="ml-2 font-semibold">{{ formatFileSize(userInfo.quota ?? null) }}</span>
+                <span class="ml-2 font-semibold">{{
+                  formatFileSize(userInfo.quota ?? null)
+                }}</span>
               </div>
               <div>
                 <span class="text-gray-600">已使用:</span>
-                <span class="ml-2 font-semibold">{{ formatFileSize(userInfo.used ?? null) }}</span>
+                <span class="ml-2 font-semibold">{{
+                  formatFileSize(userInfo.used ?? null)
+                }}</span>
               </div>
               <div>
                 <span class="text-gray-600">使用率:</span>
-                <span class="ml-2 font-semibold">{{ getUsagePercentage() }}%</span>
+                <span class="ml-2 font-semibold"
+                  >{{ getUsagePercentage() }}%</span
+                >
               </div>
             </div>
 
             <!-- 存储空间进度条 -->
             <div class="mt-4">
-              <div class="flex justify-between text-xs text-gray-600 mb-1">
+              <div class="mb-1 flex justify-between text-xs text-gray-600">
                 <span>存储空间使用情况</span>
                 <span>{{ getUsagePercentage() }}%</span>
               </div>
-              <div class="w-full bg-gray-200 rounded-full h-2">
+              <div class="h-2 w-full rounded-full bg-gray-200">
                 <div
-                  class="bg-blue-600 h-2 rounded-full transition-all duration-300"
+                  class="h-2 rounded-full bg-blue-600 transition-all duration-300"
                   :style="{ width: `${getUsagePercentage()}%` }"
                 ></div>
               </div>
@@ -597,7 +577,10 @@ onMounted(() => {
         </div>
 
         <!-- 未获取用户信息时的提示 -->
-        <div v-else class="flex items-center justify-center h-32 bg-gray-50 rounded-lg">
+        <div
+          v-else
+          class="flex h-32 items-center justify-center rounded-lg bg-gray-50"
+        >
           <div class="text-center text-gray-500">
             <AddData class="mx-auto mb-2 text-4xl" />
             <p>请先获取用户信息</p>
@@ -608,26 +591,26 @@ onMounted(() => {
 
     <!-- 关系查看模态框 -->
     <RelationshipModal :title="`${selectedUser?.username || ''} 的关系列表`">
-      <div v-if="selectedUser" class="flex flex-col h-[500px]">
+      <div v-if="selectedUser" class="flex h-[500px] flex-col">
         <!-- 标签页切换 - 固定在顶部 -->
-        <div class="flex border-b border-gray-200 bg-white sticky top-0 z-10">
+        <div class="sticky top-0 z-10 flex border-b border-gray-200 bg-white">
           <button
+            class="border-b-2 px-4 py-2 text-sm font-medium transition-colors"
             :class="[
-              'px-4 py-2 font-medium text-sm border-b-2 transition-colors',
               relationshipType === 'friend'
                 ? 'border-blue-500 text-blue-600'
-                : 'border-transparent text-gray-500 hover:text-gray-700'
+                : 'border-transparent text-gray-500 hover:text-gray-700',
             ]"
             @click="onRelationshipTypeChange('friend')"
           >
             好友列表 ({{ friendList.length }})
           </button>
           <button
+            class="border-b-2 px-4 py-2 text-sm font-medium transition-colors"
             :class="[
-              'px-4 py-2 font-medium text-sm border-b-2 transition-colors',
               relationshipType === 'group'
                 ? 'border-blue-500 text-blue-600'
-                : 'border-transparent text-gray-500 hover:text-gray-700'
+                : 'border-transparent text-gray-500 hover:text-gray-700',
             ]"
             @click="onRelationshipTypeChange('group')"
           >
@@ -637,52 +620,74 @@ onMounted(() => {
 
         <!-- 关系列表内容 - 可滚动区域 -->
         <div class="flex-1 overflow-y-auto p-4">
-          <div v-if="loadingRelationships" class="flex items-center justify-center h-32">
+          <div
+            v-if="loadingRelationships"
+            class="flex h-32 items-center justify-center"
+          >
             <div class="text-gray-500">加载中...</div>
           </div>
 
           <!-- 好友列表 -->
           <div v-else-if="relationshipType === 'friend'" class="space-y-2">
-            <div v-if="friendList.length === 0" class="text-center text-gray-500 py-8">
+            <div
+              v-if="friendList.length === 0"
+              class="py-8 text-center text-gray-500"
+            >
               暂无好友
             </div>
             <div
-              v-for="friend in friendList.filter(item => 'uk' in item)"
+              v-for="friend in friendList.filter((item) => 'uk' in item)"
               :key="(friend as any).uk"
-              class="flex items-center p-3 bg-gray-50 rounded-lg"
+              class="flex items-center rounded-lg bg-gray-50 p-3"
             >
               <img
                 :src="(friend as any).avatar_url"
                 :alt="(friend as any).uname"
-                class="w-10 h-10 rounded-full mr-3"
-                @error="($event.target as HTMLImageElement).src = '/default-avatar.png'"
+                class="mr-3 h-10 w-10 rounded-full"
+                @error="
+                  ($event.target as HTMLImageElement).src =
+                    '/default-avatar.png'
+                "
               />
               <div class="flex-1">
                 <div class="font-medium">{{ (friend as any).uname }}</div>
-                <div class="text-sm text-gray-500">{{ (friend as any).nick_name || '无昵称' }}</div>
+                <div class="text-sm text-gray-500">
+                  {{ (friend as any).nick_name || '无昵称' }}
+                </div>
               </div>
-              <div class="text-sm text-gray-400">ID: {{ (friend as any).uk }}</div>
+              <div class="text-sm text-gray-400">
+                ID: {{ (friend as any).uk }}
+              </div>
             </div>
           </div>
 
           <!-- 群组列表 -->
           <div v-else class="space-y-2">
-            <div v-if="groupList.length === 0" class="text-center text-gray-500 py-8">
+            <div
+              v-if="groupList.length === 0"
+              class="py-8 text-center text-gray-500"
+            >
               暂无群组
             </div>
             <div
-              v-for="group in groupList.filter(item => 'gid' in item)"
+              v-for="group in groupList.filter((item) => 'gid' in item)"
               :key="(group as any).gid"
-              class="flex items-center p-3 bg-gray-50 rounded-lg"
+              class="flex items-center rounded-lg bg-gray-50 p-3"
             >
-              <div class="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center mr-3">
-                <span class="text-green-600 font-bold">群</span>
+              <div
+                class="mr-3 flex h-10 w-10 items-center justify-center rounded-full bg-green-100"
+              >
+                <span class="font-bold text-green-600">群</span>
               </div>
               <div class="flex-1">
                 <div class="font-medium">{{ (group as any).name }}</div>
-                <div class="text-sm text-gray-500">群号: {{ (group as any).gnum }}</div>
+                <div class="text-sm text-gray-500">
+                  群号: {{ (group as any).gnum }}
+                </div>
               </div>
-              <div class="text-sm text-gray-400">ID: {{ (group as any).gid }}</div>
+              <div class="text-sm text-gray-400">
+                ID: {{ (group as any).gid }}
+              </div>
             </div>
           </div>
         </div>

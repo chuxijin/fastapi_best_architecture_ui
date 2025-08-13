@@ -1,61 +1,72 @@
 <script setup lang="ts">
 import type { VbenFormProps } from '@vben/common-ui';
-import type { VxeTableGridOptions } from '#/adapter/vxe-table';
-import type { OnActionClickParams } from '#/adapter/vxe-table';
+
 import type {
-  ResourceDetail,
-  ResourceListParams,
-  CreateResourceParams,
-  UpdateResourceParams,
+  OnActionClickParams,
+  VxeTableGridOptions,
+} from '#/adapter/vxe-table';
+import type {
   CoulddriveDriveAccountDetail,
   CoulddriveUserListParams,
+  CreateResourceParams,
+  ResourceListParams,
   ResourceStatistics,
   SmartRecognitionResponse,
+  UpdateResourceParams,
 } from '#/api';
 
-import { ref, computed, onMounted } from 'vue';
+import { onMounted, ref } from 'vue';
 
-import { Page, VbenButton, useVbenModal } from '@vben/common-ui';
-import { AddData } from '@vben/icons';
-import { createIconifyIcon } from '@vben/icons';
+import { Page, useVbenModal, VbenButton } from '@vben/common-ui';
+import { AddData, createIconifyIcon } from '@vben/icons';
 import { $t } from '@vben/locales';
 
 import { message } from 'ant-design-vue';
 
-import { useVbenForm } from '#/adapter/form';
-
 import { useVbenVxeGrid } from '#/adapter/vxe-table';
 import {
-  getResourceListApi,
   createResourceApi,
-  updateResourceApi,
   deleteResourceApi,
-  getResourceStatisticsApi,
-  getCoulddriveUserListApi,
   DRIVE_TYPE_OPTIONS,
+  getCoulddriveUserListApi,
+  getResourceListApi,
+  getResourceStatisticsApi,
+  getSubjectsByDomainApi,
   refreshResourceShareInfoApi,
   smartRecognitionApi,
   TEACHER_MAPPINGS,
+  updateResourceApi,
 } from '#/api';
+
 import {
   createResourceQuerySchema,
-  useResourceColumns,
-  createResourceFormSchema,
   getCategoryOptions,
+  useResourceColumns,
 } from './data';
-import CategoryManager from './category-manager.vue';
-import TrendViewer from './trend-viewer.vue';
+import CategoryManagerModal from './modules/CategoryManagerModal.vue';
+import ResourceEditViewModal from './modules/ResourceEditViewModal.vue';
+import ResourceTrendModal from './modules/ResourceTrendModal.vue';
 
 // 创建图标组件
-const Edit = createIconifyIcon('mdi:pencil');
-const Delete = createIconifyIcon('mdi:delete');
 const Eye = createIconifyIcon('mdi:eye');
 const Database = createIconifyIcon('mdi:database');
 const Category = createIconifyIcon('mdi:folder-multiple');
-const Plus = createIconifyIcon('mdi:plus');
+
+// 临时处理模式
+const TEMP_MODES = [
+  { value: 0, label: '无操作' },
+  { value: 1, label: '定时删除' },
+  { value: 2, label: '定时刷新' },
+  { value: 3, label: '定时更新' },
+];
+
+function getTempModeLabel(mode: null | number | undefined) {
+  const found = TEMP_MODES.find((m) => m.value === mode);
+  return found ? found.label : '无操作';
+}
 
 // 编辑状态
-const editingResourceId = ref<number | null>(null);
+const editingResourceId = ref<null | number>(null);
 
 // 查看详情状态
 const viewResourceData = ref<any>(null);
@@ -64,9 +75,7 @@ const viewResourceData = ref<any>(null);
 const trendResourceData = ref<any>(null);
 
 // 统计信息
-const statsData = ref<ResourceStatistics | null>(null);
-
-
+const statsData = ref<null | ResourceStatistics>(null);
 
 // 智能识别相关状态
 const recognitionUrl = ref('');
@@ -76,25 +85,31 @@ const isRecognizing = ref(false);
 const isRefreshing = ref(false);
 
 // 账号选项
-const accountOptions = ref<Array<{ label: string; value: number; cookies: string }>>([]);
+const accountOptions = ref<
+  Array<{ cookies: string; label: string; value: number }>
+>([]);
 
 // 动态选项
 const domainOptions = ref<Array<{ label: string; value: string }>>([]);
 const subjectOptions = ref<Array<{ label: string; value: string }>>([]);
+// 全量科目选项
+const allSubjectOptions = ref<Array<{ label: string; value: string }>>([]);
 const resourceTypeOptions = ref<Array<{ label: string; value: string }>>([]);
 
 // 完整的分类数据
 const allCategories = ref<any[]>([]);
 
 // 分类管理组件引用
-const categoryManagerRef = ref<InstanceType<typeof CategoryManager> | null>(null);
+const categoryManagerRef = ref<InstanceType<
+  typeof CategoryManagerModal
+> | null>(null);
 
 // 查询表单配置（使用空选项的默认schema）
 const queryFormOptions: VbenFormProps = {
   collapsed: true,
   showCollapseButton: true,
   submitButtonOptions: {
-    content: $t('page.form.query'),
+    content: $t('common.search'),
   },
   schema: createResourceQuerySchema(), // 使用默认的空选项
 };
@@ -152,12 +167,66 @@ const gridOptions: VxeTableGridOptions = {
 
 const [Grid, gridApi] = useVbenVxeGrid({
   formOptions: queryFormOptions,
-  gridOptions
+  gridOptions,
 });
 
-// 编辑表单配置（用于模态框中的表单）
-let Form: any;
-let formApi: any;
+// 表单默认值生成器
+function getDefaultFormData() {
+  return {
+    domain: '',
+    subject: '',
+    main_name: '',
+    resource_type: '',
+    url: '',
+    url_type: '',
+    user_id: null as null | number,
+    description: '',
+    resource_intro: '',
+    resource_image: '',
+    extract_code: '',
+    is_temp_file: 0,
+    price: undefined as number | undefined,
+    suggested_price: undefined as number | undefined,
+    sort: 0,
+    remark: '',
+  };
+}
+
+// 解析领域对应的科目选项（优先接口，失败回退本地）
+async function resolveSubjectOptionsByDomain(value: string) {
+  let next = allSubjectOptions.value;
+  if (value) {
+    try {
+      const resp = await getSubjectsByDomainApi(value);
+      const arr = Array.isArray(resp) ? resp : (resp as any)?.data || [];
+      if (Array.isArray(arr) && arr.length > 0) {
+        next = arr as Array<{ label: string; value: string }>;
+      } else {
+        const d = (value || '').trim();
+        const domainCategory = allCategories.value.find((cat: any) => {
+          if (cat.category_type !== 'domain') return false;
+          const nameEqual =
+            typeof cat.name === 'string' && cat.name.trim() === d;
+          const codeEqual =
+            typeof cat.code === 'string' &&
+            cat.code.trim().toLowerCase() === d.toLowerCase();
+          return nameEqual || codeEqual;
+        });
+        if (domainCategory) {
+          next = allCategories.value
+            .filter(
+              (cat: any) =>
+                cat.category_type === 'subject' &&
+                cat.parent_id === domainCategory.id &&
+                cat.status === 1,
+            )
+            .map((cat: any) => ({ label: cat.name, value: cat.name }));
+        }
+      }
+    } catch {}
+  }
+  return next;
+}
 
 // 初始化表单的函数
 async function initializeForms() {
@@ -169,26 +238,54 @@ async function initializeForms() {
   resourceTypeOptions.value = categoryOptions.resourceTypeOptions;
   allCategories.value = categoryOptions.allCategories;
 
-    // 直接更新查询表单的选项
-  const domainField = queryFormOptions.schema?.find(item => item.fieldName === 'domain');
-  if (domainField && domainField.componentProps && typeof domainField.componentProps === 'object' && !('options' in domainField.componentProps ? false : true)) {
-    (domainField.componentProps as any).options = categoryOptions.domainOptions;
-  }
+  // 计算所有科目选项（不联动领域）
+  allSubjectOptions.value = allCategories.value
+    .filter((cat: any) => cat.category_type === 'subject' && cat.status === 1)
+    .map((cat: any) => ({ label: cat.name, value: cat.name }));
+  subjectOptions.value = allSubjectOptions.value;
 
-  const resourceTypeField = queryFormOptions.schema?.find(item => item.fieldName === 'resource_type');
-  if (resourceTypeField && resourceTypeField.componentProps && typeof resourceTypeField.componentProps === 'object' && !('options' in resourceTypeField.componentProps ? false : true)) {
-    (resourceTypeField.componentProps as any).options = categoryOptions.resourceTypeOptions;
-  }
-
-  // 创建编辑表单
-  const formResult = useVbenForm({
-    wrapperClass: 'grid-cols-1 md:grid-cols-2',
-    showDefaultActions: false,
-    schema: createResourceFormSchema(categoryOptions),
-  });
-
-  Form = formResult[0];
-  formApi = formResult[1];
+  // 动态更新查询表单的下拉选项（领域/科目/资源类型）
+  gridApi.formApi.updateSchema([
+    {
+      fieldName: 'domain',
+      componentProps: {
+        options: domainOptions.value,
+        placeholder: '请选择领域',
+        allowClear: true,
+        onChange: async (value: string, formApi: any) => {
+          const next = await resolveSubjectOptionsByDomain(value);
+          formApi.updateSchema([
+            {
+              fieldName: 'subject',
+              componentProps: {
+                options: next,
+                placeholder: next.length > 0 ? '请选择科目' : '暂无科目选项',
+                allowClear: true,
+              },
+            },
+          ]);
+          formApi.setFieldValue('subject', undefined);
+        },
+      },
+    },
+    {
+      fieldName: 'subject',
+      componentProps: {
+        options: allSubjectOptions.value,
+        placeholder:
+          allSubjectOptions.value.length > 0 ? '请选择科目' : '暂无科目选项',
+        allowClear: true,
+      },
+    },
+    {
+      fieldName: 'resource_type',
+      componentProps: {
+        options: resourceTypeOptions.value,
+        placeholder: '请选择资源类型',
+        allowClear: true,
+      },
+    },
+  ]);
 }
 
 // 刷新分类选项数据的函数
@@ -202,59 +299,61 @@ async function refreshCategoryOptions() {
     resourceTypeOptions.value = categoryOptions.resourceTypeOptions;
     allCategories.value = categoryOptions.allCategories;
 
-    // 更新查询表单的选项
-    const domainField = queryFormOptions.schema?.find(item => item.fieldName === 'domain');
-    if (domainField && domainField.componentProps && typeof domainField.componentProps === 'object' && !('options' in domainField.componentProps ? false : true)) {
-      (domainField.componentProps as any).options = categoryOptions.domainOptions;
-    }
+    // 重新计算所有科目选项
+    allSubjectOptions.value = allCategories.value
+      .filter((cat: any) => cat.category_type === 'subject' && cat.status === 1)
+      .map((cat: any) => ({ label: cat.name, value: cat.name }));
+    subjectOptions.value = allSubjectOptions.value;
 
-    const resourceTypeField = queryFormOptions.schema?.find(item => item.fieldName === 'resource_type');
-    if (resourceTypeField && resourceTypeField.componentProps && typeof resourceTypeField.componentProps === 'object' && !('options' in resourceTypeField.componentProps ? false : true)) {
-      (resourceTypeField.componentProps as any).options = categoryOptions.resourceTypeOptions;
-    }
-
-    // 如果编辑表单已创建，更新其选项
-    if (formApi) {
-      // 更新领域选项
-      formApi.updateSchema([
-        {
-          fieldName: 'domain',
-          componentProps: {
-            options: categoryOptions.domainOptions,
+    // 同步更新查询表单的下拉（领域/科目/资源类型），支持按领域筛选科目
+    gridApi.formApi.updateSchema([
+      {
+        fieldName: 'domain',
+        componentProps: {
+          options: domainOptions.value,
+          placeholder: '请选择领域',
+          allowClear: true,
+          onChange: async (value: string, formApi: any) => {
+            const next = await resolveSubjectOptionsByDomain(value);
+            formApi.updateSchema([
+              {
+                fieldName: 'subject',
+                componentProps: {
+                  options: next,
+                  placeholder: next.length > 0 ? '请选择科目' : '暂无科目选项',
+                  allowClear: true,
+                },
+              },
+            ]);
+            formApi.setFieldValue('subject', undefined);
           },
         },
-        {
-          fieldName: 'resource_type',
-          componentProps: {
-            options: categoryOptions.resourceTypeOptions,
-          },
+      },
+      {
+        fieldName: 'subject',
+        componentProps: {
+          options: allSubjectOptions.value,
+          placeholder:
+            subjectOptions.value.length > 0 ? '请选择科目' : '暂无科目选项',
+          allowClear: true,
         },
-      ]);
-    }
+      },
+      {
+        fieldName: 'resource_type',
+        componentProps: {
+          options: resourceTypeOptions.value,
+          placeholder: '请选择资源类型',
+          allowClear: true,
+        },
+      },
+    ]);
   } catch (error) {
     console.error('刷新分类选项失败:', error);
   }
 }
 
 // 表单数据
-const formData = ref({
-  domain: '',
-  subject: '',
-  main_name: '',
-  resource_type: '',
-  url: '',
-  url_type: '',
-  user_id: null as number | null,
-  description: '',
-  resource_intro: '',
-  resource_image: '',
-  extract_code: '',
-  is_temp_file: false,
-  price: undefined,
-  suggested_price: undefined,
-  sort: 0,
-  remark: '',
-});
+const formData = ref(getDefaultFormData());
 
 // 创建编辑模态框
 const [EditModal, editModalApi] = useVbenModal({
@@ -311,22 +410,30 @@ const [EditModal, editModalApi] = useVbenModal({
 
       // 过滤掉空字符串、null 和 undefined 值
       // 但是某些字段即使是空字符串也要传递
-      const allowEmptyStringFields = ['extract_code', 'description', 'resource_intro', 'resource_image', 'remark'];
+      const allowEmptyStringFields = new Set([
+        'description',
+        'extract_code',
+        'remark',
+        'resource_image',
+        'resource_intro',
+      ]);
       const apiData: CreateResourceParams | UpdateResourceParams = {};
       Object.entries(rawData).forEach(([key, value]) => {
-        if (value !== null && value !== undefined) {
-          if (value !== '' || allowEmptyStringFields.includes(key)) {
-            (apiData as any)[key] = value;
-          }
+        if (
+          value !== null &&
+          value !== undefined &&
+          (value !== '' || allowEmptyStringFields.has(key))
+        ) {
+          (apiData as any)[key] = value;
         }
       });
 
       // 确保必填字段存在（对于新增）
-      if (!editingResourceId.value) {
-        // 新增时必须包含 user_id
-        if (formData.value.user_id) {
-          (apiData as any).user_id = formData.value.user_id;
-        }
+      if (
+        !editingResourceId.value && // 新增时必须包含 user_id
+        formData.value.user_id
+      ) {
+        (apiData as any).user_id = formData.value.user_id;
       }
 
       if (editingResourceId.value) {
@@ -340,7 +447,7 @@ const [EditModal, editModalApi] = useVbenModal({
       await editModalApi.close();
       onRefresh();
       await fetchStats();
-    } catch (error) {
+    } catch {
       message.error(editingResourceId.value ? '更新失败' : '创建失败');
     } finally {
       editModalApi.unlock();
@@ -355,77 +462,78 @@ const [EditModal, editModalApi] = useVbenModal({
 
         // 如果有领域数据，需要更新科目选项
         if (data.domain) {
-          fetchSubjectsByDomain(data.domain);
+          updateSubjectOptions(data.domain);
         }
       } else {
         editingResourceId.value = null;
         // 重置表单数据
-        Object.assign(formData.value, {
-          domain: '',
-          subject: '',
-          main_name: '',
-          resource_type: '',
-          url: '',
-          url_type: '',
-          user_id: null,
-          description: '',
-          resource_intro: '',
-          resource_image: '',
-          extract_code: '',
-          is_temp_file: false,
-          price: undefined,
-          suggested_price: undefined,
-          sort: 0,
-          remark: '',
-        });
+        Object.assign(formData.value, getDefaultFormData());
+        // 确保新增态没有残留的 id，便于显示智能识别区域
+
+        // @ts-ignore
+        delete (formData.value as any).id;
       }
     }
   },
 });
 
 // 更新科目选项的函数
-function updateSubjectOptions(domain: string) {
+async function updateSubjectOptions(domain: string) {
   if (!domain) {
     subjectOptions.value = [];
     return;
   }
 
-  // 从动态分类数据中获取科目选项 - 使用中文名称匹配
-  const domainCategory = allCategories.value.find(
-    cat => cat.category_type === 'domain' && cat.name === domain
-  );
+  // 优先请求后端获取科目选项，失败时再回退到本地分类树
+  let nextOptions: Array<{ label: string; value: string }> = [];
+  try {
+    const resp = await getSubjectsByDomainApi(domain);
+    const arr = Array.isArray(resp) ? resp : (resp as any)?.data || [];
+    if (Array.isArray(arr) && arr.length > 0) {
+      nextOptions = arr as Array<{ label: string; value: string }>;
+    }
+  } catch {
+    // 忽略，进入本地回退
+  }
 
-  if (domainCategory) {
-    const subjects = allCategories.value.filter(
-      cat => cat.category_type === 'subject' &&
-             cat.parent_id === domainCategory.id &&
-             cat.status === 1
-    );
+  if (nextOptions.length === 0) {
+    const d = (domain || '').trim();
+    const domainCategory = allCategories.value.find((cat) => {
+      if (cat.category_type !== 'domain') return false;
+      const nameEqual = typeof cat.name === 'string' && cat.name.trim() === d;
+      const codeEqual =
+        typeof cat.code === 'string' &&
+        cat.code.trim().toLowerCase() === d.toLowerCase();
+      return nameEqual || codeEqual;
+    });
+    if (domainCategory) {
+      const subjects = allCategories.value.filter(
+        (cat) =>
+          cat.category_type === 'subject' &&
+          cat.parent_id === domainCategory.id &&
+          cat.status === 1,
+      );
+      nextOptions = subjects.map((subject) => ({
+        label: subject.name,
+        value: subject.name,
+      }));
+    }
+  }
 
-    subjectOptions.value = subjects.map(subject => ({
-      label: subject.name,
-      value: subject.name,
-    }));
+  subjectOptions.value = nextOptions;
 
-    // 更新表单中科目字段的选项
-    formApi.updateSchema([
-      {
-        fieldName: 'subject',
-        componentProps: {
-          options: subjectOptions.value,
-          placeholder: '请选择科目',
-        },
-      },
-    ]);
-  } else {
-    subjectOptions.value = [];
+  // 若当前已选科目不在新选项中，则清空，避免保留无效值
+  if (
+    !subjectOptions.value.some((opt) => opt.value === formData.value.subject)
+  ) {
+    formData.value.subject = '';
   }
 }
 
 // 监听领域变化
 function onDomainChange(domain: string) {
   formData.value.subject = ''; // 清空科目
-  fetchSubjectsByDomain(domain);
+  updateSubjectOptions(domain);
 }
 
 // 创建查看详情模态框
@@ -468,27 +576,31 @@ const [CategoryModal, categoryModalApi] = useVbenModal({
 // 操作处理
 async function onActionClick({ code, row }: OnActionClickParams) {
   switch (code) {
-    case 'edit':
+    case 'delete': {
+      await handleDelete(row);
+      break;
+    }
+    case 'edit': {
       editingResourceId.value = row.id;
       Object.assign(formData.value, row);
       editModalApi.setData(row);
       editModalApi.open();
       break;
-    case 'delete':
-      await handleDelete(row);
-      break;
-    case 'view':
-      // 查看详情功能
-      viewResourceData.value = row;
-      viewModalApi.setData(row);
-      viewModalApi.open();
-      break;
-    case 'trend':
+    }
+    case 'trend': {
       // 查看趋势功能
       trendResourceData.value = row;
       trendModalApi.setData(row);
       trendModalApi.open();
       break;
+    }
+    case 'view': {
+      // 查看详情功能
+      viewResourceData.value = row;
+      viewModalApi.setData(row);
+      viewModalApi.open();
+      break;
+    }
   }
 }
 
@@ -499,7 +611,7 @@ async function handleDelete(row: any) {
     message.success('删除成功');
     onRefresh();
     await fetchStats();
-  } catch (error) {
+  } catch {
     message.error('删除失败');
   }
 }
@@ -525,12 +637,16 @@ function onCreate() {
     resource_intro: '',
     resource_image: '',
     extract_code: '',
-    is_temp_file: false,
+    is_temp_file: 0,
     price: undefined,
     suggested_price: undefined,
     sort: 0,
     remark: '',
   });
+  // 确保新增态没有残留的 id，便于显示智能识别区域
+
+  // @ts-ignore
+  delete (formData.value as any).id;
   editModalApi.setData(null);
   editModalApi.open();
 }
@@ -546,37 +662,7 @@ async function fetchStats() {
   }
 }
 
-
-
-// 根据领域获取科目选项
-function fetchSubjectsByDomain(domain: string) {
-  if (!domain) {
-    subjectOptions.value = [];
-    return;
-  }
-
-  // 找到选择的领域分类 - 使用中文名称匹配
-  const domainCategory = allCategories.value.find(
-    item => item.category_type === 'domain' && item.name === domain
-  );
-
-  if (!domainCategory) {
-    subjectOptions.value = [];
-    return;
-  }
-
-  // 找到该领域下的所有科目 - 使用中文名称作为value
-  subjectOptions.value = allCategories.value
-    .filter(item =>
-      item.category_type === 'subject' &&
-      item.parent_id === domainCategory.id &&
-      item.status === 1
-    )
-    .map(item => ({
-      label: item.name,
-      value: item.name,
-    }));
-}
+// 根据领域获取科目选项：由 updateSubjectOptions 统一处理
 
 // 打开分类管理
 function openCategoryManager() {
@@ -588,7 +674,7 @@ async function copyToClipboard(text: string) {
   try {
     await navigator.clipboard.writeText(text);
     message.success('已复制到剪贴板');
-  } catch (error) {
+  } catch {
     message.error('复制失败');
   }
 }
@@ -596,7 +682,10 @@ async function copyToClipboard(text: string) {
 // 复制完整分享链接（包含提取码）
 async function copyShareLinkWithExtractCode(resourceData: any) {
   try {
-    const driveTypeLabel = DRIVE_TYPE_OPTIONS.find(option => option.value === resourceData.url_type)?.label || '网盘';
+    const driveTypeLabel =
+      DRIVE_TYPE_OPTIONS.find(
+        (option) => option.value === resourceData.url_type,
+      )?.label || '网盘';
 
     let shareText = `我用${driveTypeLabel}分享了「${resourceData.main_name || resourceData.title}」，点击链接即可保存。打开「${driveTypeLabel}APP」在线查看，支持多种文档格式转换。\n链接：${resourceData.url}`;
 
@@ -607,7 +696,7 @@ async function copyShareLinkWithExtractCode(resourceData: any) {
 
     await navigator.clipboard.writeText(shareText);
     message.success('完整分享链接已复制到剪贴板');
-  } catch (error) {
+  } catch {
     message.error('复制失败');
   }
 }
@@ -629,16 +718,7 @@ function handleImageError(event: Event) {
   }
 }
 
-// 格式化时间为项目标准格式 'YYYY-MM-DD HH:mm:ss'
-function formatDateTime(date: Date): string {
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, '0');
-  const day = String(date.getDate()).padStart(2, '0');
-  const hours = String(date.getHours()).padStart(2, '0');
-  const minutes = String(date.getMinutes()).padStart(2, '0');
-  const seconds = String(date.getSeconds()).padStart(2, '0');
-  return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
-}
+// 已移除未使用的时间格式化函数
 
 // 获取账号列表
 async function loadAccountOptions(type?: string) {
@@ -658,11 +738,13 @@ async function loadAccountOptions(type?: string) {
     const response = await getCoulddriveUserListApi(params);
     const accounts = response.items || [];
 
-    accountOptions.value = accounts.map((account: CoulddriveDriveAccountDetail) => ({
-      label: `${account.username || account.user_id} (${account.type})`,
-      value: account.id,
-      cookies: account.cookies || '',
-    }));
+    accountOptions.value = accounts.map(
+      (account: CoulddriveDriveAccountDetail) => ({
+        label: `${account.username || account.user_id} (${account.type})`,
+        value: account.id,
+        cookies: account.cookies || '',
+      }),
+    );
   } catch (error) {
     console.error('获取账号列表失败:', error);
     message.error('获取账号列表失败');
@@ -678,7 +760,8 @@ function onUrlTypeChange(urlType: string) {
 
 // 智能识别功能
 async function handleSmartRecognition() {
-  const urlToRecognize = recognitionUrl.value.trim() || formData.value.url.trim();
+  const urlToRecognize =
+    recognitionUrl.value.trim() || formData.value.url.trim();
 
   if (!urlToRecognize) {
     message.error('请输入要识别的资源链接');
@@ -687,14 +770,16 @@ async function handleSmartRecognition() {
 
   isRecognizing.value = true;
   try {
-    const response: SmartRecognitionResponse = await smartRecognitionApi(urlToRecognize);
+    const response: SmartRecognitionResponse =
+      await smartRecognitionApi(urlToRecognize);
 
     if (response.success) {
       // 根据识别结果自动填充表单
       if (response.domain) {
         // 尝试匹配领域：先按代码匹配，再按名称匹配
         const domainOption = domainOptions.value.find(
-          opt => opt.value === response.domain || opt.label === response.domain
+          (opt) =>
+            opt.value === response.domain || opt.label === response.domain,
         );
         if (domainOption) {
           formData.value.domain = domainOption.value;
@@ -706,7 +791,8 @@ async function handleSmartRecognition() {
       if (response.subject) {
         // 尝试匹配科目：先按代码匹配，再按名称匹配
         const subjectOption = subjectOptions.value.find(
-          opt => opt.value === response.subject || opt.label === response.subject
+          (opt) =>
+            opt.value === response.subject || opt.label === response.subject,
         );
         if (subjectOption) {
           formData.value.subject = subjectOption.value;
@@ -720,7 +806,9 @@ async function handleSmartRecognition() {
       if (response.resource_type) {
         // 尝试匹配资源类型：先按代码匹配，再按名称匹配
         const resourceTypeOption = resourceTypeOptions.value.find(
-          opt => opt.value === response.resource_type || opt.label === response.resource_type
+          (opt) =>
+            opt.value === response.resource_type ||
+            opt.label === response.resource_type,
         );
         if (resourceTypeOption) {
           formData.value.resource_type = resourceTypeOption.value;
@@ -763,15 +851,21 @@ async function handleSmartRecognition() {
 
       // 如果识别到了教师，显示额外信息
       if (response.sort && response.sort > 0) {
-        const teacherName = Object.keys(TEACHER_MAPPINGS).find(name => {
+        const teacherName = Object.keys(TEACHER_MAPPINGS).find((name) => {
           const mapping = TEACHER_MAPPINGS[name];
           if (!mapping) return false;
 
-          const subjectMatch = response.subject?.includes('数学') ? '数学' :
-                              response.subject?.includes('英语') ? '英语' :
-                              response.subject?.includes('政治') ? '政治' : '';
+          const subjectMatch = response.subject?.includes('数学')
+            ? '数学'
+            : response.subject?.includes('英语')
+              ? '英语'
+              : response.subject?.includes('政治')
+                ? '政治'
+                : '';
 
-          return mapping.sort === response.sort && mapping.subject === subjectMatch;
+          return (
+            mapping.sort === response.sort && mapping.subject === subjectMatch
+          );
         });
 
         if (teacherName) {
@@ -805,7 +899,9 @@ async function handleRefreshShareInfo() {
 
   isRefreshing.value = true;
   try {
-    const response = await refreshResourceShareInfoApi(viewResourceData.value.id);
+    const response = await refreshResourceShareInfoApi(
+      viewResourceData.value.id,
+    );
 
     // 更新查看详情的数据
     if (response) {
@@ -837,10 +933,7 @@ onMounted(async () => {
   await fetchStats();
   await initializeForms(); // 只调用一次，内部会获取分类数据
 });
-
 </script>
-
-
 
 <template>
   <Page auto-content-height>
@@ -863,8 +956,10 @@ onMounted(async () => {
       <div class="rounded-lg bg-white p-4 shadow">
         <div class="flex items-center">
           <div class="flex-shrink-0">
-            <div class="h-8 w-8 rounded-full bg-green-100 flex items-center justify-center">
-              <span class="text-green-600 text-sm font-medium">✓</span>
+            <div
+              class="flex h-8 w-8 items-center justify-center rounded-full bg-green-100"
+            >
+              <span class="text-sm font-medium text-green-600">✓</span>
             </div>
           </div>
           <div class="ml-4">
@@ -879,8 +974,10 @@ onMounted(async () => {
       <div class="rounded-lg bg-white p-4 shadow">
         <div class="flex items-center">
           <div class="flex-shrink-0">
-            <div class="h-8 w-8 rounded-full bg-orange-100 flex items-center justify-center">
-              <span class="text-orange-600 text-sm font-medium">📈</span>
+            <div
+              class="flex h-8 w-8 items-center justify-center rounded-full bg-orange-100"
+            >
+              <span class="text-sm font-medium text-orange-600">📈</span>
             </div>
           </div>
           <div class="ml-4">
@@ -923,526 +1020,71 @@ onMounted(async () => {
 
     <!-- 编辑模态框 -->
     <EditModal :title="editingResourceId ? '编辑资源' : '新增资源'">
-      <div class="space-y-4">
-        <!-- 第一行：备注和是否为临时文件 -->
-        <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
-          <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1">备注</label>
-            <input
-              v-model="formData.remark"
-              type="text"
-              class="w-full rounded-md border border-gray-300 px-3 py-2 focus:border-blue-500 focus:outline-none"
-              placeholder="请输入备注"
-            />
-          </div>
-          <div class="flex items-center justify-center">
-            <div class="flex items-center">
-              <input
-                v-model="formData.is_temp_file"
-                type="checkbox"
-                class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
-              />
-              <label class="ml-2 block text-sm text-gray-900">是否为临时文件</label>
-            </div>
-          </div>
-        </div>
-
-        <!-- 资源链接和提取码同一行 -->
-        <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
-          <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1">资源链接 *</label>
-            <input
-              v-model="formData.url"
-              type="url"
-              class="w-full rounded-md border border-gray-300 px-3 py-2 focus:border-blue-500 focus:outline-none"
-              placeholder="请输入资源链接"
-            />
-          </div>
-          <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1">提取码</label>
-            <input
-              v-model="formData.extract_code"
-              type="text"
-              class="w-full rounded-md border border-gray-300 px-3 py-2 focus:border-blue-500 focus:outline-none"
-              placeholder="请输入提取码"
-            />
-          </div>
-        </div>
-
-        <!-- 领域和科目 -->
-        <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
-          <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1">领域 *</label>
-            <select
-              v-model="formData.domain"
-              @change="(event: Event) => onDomainChange((event.target as HTMLSelectElement).value)"
-              class="w-full rounded-md border border-gray-300 px-3 py-2 focus:border-blue-500 focus:outline-none"
-            >
-              <option value="">请选择领域</option>
-              <option
-                v-for="option in domainOptions"
-                :key="option.value"
-                :value="option.value"
-              >
-                {{ option.label }}
-              </option>
-            </select>
-          </div>
-          <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1">科目 *</label>
-            <select
-              v-model="formData.subject"
-              class="w-full rounded-md border border-gray-300 px-3 py-2 focus:border-blue-500 focus:outline-none"
-              :disabled="!formData.domain"
-            >
-              <option value="">{{ formData.domain ? '请选择科目' : '请先选择领域' }}</option>
-              <option
-                v-for="option in subjectOptions"
-                :key="option.value"
-                :value="option.value"
-              >
-                {{ option.label }}
-              </option>
-            </select>
-          </div>
-        </div>
-
-        <!-- 主要名字和资源类型 -->
-        <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
-          <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1">主要名字 *</label>
-            <input
-              v-model="formData.main_name"
-              type="text"
-              class="w-full rounded-md border border-gray-300 px-3 py-2 focus:border-blue-500 focus:outline-none"
-              placeholder="请输入主要名字"
-            />
-          </div>
-          <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1">资源类型</label>
-            <select
-              v-model="formData.resource_type"
-              class="w-full rounded-md border border-gray-300 px-3 py-2 focus:border-blue-500 focus:outline-none"
-            >
-              <option value="">请选择资源类型</option>
-              <option
-                v-for="option in resourceTypeOptions"
-                :key="option.value"
-                :value="option.value"
-              >
-                {{ option.label }}
-              </option>
-            </select>
-          </div>
-        </div>
-
-        <!-- 网盘类型和关联账号 -->
-        <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
-          <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1">网盘类型 *</label>
-            <select
-              v-model="formData.url_type"
-              @change="(event: Event) => onUrlTypeChange((event.target as HTMLSelectElement).value)"
-              class="w-full rounded-md border border-gray-300 px-3 py-2 focus:border-blue-500 focus:outline-none"
-            >
-              <option value="">请选择网盘类型</option>
-              <option
-                v-for="drive in DRIVE_TYPE_OPTIONS"
-                :key="drive.value"
-                :value="drive.value"
-              >
-                {{ drive.label }}
-              </option>
-            </select>
-          </div>
-          <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1">关联账号 *</label>
-            <select
-              v-model="formData.user_id"
-              class="w-full rounded-md border border-gray-300 px-3 py-2 focus:border-blue-500 focus:outline-none"
-              :disabled="!accountOptions.length"
-            >
-              <option :value="null">{{ accountOptions.length ? '请选择关联账号' : '请先选择网盘类型' }}</option>
-              <option
-                v-for="account in accountOptions"
-                :key="account.value"
-                :value="account.value"
-              >
-                {{ account.label }}
-              </option>
-            </select>
-          </div>
-        </div>
-
-        <!-- 描述 -->
-        <div>
-          <label class="block text-sm font-medium text-gray-700 mb-1">描述</label>
-          <textarea
-            v-model="formData.description"
-            rows="3"
-            class="w-full rounded-md border border-gray-300 px-3 py-2 focus:border-blue-500 focus:outline-none"
-            placeholder="请输入描述"
-          />
-        </div>
-
-        <!-- 资源介绍 -->
-        <div>
-          <label class="block text-sm font-medium text-gray-700 mb-1">资源介绍</label>
-          <textarea
-            v-model="formData.resource_intro"
-            rows="3"
-            class="w-full rounded-md border border-gray-300 px-3 py-2 focus:border-blue-500 focus:outline-none"
-            placeholder="请输入资源介绍"
-          />
-        </div>
-
-        <!-- 资源图片 -->
-        <div>
-          <label class="block text-sm font-medium text-gray-700 mb-1">资源图片</label>
-          <input
-            v-model="formData.resource_image"
-            type="url"
-            class="w-full rounded-md border border-gray-300 px-3 py-2 focus:border-blue-500 focus:outline-none"
-            placeholder="请输入图片链接"
-          />
-        </div>
-
-        <!-- 价格、建议价格、排序 -->
-        <div class="grid grid-cols-1 gap-4 md:grid-cols-3">
-          <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1">价格</label>
-            <input
-              v-model.number="formData.price"
-              type="number"
-              step="0.01"
-              min="0"
-              class="w-full rounded-md border border-gray-300 px-3 py-2 focus:border-blue-500 focus:outline-none"
-              placeholder="请输入价格"
-            />
-          </div>
-          <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1">建议价格</label>
-            <input
-              v-model.number="formData.suggested_price"
-              type="number"
-              step="0.01"
-              min="0"
-              class="w-full rounded-md border border-gray-300 px-3 py-2 focus:border-blue-500 focus:outline-none"
-              placeholder="请输入建议价格"
-            />
-          </div>
-          <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1">排序</label>
-            <input
-              v-model.number="formData.sort"
-              type="number"
-              min="0"
-              class="w-full rounded-md border border-gray-300 px-3 py-2 focus:border-blue-500 focus:outline-none"
-              placeholder="请输入排序值"
-            />
-          </div>
-        </div>
-
-        <!-- 智能识别功能（仅新增时显示） -->
-        <div v-if="!editingResourceId" class="border-t pt-4">
-          <div class="space-y-3">
-            <div>
-              <h4 class="text-sm font-medium text-gray-700 flex items-center">
-                <svg class="w-4 h-4 mr-2 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
-                </svg>
-                智能识别
-              </h4>
-              <p class="text-xs text-gray-500 mt-1">根据分享文本自动识别并填充资源信息，支持夸克网盘、百度网盘等</p>
-            </div>
-
-            <div class="space-y-2">
-              <!-- 示例文本提示 -->
-              <div class="bg-blue-50 border border-blue-200 rounded-lg p-3">
-                <p class="text-xs font-medium text-blue-700 mb-1">📝 示例格式：</p>
-                <p class="text-xs text-blue-600 leading-relaxed">
-                  我用夸克网盘分享了「【20】26信号与系统」，点击链接即可保存。打开「夸克APP」，无需下载在线播放视频，畅享原画5倍速，支持电视投屏。<br/>
-                  链接：https://pan.quark.cn/s/0a8af5b41c3c
-                </p>
-              </div>
-
-              <textarea
-                v-model="recognitionUrl"
-                rows="4"
-                class="w-full rounded-md border border-gray-300 px-3 py-2 focus:border-blue-500 focus:outline-none resize-none"
-                placeholder="请粘贴完整的分享文本，包含资源名称和分享链接..."
-              />
-
-              <div class="flex justify-between items-center">
-                <div class="text-xs text-gray-500">
-                  <span class="inline-flex items-center">
-                    <svg class="w-3 h-3 mr-1 text-green-500" fill="currentColor" viewBox="0 0 20 20">
-                      <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
-                    </svg>
-                    支持自动提取：资源名称、网盘类型、分享链接、提取码
-                  </span>
-                </div>
-
-                <button
-                  @click="handleSmartRecognition"
-                  :disabled="isRecognizing || !recognitionUrl.trim()"
-                  class="px-4 py-2 text-white rounded-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2 transition-all duration-200 shadow-sm"
-                  :style="{
-                    'min-height': '40px',
-                    'min-width': '120px',
-                    'background': (isRecognizing || !recognitionUrl.trim()) ? '#9ca3af' : 'linear-gradient(to right, #3b82f6, #2563eb)',
-                  }"
-                  @mouseenter="(e) => {
-                    if (!isRecognizing && recognitionUrl.trim() && e.target) {
-                      (e.target as HTMLElement).style.background = 'linear-gradient(to right, #2563eb, #1d4ed8)';
-                    }
-                  }"
-                  @mouseleave="(e) => {
-                    if (!isRecognizing && recognitionUrl.trim() && e.target) {
-                      (e.target as HTMLElement).style.background = 'linear-gradient(to right, #3b82f6, #2563eb)';
-                    }
-                  }"
-                >
-                  <svg v-if="isRecognizing" class="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24">
-                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                  </svg>
-                  <svg v-else class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
-                  </svg>
-                  <span>{{ isRecognizing ? '识别中...' : '开始识别' }}</span>
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
+      <ResourceEditViewModal
+        mode="edit"
+        :form-data="formData"
+        :show-recognition="!editingResourceId"
+        :domain-options="domainOptions"
+        :subject-options="subjectOptions"
+        :resource-type-options="resourceTypeOptions"
+        :account-options="accountOptions"
+        :temp-modes="TEMP_MODES"
+        :drive-type-options="DRIVE_TYPE_OPTIONS"
+        :recognition-url="recognitionUrl"
+        :is-recognizing="isRecognizing"
+        :on-domain-change="onDomainChange"
+        :on-url-type-change="onUrlTypeChange"
+        :on-smart-recognition="handleSmartRecognition"
+        @update:recognition-url="(v: string) => (recognitionUrl = v)"
+      />
     </EditModal>
 
     <!-- 查看详情模态框 -->
     <ViewModal :title="viewResourceData ? '资源详情' : '无资源'">
-      <div class="space-y-6">
-        <!-- 基本信息 -->
-        <div class="bg-gray-50 rounded-lg p-4">
-          <h4 class="text-md font-semibold mb-4 flex items-center">
-            <Eye class="mr-2 h-5 w-5 text-blue-500" />
-            基本信息
-          </h4>
-
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1">主要名字</label>
-              <p class="text-sm text-gray-900">{{ viewResourceData.main_name }}</p>
-            </div>
-
-            <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1">标题</label>
-              <p class="text-sm text-gray-900">{{ viewResourceData.title || '无' }}</p>
-            </div>
-
-            <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1">领域</label>
-              <p class="text-sm text-gray-900">{{ viewResourceData.domain }}</p>
-            </div>
-
-            <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1">科目</label>
-              <p class="text-sm text-gray-900">{{ viewResourceData.subject }}</p>
-            </div>
-
-            <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1">资源类型</label>
-              <p class="text-sm text-gray-900">{{ viewResourceData.resource_type }}</p>
-            </div>
-
-            <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1">网盘类型</label>
-              <span
-                class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium"
-                :class="{
-                  'bg-blue-100 text-blue-800': viewResourceData.url_type === 'BaiduDrive',
-                  'bg-green-100 text-green-800': viewResourceData.url_type === 'QuarkDrive',
-                  'bg-orange-100 text-orange-800': viewResourceData.url_type === 'AlistDrive'
-                }"
-              >
-                {{ viewResourceData.url_type === 'BaiduDrive' ? '百度网盘' :
-                   viewResourceData.url_type === 'QuarkDrive' ? '夸克网盘' :
-                   viewResourceData.url_type === 'AlistDrive' ? 'Alist网盘' : viewResourceData.url_type }}
-              </span>
-            </div>
-
-            <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1">浏览量</label>
-              <p class="text-sm text-gray-900">{{ viewResourceData.view_count || 0 }}</p>
-            </div>
-
-            <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1">排序</label>
-              <p class="text-sm text-gray-900">{{ viewResourceData.sort || 0 }}</p>
-            </div>
-
-            <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1">状态</label>
-              <span
-                class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium"
-                :class="{
-                  'bg-red-100 text-red-800': viewResourceData.status === 0,
-                  'bg-green-100 text-green-800': viewResourceData.status === 1
-                }"
-              >
-                {{ viewResourceData.status === 1 ? '正常' : '停用' }}
-              </span>
-            </div>
-
-            <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1">审核状态</label>
-              <span
-                class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium"
-                :class="{
-                  'bg-orange-100 text-orange-800': viewResourceData.audit_status === 0,
-                  'bg-green-100 text-green-800': viewResourceData.audit_status === 1 || viewResourceData.audit_status === 4,
-                  'bg-red-100 text-red-800': viewResourceData.audit_status === 2
-                }"
-              >
-                {{ viewResourceData.audit_status === 0 ? '待审核' :
-                   (viewResourceData.audit_status === 1 || viewResourceData.audit_status === 4) ? '已通过' : '已拒绝' }}
-              </span>
-            </div>
-          </div>
+      <div class="mb-4 flex items-center justify-between">
+        <div></div>
+        <div class="flex items-center space-x-2">
+          <button
+            @click="editResource(viewResourceData)"
+            class="rounded bg-blue-500 px-3 py-1.5 text-sm text-white hover:bg-blue-600"
+          >
+            编辑
+          </button>
+          <button
+            @click="handleRefreshShareInfo"
+            :disabled="isRefreshing"
+            class="flex items-center space-x-2 rounded-lg border border-green-600 bg-green-500 px-3 py-1.5 text-sm text-white hover:bg-green-600 disabled:cursor-not-allowed disabled:opacity-50"
+            style="background-color: #10b981 !important"
+          >
+            <span>{{ isRefreshing ? '更新中...' : '更新分享信息' }}</span>
+          </button>
         </div>
-
-        <!-- 链接信息 -->
-        <div class="bg-gray-50 rounded-lg p-4">
-          <div class="flex items-center justify-between mb-4">
-            <h4 class="text-md font-semibold">链接信息</h4>
-            <button
-              @click="handleRefreshShareInfo"
-              :disabled="isRefreshing"
-              class="px-3 py-1.5 bg-green-500 text-white rounded-lg hover:bg-green-600 disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2 text-sm border border-green-600"
-              style="background-color: #10b981 !important;"
-            >
-              <svg v-if="isRefreshing" class="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24">
-                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-              </svg>
-              <svg v-else class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
-              </svg>
-              <span>{{ isRefreshing ? '更新中...' : '更新分享信息' }}</span>
-            </button>
-          </div>
-
-          <div class="space-y-4">
-            <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1">资源链接</label>
-              <div class="flex items-center space-x-2">
-                <p class="text-sm text-gray-900 flex-1 break-all bg-white p-2 rounded border">{{ viewResourceData.url }}</p>
-                <button
-                  @click="copyToClipboard(viewResourceData.url)"
-                  class="px-3 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 text-sm"
-                >
-                  复制
-                </button>
-              </div>
-            </div>
-
-            <div v-if="viewResourceData.extract_code">
-              <label class="block text-sm font-medium text-gray-700 mb-1">提取码</label>
-              <div class="flex items-center space-x-2">
-                <p class="text-sm text-gray-900 bg-white p-2 rounded border">{{ viewResourceData.extract_code }}</p>
-                <button
-                  @click="copyToClipboard(viewResourceData.extract_code)"
-                  class="px-3 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 text-sm"
-                >
-                  复制
-                </button>
-                <button
-                  @click="copyShareLinkWithExtractCode(viewResourceData)"
-                  class="px-3 py-2 bg-green-500 text-white rounded hover:bg-green-600 text-sm"
-                >
-                  复制完整分享
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- 详细信息 -->
-        <div class="bg-gray-50 rounded-lg p-4">
-          <h4 class="text-md font-semibold mb-4">详细信息</h4>
-
-          <div class="space-y-4">
-            <div v-if="viewResourceData.description">
-              <label class="block text-sm font-medium text-gray-700 mb-1">描述</label>
-              <p class="text-sm text-gray-900 whitespace-pre-wrap bg-white p-3 rounded border">{{ viewResourceData.description }}</p>
-            </div>
-
-            <div v-if="viewResourceData.resource_intro">
-              <label class="block text-sm font-medium text-gray-700 mb-1">资源介绍</label>
-              <p class="text-sm text-gray-900 whitespace-pre-wrap bg-white p-3 rounded border">{{ viewResourceData.resource_intro }}</p>
-            </div>
-
-            <div v-if="viewResourceData.resource_image">
-              <label class="block text-sm font-medium text-gray-700 mb-1">资源图片</label>
-              <img
-                :src="viewResourceData.resource_image"
-                alt="资源图片"
-                class="max-w-xs rounded-lg border"
-                @error="handleImageError"
-              />
-            </div>
-
-            <div v-if="viewResourceData.remark">
-              <label class="block text-sm font-medium text-gray-700 mb-1">备注</label>
-              <p class="text-sm text-gray-900 whitespace-pre-wrap bg-white p-3 rounded border">{{ viewResourceData.remark }}</p>
-            </div>
-
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label class="block text-sm font-medium text-gray-700 mb-1">是否临时文件</label>
-                <p class="text-sm text-gray-900">{{ viewResourceData.is_temp_file ? '是' : '否' }}</p>
-              </div>
-
-              <div>
-                <label class="block text-sm font-medium text-gray-700 mb-1">用户ID</label>
-                <p class="text-sm text-gray-900">{{ viewResourceData.user_id }}</p>
-              </div>
-
-              <div v-if="viewResourceData.price">
-                <label class="block text-sm font-medium text-gray-700 mb-1">价格</label>
-                <p class="text-sm text-gray-900">¥{{ viewResourceData.price }}</p>
-              </div>
-
-              <div v-if="viewResourceData.suggested_price">
-                <label class="block text-sm font-medium text-gray-700 mb-1">建议价格</label>
-                <p class="text-sm text-gray-900">¥{{ viewResourceData.suggested_price }}</p>
-              </div>
-
-              <div v-if="viewResourceData.created_time">
-                <label class="block text-sm font-medium text-gray-700 mb-1">创建时间</label>
-                <p class="text-sm text-gray-900">{{ new Date(viewResourceData.created_time).toLocaleString() }}</p>
-              </div>
-
-              <div v-if="viewResourceData.updated_time">
-                <label class="block text-sm font-medium text-gray-700 mb-1">更新时间</label>
-                <p class="text-sm text-gray-900">{{ new Date(viewResourceData.updated_time).toLocaleString() }}</p>
-              </div>
-            </div>
-          </div>
-        </div>
-
-
       </div>
+      <ResourceEditViewModal
+        v-if="viewResourceData"
+        mode="view"
+        :form-data="viewResourceData"
+        :get-temp-mode-label="getTempModeLabel"
+        :on-copy="copyToClipboard"
+        :on-copy-share="copyShareLinkWithExtractCode"
+        :on-image-error="handleImageError"
+      />
     </ViewModal>
 
     <!-- 趋势模态框 -->
-    <TrendModal :title="trendResourceData ? `${trendResourceData.main_name} - 浏览量趋势` : '浏览量趋势'">
-      <TrendViewer :resource="trendResourceData" />
+    <TrendModal
+      :title="
+        trendResourceData
+          ? `${trendResourceData.main_name} - 浏览量趋势`
+          : '浏览量趋势'
+      "
+    >
+      <ResourceTrendModal :resource="trendResourceData" />
     </TrendModal>
 
     <!-- 分类管理模态框 -->
     <CategoryModal title="分类管理">
-      <CategoryManager ref="categoryManagerRef" />
+      <CategoryManagerModal ref="categoryManagerRef" />
     </CategoryModal>
   </Page>
 </template>
@@ -1465,8 +1107,8 @@ onMounted(async () => {
 
 /* 优化列头样式 */
 :deep(.vxe-header--column) {
-  background-color: #fafafa;
   font-weight: 500;
+  background-color: #fafafa;
 }
 
 /* 优化行悬停效果 */
@@ -1485,4 +1127,3 @@ onMounted(async () => {
   border-radius: 4px;
 }
 </style>
-

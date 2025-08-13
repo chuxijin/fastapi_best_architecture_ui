@@ -1,9 +1,13 @@
 <script lang="ts" setup>
 import type { VbenFormProps } from '@vben/common-ui';
-import type { OnActionClickParams, VxeTableGridOptions } from '#/adapter/vxe-table';
+
+import type {
+  OnActionClickParams,
+  VxeTableGridOptions,
+} from '#/adapter/vxe-table';
 import type { AppRedeemCodeResult, BatchCreateRedeemCodeParams } from '#/api';
 
-import { computed, ref, onMounted } from 'vue';
+import { computed, onMounted } from 'vue';
 
 import { Page, useVbenModal, VbenButton } from '@vben/common-ui';
 import { MaterialSymbolsAdd } from '@vben/icons';
@@ -16,8 +20,8 @@ import { useVbenVxeGrid } from '#/adapter/vxe-table';
 import {
   batchGenerateRedeemCodesApi,
   deleteAppRedeemCodeApi,
-  getAppRedeemCodeListApi,
   getApplicationOptions,
+  getAppRedeemCodeListApi,
 } from '#/api';
 
 import { querySchema, schema, useColumns } from './data';
@@ -31,17 +35,28 @@ const initApplicationOptions = async () => {
       value: item.id,
     }));
 
-    // 更新查询表单的应用选项
-    const queryAppField = querySchema.find((item: any) => item.fieldName === 'application_id');
-    if (queryAppField && queryAppField.componentProps) {
-      queryAppField.componentProps.options = options;
-    }
+    // 安全设置 schema 字段的 options（兼容 object/function）
+    const setFieldOptions = (
+      fields: any[],
+      fieldName: string,
+      opts: Array<{ label: string; value: number }>,
+    ) => {
+      const field = fields.find((i: any) => i.fieldName === fieldName);
+      if (!field) return;
+      const cp = field.componentProps;
+      if (typeof cp === 'function') {
+        const original = cp;
+        field.componentProps = (value: any, actions: any) => {
+          const base = (original as any)(value, actions) || {};
+          return { ...base, options: opts } as any;
+        };
+      } else {
+        field.componentProps = { ...(cp as any), options: opts } as any;
+      }
+    };
 
-    // 更新编辑表单的应用选项
-    const schemaAppField = schema.find((item: any) => item.fieldName === 'application_id');
-    if (schemaAppField && schemaAppField.componentProps) {
-      schemaAppField.componentProps.options = options;
-    }
+    setFieldOptions(querySchema as any[], 'application_id', options);
+    setFieldOptions(schema as any[], 'application_id', options);
   } catch (error) {
     console.error('加载应用选项失败:', error);
   }
@@ -51,7 +66,7 @@ const formOptions: VbenFormProps = {
   collapsed: true,
   showCollapseButton: true,
   submitButtonOptions: {
-    content: $t('page.form.query'),
+    content: $t('common.search'),
   },
   schema: querySchema,
 };
@@ -93,8 +108,17 @@ function onRefresh() {
   gridApi.query();
 }
 
-function onActionClick({ code, row }: OnActionClickParams<AppRedeemCodeResult>) {
+function onActionClick({
+  code,
+  row,
+}: OnActionClickParams<AppRedeemCodeResult>) {
   switch (code) {
+    case 'copy': {
+      navigator.clipboard.writeText(row.code).then(() => {
+        message.success('兑换码已复制到剪贴板');
+      });
+      break;
+    }
     case 'delete': {
       if (row.is_used) {
         message.warning('已使用的兑换码不能删除');
@@ -109,12 +133,6 @@ function onActionClick({ code, row }: OnActionClickParams<AppRedeemCodeResult>) 
       });
       break;
     }
-    case 'copy': {
-      navigator.clipboard.writeText(row.code).then(() => {
-        message.success('兑换码已复制到剪贴板');
-      });
-      break;
-    }
   }
 }
 
@@ -125,7 +143,7 @@ const [Form, formApi] = useVbenForm({
   schema,
 });
 
-const formData = ref<BatchCreateRedeemCodeParams>();
+// 当前未用到，删除以消除告警（后续需要时再恢复）
 
 const modalTitle = computed(() => {
   return '批量生成兑换码';

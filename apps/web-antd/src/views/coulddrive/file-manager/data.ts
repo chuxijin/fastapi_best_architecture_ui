@@ -1,9 +1,9 @@
 import type { VbenFormProps } from '@vben/common-ui';
+
 import type { VxeGridProps } from '#/adapter/vxe-table';
 
 import { computed } from 'vue';
 
-import { $t } from '@vben/locales';
 import { DRIVE_TYPE_OPTIONS } from '#/api';
 
 // 查询表单配置
@@ -31,9 +31,11 @@ export function getQueryFormConfig(
         component: 'Select',
         componentProps: {
           placeholder: computed(() =>
-            accountOptions.value.length ? '请选择关联账号' : '请先选择网盘类型'
+            accountOptions.value.length > 0
+              ? '请选择关联账号'
+              : '请先选择网盘类型',
           ),
-          disabled: computed(() => !accountOptions.value.length),
+          disabled: computed(() => accountOptions.value.length === 0),
           options: computed(() => accountOptions.value),
         },
         fieldName: 'user_id',
@@ -96,17 +98,18 @@ export function formatFileSize(bytes: number): string {
   const k = 1024;
   const sizes = ['B', 'KB', 'MB', 'GB', 'TB'];
   const i = Math.floor(Math.log(bytes) / Math.log(k));
-  return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+  return `${Number.parseFloat((bytes / k ** i).toFixed(2))} ${sizes[i]}`;
 }
 
 // 时间格式化函数
-export function formatDateTime(timestamp: string | number): string {
+export function formatDateTime(timestamp: number | string): string {
   if (!timestamp) return '-';
 
-  let ts = typeof timestamp === 'string' ? parseInt(timestamp) : timestamp;
+  let ts =
+    typeof timestamp === 'string' ? Number.parseInt(timestamp) : timestamp;
 
   // 如果是13位时间戳（毫秒级），转换为10位（秒级）
-  if (ts > 9999999999) {
+  if (ts > 9_999_999_999) {
     ts = Math.floor(ts / 1000);
   }
 

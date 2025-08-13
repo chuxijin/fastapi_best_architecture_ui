@@ -1,46 +1,39 @@
 <script setup lang="ts">
-import type { SyncTaskDetail, SyncTaskItemDetail, SyncTaskListParams, SyncTaskItemListParams } from '#/api';
-import type { VxeGridProps, VxeTableGridOptions } from '#/adapter/vxe-table';
-
-import { ref, computed, watch } from 'vue';
-import { message, Modal, Tag, Descriptions, Card, Statistic, Row, Col } from 'ant-design-vue';
-import { createIconifyIcon } from '@vben/icons';
-import { useVbenVxeGrid } from '#/adapter/vxe-table';
-import { VbenButton } from '@vben/common-ui';
-
-import {
-  getSyncTaskListApi,
-  getSyncTaskDetailApi,
-  getSyncTaskItemListApi
+import type { VxeTableGridOptions } from '#/adapter/vxe-table';
+import type {
+  SyncTaskDetail,
+  SyncTaskItemListParams,
+  SyncTaskListParams,
 } from '#/api';
 
-// 创建图标组件
-const History = createIconifyIcon('mdi:history');
-const FileCheck = createIconifyIcon('mdi:file-check');
-const FileRemove = createIconifyIcon('mdi:file-remove');
-const FileAlert = createIconifyIcon('mdi:file-alert');
-const Download = createIconifyIcon('mdi:download');
+import { computed, ref, watch } from 'vue';
 
-// Props
-interface Props {
-  visible?: boolean;
-  configData?: any;
-}
+import { createIconifyIcon } from '@vben/icons';
+
+import { message } from 'ant-design-vue';
+
+import { useVbenVxeGrid } from '#/adapter/vxe-table';
+import { getSyncTaskItemListApi, getSyncTaskListApi } from '#/api';
 
 const props = withDefaults(defineProps<Props>(), {
   visible: false,
   configData: null,
 });
+const emit = defineEmits<{ 'update:visible': [value: boolean] }>();
 
-// Emits
-const emit = defineEmits<{
-  'update:visible': [value: boolean];
-}>();
+const History = createIconifyIcon('mdi:history');
+const FileCheck = createIconifyIcon('mdi:file-check');
+// const FileRemove = createIconifyIcon('mdi:file-remove');
+const FileAlert = createIconifyIcon('mdi:file-alert');
+// const Download = createIconifyIcon('mdi:download');
 
-// 状态变量
-const selectedTask = ref<SyncTaskDetail | null>(null);
+interface Props {
+  visible?: boolean;
+  configData?: any;
+}
 
-// 状态筛选选项
+const selectedTask = ref<null | SyncTaskDetail>(null);
+
 const statusOptions = [
   { label: '全部', value: '' },
   { label: '等待中', value: 'pending' },
@@ -64,12 +57,12 @@ const selectedTaskStatus = ref('');
 const selectedItemStatus = ref('');
 const selectedOperationType = ref('');
 
-// 计算属性
 const modalTitle = computed(() => {
-  return props.configData ? `同步记录 - ${props.configData.remark || '未命名配置'}` : '同步记录';
+  return props.configData
+    ? `同步记录 - ${props.configData.remark || '未命名配置'}`
+    : '同步记录';
 });
 
-// 任务状态颜色映射
 const getStatusColor = (status: string) => {
   const colorMap: Record<string, string> = {
     pending: 'default',
@@ -81,7 +74,6 @@ const getStatusColor = (status: string) => {
   return colorMap[status] || 'default';
 };
 
-// 操作类型颜色映射
 const getOperationTypeColor = (type: string) => {
   const colorMap: Record<string, string> = {
     add: 'blue',
@@ -94,16 +86,14 @@ const getOperationTypeColor = (type: string) => {
   return colorMap[type] || 'default';
 };
 
-// 格式化文件大小
 function formatFileSize(bytes: number): string {
   if (bytes === 0) return '0 B';
   const k = 1024;
   const sizes = ['B', 'KB', 'MB', 'GB', 'TB'];
   const i = Math.floor(Math.log(bytes) / Math.log(k));
-  return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+  return `${Number.parseFloat((bytes / k ** i).toFixed(2))} ${sizes[i]}`;
 }
 
-// 格式化持续时间
 function formatDuration(seconds: number): string {
   if (seconds < 60) {
     return `${seconds}秒`;
@@ -118,41 +108,30 @@ function formatDuration(seconds: number): string {
   }
 }
 
-// 选择任务
 function selectTask(task: SyncTaskDetail) {
   selectedTask.value = task;
-  // 清空筛选条件
   selectedItemStatus.value = '';
   selectedOperationType.value = '';
-  // 查询任务项
   setTimeout(() => {
     taskItemGridApi.reload();
   }, 100);
 }
 
-// 任务列表表格配置
 const taskGridOptions: VxeTableGridOptions = {
-  rowConfig: {
-    keyField: 'id',
-  },
+  rowConfig: { keyField: 'id' },
   height: 'auto',
   columns: [
-    {
-      field: 'id',
-      title: 'ID',
-      width: 80,
-      align: 'center',
-    },
+    { field: 'id', title: 'ID', width: 80, align: 'center' },
     {
       field: 'status',
       title: '状态',
       width: 100,
       cellRender: {
         name: 'CellTag',
-        options: statusOptions.map(option => ({
-          label: option.label,
-          value: option.value,
-          color: getStatusColor(option.value),
+        options: statusOptions.map((o) => ({
+          label: o.label,
+          value: o.value,
+          color: getStatusColor(o.value),
         })),
       },
     },
@@ -160,35 +139,28 @@ const taskGridOptions: VxeTableGridOptions = {
       field: 'start_time',
       title: '开始时间',
       width: 180,
-      formatter: ({ row }) => {
-        return row.start_time ? new Date(row.start_time).toLocaleString() : '-';
-      },
+      formatter: ({ row }) =>
+        row.start_time ? new Date(row.start_time).toLocaleString() : '-',
     },
     {
       field: 'dura_time',
       title: '执行时长',
       width: 120,
-      formatter: ({ row }) => {
-        return formatDuration(row.dura_time);
-      },
+      formatter: ({ row }) => formatDuration(row.dura_time),
     },
     {
       field: 'task_num',
       title: '任务摘要',
       minWidth: 200,
       showOverflow: 'tooltip',
-      formatter: ({ row }) => {
-        return row.task_num || '-';
-      },
+      formatter: ({ row }) => row.task_num || '-',
     },
     {
       field: 'err_msg',
       title: '错误信息',
       minWidth: 200,
       showOverflow: 'tooltip',
-      formatter: ({ row }) => {
-        return row.err_msg || '-';
-      },
+      formatter: ({ row }) => row.err_msg || '-',
     },
     {
       field: 'operation',
@@ -198,24 +170,14 @@ const taskGridOptions: VxeTableGridOptions = {
       fixed: 'right',
       cellRender: {
         name: 'CellOperation',
-        attrs: {
-          onClick: ({ row }: any) => {
-            selectTask(row);
-          },
-        },
-        options: [
-          {
-            code: 'view',
-            text: '查看详情',
-            color: 'primary',
-          },
-        ],
+        attrs: { onClick: ({ row }: any) => selectTask(row) },
+        options: [{ code: 'view', text: '查看详情', color: 'primary' }],
       },
     },
   ],
   proxyConfig: {
     ajax: {
-      query: async ({ page }, formValues) => {
+      query: async ({ page }) => {
         if (!props.configData?.id) {
           return {
             items: [],
@@ -226,14 +188,12 @@ const taskGridOptions: VxeTableGridOptions = {
             links: {},
           };
         }
-
         try {
           const params: SyncTaskListParams = {
             status: selectedTaskStatus.value || undefined,
             page: page.currentPage,
             size: page.pageSize,
           };
-
           return await getSyncTaskListApi(props.configData.id, params);
         } catch (error) {
           console.error('加载任务列表失败:', error);
@@ -252,11 +212,8 @@ const taskGridOptions: VxeTableGridOptions = {
   },
 };
 
-// 任务项列表表格配置
 const taskItemGridOptions: VxeTableGridOptions = {
-  rowConfig: {
-    keyField: 'id',
-  },
+  rowConfig: { keyField: 'id' },
   height: 'auto',
   exportConfig: {},
   toolbarConfig: {
@@ -266,22 +223,17 @@ const taskItemGridOptions: VxeTableGridOptions = {
     zoom: true,
   },
   columns: [
-    {
-      field: 'id',
-      title: 'ID',
-      width: 80,
-      align: 'center',
-    },
+    { field: 'id', title: 'ID', width: 80, align: 'center' },
     {
       field: 'type',
       title: '操作类型',
       width: 100,
       cellRender: {
         name: 'CellTag',
-        options: operationTypeOptions.map(option => ({
-          label: option.label,
-          value: option.value,
-          color: getOperationTypeColor(option.value),
+        options: operationTypeOptions.map((o) => ({
+          label: o.label,
+          value: o.value,
+          color: getOperationTypeColor(o.value),
         })),
       },
     },
@@ -307,9 +259,7 @@ const taskItemGridOptions: VxeTableGridOptions = {
       field: 'file_size',
       title: '文件大小',
       width: 120,
-      formatter: ({ row }) => {
-        return formatFileSize(row.file_size);
-      },
+      formatter: ({ row }) => formatFileSize(row.file_size),
     },
     {
       field: 'status',
@@ -317,10 +267,10 @@ const taskItemGridOptions: VxeTableGridOptions = {
       width: 100,
       cellRender: {
         name: 'CellTag',
-        options: statusOptions.map(option => ({
-          label: option.label,
-          value: option.value,
-          color: getStatusColor(option.value),
+        options: statusOptions.map((o) => ({
+          label: o.label,
+          value: o.value,
+          color: getStatusColor(o.value),
         })),
       },
     },
@@ -329,14 +279,12 @@ const taskItemGridOptions: VxeTableGridOptions = {
       title: '错误信息',
       minWidth: 200,
       showOverflow: 'tooltip',
-      formatter: ({ row }) => {
-        return row.err_msg || '-';
-      },
+      formatter: ({ row }) => row.err_msg || '-',
     },
   ],
   proxyConfig: {
     ajax: {
-      query: async ({ page }, formValues) => {
+      query: async ({ page }) => {
         if (!selectedTask.value?.id) {
           return {
             items: [],
@@ -347,7 +295,6 @@ const taskItemGridOptions: VxeTableGridOptions = {
             links: {},
           };
         }
-
         try {
           const params: SyncTaskItemListParams = {
             status: selectedItemStatus.value || undefined,
@@ -355,7 +302,6 @@ const taskItemGridOptions: VxeTableGridOptions = {
             page: page.currentPage,
             size: page.pageSize,
           };
-
           return await getSyncTaskItemListApi(selectedTask.value.id, params);
         } catch (error) {
           console.error('加载任务项列表失败:', error);
@@ -374,33 +320,31 @@ const taskItemGridOptions: VxeTableGridOptions = {
   },
 };
 
-// 创建VXE表格实例
 const [TaskGrid, taskGridApi] = useVbenVxeGrid({
   gridOptions: taskGridOptions,
 });
-
 const [TaskItemGrid, taskItemGridApi] = useVbenVxeGrid({
   gridOptions: taskItemGridOptions,
 });
 
-// 监听弹窗显示状态
-watch(() => props.visible, (visible) => {
-  if (visible) {
-    selectedTask.value = null;
-    setTimeout(() => {
-      taskGridApi.reload();
-    }, 100);
-  }
-});
+watch(
+  () => props.visible,
+  (visible) => {
+    if (visible) {
+      selectedTask.value = null;
+      setTimeout(() => {
+        taskGridApi.reload();
+      }, 100);
+    }
+  },
+);
 
-// 监听任务状态筛选变化
 watch(selectedTaskStatus, () => {
   setTimeout(() => {
     taskGridApi.reload();
   }, 100);
 });
 
-// 监听任务项筛选变化
 watch([selectedItemStatus, selectedOperationType], () => {
   if (selectedTask.value) {
     setTimeout(() => {
@@ -409,59 +353,54 @@ watch([selectedItemStatus, selectedOperationType], () => {
   }
 });
 
-// 导出任务项详情
-async function exportTaskItems() {
-  if (!selectedTask.value) {
-    message.warning('请先选择一个任务');
-    return;
-  }
+// async function exportTaskItems() {
+//   if (!selectedTask.value) {
+//     message.warning('请先选择一个任务');
+//     return;
+//   }
+//   try {
+//     const params: SyncTaskItemListParams = {
+//       status: selectedItemStatus.value || undefined,
+//       operation_type: selectedOperationType.value || undefined,
+//       page: 1,
+//       size: 10000,
+//     };
+//     const response = await getSyncTaskItemListApi(selectedTask.value.id, params);
+//     const allTaskItems = response.items;
+//     if (!allTaskItems || allTaskItems.length === 0) {
+//       message.warning('没有可导出的任务项数据');
+//       return;
+//     }
+//     const csvContent = [
+//       'ID,操作类型,文件名,源路径,目标路径,文件大小,状态,错误信息',
+//       ...allTaskItems.map((item: SyncTaskItemDetail) =>
+//         [
+//           item.id,
+//           item.type,
+//           item.file_name,
+//           item.src_path,
+//           item.dst_path,
+//           formatFileSize(item.file_size),
+//           item.status,
+//           item.err_msg || '',
+//         ]
+//           .map((field) => `"${String(field).replaceAll('"', '""')}"`)
+//           .join(','),
+//       ),
+//     ].join('\n');
+//     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+//     const link = document.createElement('a');
+//     link.href = URL.createObjectURL(blob);
+//     link.download = `任务项详情_${selectedTask.value.id}_${new Date().toISOString().slice(0, 10)}.csv`;
+//     link.click();
+//     URL.revokeObjectURL(link.href);
+//     message.success('任务项详情导出成功');
+//   } catch (error) {
+//     console.error('导出任务项详情失败:', error);
+//     message.error('导出失败，请稍后重试');
+//   }
+// }
 
-  try {
-    // 使用大页面大小获取所有任务项数据
-    const params: SyncTaskItemListParams = {
-      status: selectedItemStatus.value || undefined,
-      operation_type: selectedOperationType.value || undefined,
-      page: 1,
-      size: 10000, // 大页面大小确保获取所有数据
-    };
-
-    const response = await getSyncTaskItemListApi(selectedTask.value.id, params);
-    const allTaskItems = response.items;
-
-    if (!allTaskItems || allTaskItems.length === 0) {
-      message.warning('没有可导出的任务项数据');
-      return;
-    }
-
-    const csvContent = [
-      'ID,操作类型,文件名,源路径,目标路径,文件大小,状态,错误信息',
-      ...allTaskItems.map((item: SyncTaskItemDetail) => [
-        item.id,
-        item.type,
-        item.file_name,
-        item.src_path,
-        item.dst_path,
-        formatFileSize(item.file_size),
-        item.status,
-        item.err_msg || ''
-      ].map(field => `"${String(field).replace(/"/g, '""')}"`).join(','))
-    ].join('\n');
-
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-    const link = document.createElement('a');
-    link.href = URL.createObjectURL(blob);
-    link.download = `任务项详情_${selectedTask.value.id}_${new Date().toISOString().slice(0, 10)}.csv`;
-    link.click();
-    URL.revokeObjectURL(link.href);
-
-    message.success('任务项详情导出成功');
-  } catch (error) {
-    console.error('导出任务项详情失败:', error);
-    message.error('导出失败，请稍后重试');
-  }
-}
-
-// 关闭弹窗
 function handleClose() {
   emit('update:visible', false);
 }
@@ -477,7 +416,6 @@ function handleClose() {
     @cancel="handleClose"
   >
     <div class="sync-record-container">
-      <!-- 任务列表 -->
       <div class="task-list-section">
         <a-card size="small" class="task-list-card">
           <template #title>
@@ -504,12 +442,10 @@ function handleClose() {
               </a-select>
             </div>
           </template>
-
           <TaskGrid />
         </a-card>
       </div>
 
-      <!-- 任务项详情 -->
       <div v-if="selectedTask" class="task-detail-section">
         <a-card size="small" class="task-items-card">
           <template #title>
@@ -534,7 +470,6 @@ function handleClose() {
                   {{ option.label }}
                 </a-select-option>
               </a-select>
-
               <a-select
                 v-model:value="selectedOperationType"
                 placeholder="操作类型"
@@ -551,12 +486,10 @@ function handleClose() {
               </a-select>
             </div>
           </template>
-
           <TaskItemGrid />
         </a-card>
       </div>
 
-      <!-- 空状态 -->
       <div v-else class="empty-state">
         <a-card size="small" class="empty-card">
           <div class="empty-content">
@@ -571,11 +504,11 @@ function handleClose() {
 
 <style scoped>
 .sync-record-container {
-  height: 75vh;
-  overflow: hidden;
   display: flex;
   flex-direction: column;
   gap: 12px;
+  height: 75vh;
+  overflow: hidden;
 }
 
 .task-list-section {
@@ -584,19 +517,19 @@ function handleClose() {
 }
 
 .task-detail-section {
-  flex: 1;
-  min-height: 350px;
   display: flex;
+  flex: 1;
   flex-direction: column;
   gap: 12px;
+  min-height: 350px;
 }
 
 .task-list-card,
 .task-items-card,
 .empty-card {
-  height: 100%;
   display: flex;
   flex-direction: column;
+  height: 100%;
 }
 
 .task-list-card :deep(.ant-card-body),
@@ -615,43 +548,41 @@ function handleClose() {
 
 .card-filters {
   display: flex;
-  align-items: center;
   gap: 8px;
+  align-items: center;
 }
 
-
-
 .empty-state {
-  flex: 1;
   display: flex;
+  flex: 1;
   flex-direction: column;
 }
 
 .empty-card {
   display: flex;
-  justify-content: center;
   align-items: center;
+  justify-content: center;
   text-align: center;
 }
 
 .empty-content {
   display: flex;
   flex-direction: column;
-  justify-content: center;
   align-items: center;
-  color: #999;
+  justify-content: center;
   padding: 40px 20px;
+  color: #999;
 }
 
 .empty-icon {
-  font-size: 48px;
   margin-bottom: 16px;
+  font-size: 48px;
   opacity: 0.5;
 }
 
 .empty-text {
-  font-size: 14px;
   margin: 0;
+  font-size: 14px;
   opacity: 0.7;
 }
 
@@ -659,10 +590,9 @@ function handleClose() {
   margin-bottom: 12px;
 }
 
-/* VXE表格样式优化 */
 :deep(.vxe-table) {
-  border: none;
   font-size: 12px;
+  border: none;
 }
 
 :deep(.vxe-table .vxe-header--row) {
@@ -677,13 +607,11 @@ function handleClose() {
   padding: 6px 8px;
 }
 
-/* 修复VXE表格tooltip在模态框中显示的z-index问题 */
 :deep(.vxe-table--tooltip-wrapper),
 :deep(.vxe-tooltip--wrapper) {
   z-index: 9999 !important;
 }
 
-/* 更全面的tooltip修复 */
 :global(.vxe-table--tooltip-wrapper) {
   z-index: 9999 !important;
 }
@@ -695,6 +623,4 @@ function handleClose() {
 :global(.vxe-table--tooltip) {
   z-index: 9999 !important;
 }
-
-
 </style>

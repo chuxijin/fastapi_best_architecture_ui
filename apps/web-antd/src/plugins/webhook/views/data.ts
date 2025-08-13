@@ -1,18 +1,19 @@
 import type { VbenFormSchema } from '@vben/common-ui';
 import type { VxeGridPropTypes } from '@vben/plugins/vxe-table';
 
+import type { WebhookEvent } from '../api';
+
 import { h } from 'vue';
 
-import { Tag, Button, Space, Tooltip, message } from 'ant-design-vue';
 import { createIconifyIcon } from '@vben/icons';
+
+import { Button, message, Space, Tag, Tooltip } from 'ant-design-vue';
 
 // 创建图标组件
 const ViewIcon = createIconifyIcon('material-symbols:visibility-outline');
 const DeleteIcon = createIconifyIcon('material-symbols:delete-outline');
 const RetryIcon = createIconifyIcon('material-symbols:refresh-rounded');
 const CopyIcon = createIconifyIcon('material-symbols:content-copy-outline');
-
-import type { WebhookEvent } from '../api';
 
 // 查询表单配置
 export const querySchema: VbenFormSchema[] = [
@@ -85,15 +86,20 @@ const getStatusText = (status: number) => {
 // 复制到剪贴板
 const copyToClipboard = (text: string) => {
   // 确保文本中的Unicode转义序列被正确处理
-  const processedText = text.replace(/\\u[\dA-F]{4}/gi, (match: string) => {
-    return String.fromCharCode(parseInt(match.replace(/\\u/g, ''), 16));
+  const processedText = text.replaceAll(/\\u[\dA-F]{4}/gi, (match: string) => {
+    return String.fromCodePoint(
+      Number.parseInt(match.replaceAll(String.raw`\u`, ''), 16),
+    );
   });
 
-  navigator.clipboard.writeText(processedText).then(() => {
-    message.success('复制成功');
-  }).catch(() => {
-    message.error('复制失败');
-  });
+  navigator.clipboard
+    .writeText(processedText)
+    .then(() => {
+      message.success('复制成功');
+    })
+    .catch(() => {
+      message.error('复制失败');
+    });
 };
 
 // 表格列配置
@@ -131,14 +137,18 @@ export const useColumns = (
       default: ({ row }: any) => {
         const text = row.source || '未知';
         return h(Tooltip, { title: text }, () =>
-          h('div', {
-            style: {
-              maxWidth: '140px',
-              overflow: 'hidden',
-              textOverflow: 'ellipsis',
-              whiteSpace: 'nowrap',
+          h(
+            'div',
+            {
+              style: {
+                maxWidth: '140px',
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+                whiteSpace: 'nowrap',
+              },
             },
-          }, text)
+            text,
+          ),
         );
       },
     },
@@ -149,9 +159,13 @@ export const useColumns = (
     width: 120,
     slots: {
       default: ({ row }: any) => {
-        return h(Tag, {
-          color: getStatusColor(row.status),
-        }, () => getStatusText(row.status));
+        return h(
+          Tag,
+          {
+            color: getStatusColor(row.status),
+          },
+          () => getStatusText(row.status),
+        );
       },
     },
   },
@@ -176,15 +190,19 @@ export const useColumns = (
           return h('span', { class: 'text-gray-400' }, '-');
         }
         return h(Tooltip, { title: row.error_message }, () =>
-          h('div', {
-            style: {
-              maxWidth: '180px',
-              overflow: 'hidden',
-              textOverflow: 'ellipsis',
-              whiteSpace: 'nowrap',
-              color: '#ff4d4f',
+          h(
+            'div',
+            {
+              style: {
+                maxWidth: '180px',
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+                whiteSpace: 'nowrap',
+                color: '#ff4d4f',
+              },
             },
-          }, row.error_message)
+            row.error_message,
+          ),
         );
       },
     },
@@ -229,30 +247,38 @@ export const useColumns = (
           } else {
             text = JSON.stringify(row.payload);
           }
-        } catch (e) {
+        } catch {
           // 如果解析失败，使用原始字符串并尝试解码Unicode
-          text = typeof row.payload === 'string'
-            ? row.payload.replace(/\\u[\dA-F]{4}/gi, (match: string) =>
-                String.fromCharCode(parseInt(match.replace(/\\u/g, ''), 16)))
-            : String(row.payload);
+          text =
+            typeof row.payload === 'string'
+              ? row.payload.replaceAll(/\\u[\dA-F]{4}/gi, (match: string) =>
+                  String.fromCodePoint(
+                    Number.parseInt(match.replaceAll(String.raw`\u`, ''), 16),
+                  ),
+                )
+              : String(row.payload);
         }
 
-        const preview = text.length > 50 ? text.substring(0, 50) + '...' : text;
+        const preview = text.length > 50 ? `${text.slice(0, 50)}...` : text;
 
         return h('div', { class: 'flex items-center gap-2' }, [
           h(Tooltip, { title: text }, () =>
-            h('code', {
-              style: {
-                maxWidth: '150px',
-                overflow: 'hidden',
-                textOverflow: 'ellipsis',
-                whiteSpace: 'nowrap',
-                background: '#f5f5f5',
-                padding: '2px 4px',
-                borderRadius: '2px',
-                fontSize: '12px',
+            h(
+              'code',
+              {
+                style: {
+                  maxWidth: '150px',
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                  whiteSpace: 'nowrap',
+                  background: '#f5f5f5',
+                  padding: '2px 4px',
+                  borderRadius: '2px',
+                  fontSize: '12px',
+                },
               },
-            }, preview)
+              preview,
+            ),
           ),
           h(Button, {
             type: 'text',
@@ -272,32 +298,44 @@ export const useColumns = (
       default: ({ row }: any) => {
         return h(Space, { size: 'small' }, () => [
           h(Tooltip, { title: '查看详情' }, () =>
-            h(Button, {
-              type: 'primary',
-              size: 'small',
-              icon: h(ViewIcon, { class: 'size-4' }),
-              onClick: () => onActionClick({ code: 'view', row }),
-            }, () => '详情')
+            h(
+              Button,
+              {
+                type: 'primary',
+                size: 'small',
+                icon: h(ViewIcon, { class: 'size-4' }),
+                onClick: () => onActionClick({ code: 'view', row }),
+              },
+              () => '详情',
+            ),
           ),
 
-                    // 重试按钮（所有状态都显示）
+          // 重试按钮（所有状态都显示）
           h(Tooltip, { title: '重试此事件' }, () =>
-            h(Button, {
-              type: 'default',
-              size: 'small',
-              icon: h(RetryIcon, { class: 'size-4' }),
-              onClick: () => onActionClick({ code: 'retry', row }),
-            }, () => '重试')
+            h(
+              Button,
+              {
+                type: 'default',
+                size: 'small',
+                icon: h(RetryIcon, { class: 'size-4' }),
+                onClick: () => onActionClick({ code: 'retry', row }),
+              },
+              () => '重试',
+            ),
           ),
 
           h(Tooltip, { title: '删除此事件' }, () =>
-            h(Button, {
-              type: 'primary',
-              danger: true,
-              size: 'small',
-              icon: h(DeleteIcon, { class: 'size-4' }),
-              onClick: () => onActionClick({ code: 'delete', row }),
-            }, () => '删除')
+            h(
+              Button,
+              {
+                type: 'primary',
+                danger: true,
+                size: 'small',
+                icon: h(DeleteIcon, { class: 'size-4' }),
+                onClick: () => onActionClick({ code: 'delete', row }),
+              },
+              () => '删除',
+            ),
           ),
         ]);
       },

@@ -83,18 +83,19 @@ async function bootstrap(namespace: string) {
 
       // 创建工具栏配置
       const stagewiseConfig = {
-        plugins: []
+        plugins: [],
       };
 
       // 创建单独的 DOM 元素用于工具栏
       const toolbarContainer = document.createElement('div');
       toolbarContainer.id = 'stagewise-toolbar-container';
-      document.body.appendChild(toolbarContainer);
+      document.body.append(toolbarContainer);
 
       // 创建独立的 Vue 应用实例来渲染工具栏
-      const toolbarApp = createApp(StagewiseToolbar, { config: stagewiseConfig });
+      const toolbarApp = createApp(StagewiseToolbar, {
+        config: stagewiseConfig,
+      });
       toolbarApp.mount(toolbarContainer);
-
     } catch (error) {
       console.warn('Failed to initialize stagewise toolbar:', error);
     }

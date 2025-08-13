@@ -1,13 +1,34 @@
+/* eslint-disable vue/html-closing-bracket-newline */
 <script setup lang="ts">
-import type { CoulddriveFileInfo, CoulddriveListFilesParams, CoulddriveListShareFilesParams } from '#/api';
+import type {
+  CoulddriveFileInfo,
+  CoulddriveListFilesParams,
+  CoulddriveListShareFilesParams,
+} from '#/api';
 
-import { ref, computed, watch } from 'vue';
-import { message } from 'ant-design-vue';
+import { computed, ref, watch } from 'vue';
+
 import { createIconifyIcon } from '@vben/icons';
+
+import { message } from 'ant-design-vue';
 
 import { getCoulddriveFileListApi, getCoulddriveShareFileListApi } from '#/api';
 import { usePathNavigation } from '#/composables/usePathNavigation';
 
+const props = withDefaults(defineProps<Props>(), {
+  visible: false,
+  title: '选择文件',
+  initialPath: '',
+  shareParams: undefined,
+});
+// Emits
+const emit = defineEmits<{
+  cancel: [];
+  confirm: [
+    data: { fileId: string; path: string; selectedFiles: CoulddriveFileInfo[] },
+  ];
+  'update:visible': [value: boolean];
+}>();
 // 图标
 const FolderIcon = createIconifyIcon('mdi:folder');
 const FileIcon = createIconifyIcon('mdi:file-document-outline');
@@ -19,26 +40,13 @@ interface Props {
   authToken: string;
   mode: 'disk' | 'share';
   shareParams?: {
-    sourceType: string;
     sourceId: string;
+    sourceType: string;
   };
   visible?: boolean;
   title?: string;
   initialPath?: string;
 }
-
-const props = withDefaults(defineProps<Props>(), {
-  visible: false,
-  title: '选择文件',
-  initialPath: '',
-});
-
-// Emits
-const emit = defineEmits<{
-  'update:visible': [value: boolean];
-  'confirm': [data: { path: string; fileId: string; selectedFiles: CoulddriveFileInfo[] }];
-  'cancel': [];
-}>();
 
 // 状态
 const fileList = ref<CoulddriveFileInfo[]>([]);
@@ -51,7 +59,7 @@ const pagination = ref({
   current: 1,
   pageSize: 20,
   total: 0,
-  totalPages: 0
+  totalPages: 0,
 });
 
 // 路径导航逻辑
@@ -64,7 +72,7 @@ const pathNavigation = usePathNavigation({
   },
   onGoBack: () => {
     loadFileList();
-  }
+  },
 });
 
 const {
@@ -75,47 +83,54 @@ const {
   navigateToPath,
   navigateToFolder,
   goBack,
-  resetPath
+  resetPath,
 } = pathNavigation;
 
 // 计算属性
 const modalVisible = computed({
   get: () => props.visible,
-  set: (value) => emit('update:visible', value)
+  set: (value) => emit('update:visible', value),
 });
 
 // 监听visible变化，重置状态
-watch(() => props.visible, (visible) => {
-  if (visible) {
-    resetSelection();
+watch(
+  () => props.visible,
+  (visible) => {
+    if (visible) {
+      resetSelection();
 
-    // 如果有初始路径，构建完整的面包屑路径
-    if (props.initialPath && props.initialPath !== '/' && props.initialPath !== '') {
-      buildPathNavigation(props.initialPath);
-    } else {
-      resetPath();
+      // 如果有初始路径，构建完整的面包屑路径
+      if (
+        props.initialPath &&
+        props.initialPath !== '/' &&
+        props.initialPath !== ''
+      ) {
+        buildPathNavigation(props.initialPath);
+      } else {
+        resetPath();
+      }
+
+      loadFileList();
     }
-
-    loadFileList();
-  }
-});
+  },
+);
 
 // 构建路径导航
 function buildPathNavigation(targetPath: string) {
   resetPath(); // 先重置到根目录
 
   // 分割路径并构建面包屑
-  const pathSegments = targetPath.split('/').filter(segment => segment);
+  const pathSegments = targetPath.split('/').filter(Boolean);
   let currentBuildPath = '';
 
   for (const segment of pathSegments) {
-    currentBuildPath += '/' + segment;
+    currentBuildPath += `/${segment}`;
     // 为每个路径段添加到历史记录中
     // 注意：这里我们使用默认的file_id，实际使用中可能需要从API获取真实的file_id
     pathNavigation.pathHistory.value.push({
       path: currentBuildPath,
       file_id: '0', // 默认值，实际可能需要API获取
-      name: segment
+      name: segment,
     });
   }
 
@@ -151,7 +166,7 @@ async function loadFileList(page = 1) {
         current: response.page || 1,
         pageSize: response.size || 20,
         total: response.total || 0,
-        totalPages: response.total_pages || 0
+        totalPages: response.total_pages || 0,
       };
     } else if (props.mode === 'share' && props.shareParams) {
       const params: CoulddriveListShareFilesParams = {
@@ -162,7 +177,10 @@ async function loadFileList(page = 1) {
         page,
         size: pagination.value.pageSize,
       };
-      const response = await getCoulddriveShareFileListApi(params, props.authToken);
+      const response = await getCoulddriveShareFileListApi(
+        params,
+        props.authToken,
+      );
       fileList.value = response.items || [];
 
       // 更新分页信息
@@ -170,7 +188,7 @@ async function loadFileList(page = 1) {
         current: response.page || 1,
         pageSize: response.size || 20,
         total: response.total || 0,
-        totalPages: response.total_pages || 0
+        totalPages: response.total_pages || 0,
       };
     }
   } catch (error) {
@@ -182,7 +200,7 @@ async function loadFileList(page = 1) {
       current: 1,
       pageSize: 20,
       total: 0,
-      totalPages: 0
+      totalPages: 0,
     };
   } finally {
     loading.value = false;
@@ -268,14 +286,16 @@ function getVisiblePages(): number[] {
 
 // 确认选择
 function confirmSelection() {
-  const selectedFileList = fileList.value.filter(file =>
-    selectedFiles.value.has(file.file_id) || file.file_id === selectedFolder.value
+  const selectedFileList = fileList.value.filter(
+    (file) =>
+      selectedFiles.value.has(file.file_id) ||
+      file.file_id === selectedFolder.value,
   );
 
   emit('confirm', {
     path: currentPath.value,
     fileId: currentFileId.value,
-    selectedFiles: selectedFileList
+    selectedFiles: selectedFileList,
   });
 }
 
@@ -290,23 +310,27 @@ function formatFileSize(bytes: number): string {
   const k = 1024;
   const sizes = ['B', 'KB', 'MB', 'GB', 'TB'];
   const i = Math.floor(Math.log(bytes) / Math.log(k));
-  return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+  return `${Number.parseFloat((bytes / k ** i).toFixed(2))} ${sizes[i]}`;
 }
 
 // 格式化时间
-function formatDateTime(dateTime: string | number | null): string {
+function formatDateTime(dateTime: null | number | string): string {
   if (!dateTime) return '';
   try {
-    const timestamp = typeof dateTime === 'string' ? parseInt(dateTime) : dateTime;
-    if (!isNaN(timestamp) && timestamp > 0) {
-      const ms = timestamp.toString().length <= 10 ? timestamp * 1000 : timestamp;
+    const timestamp =
+      typeof dateTime === 'string' ? Number.parseInt(dateTime) : dateTime;
+    if (!Number.isNaN(timestamp) && Number(timestamp) > 0) {
+      const ms =
+        timestamp!.toString().length <= 10
+          ? Number(timestamp) * 1000
+          : Number(timestamp);
       const date = new Date(ms);
-      if (!isNaN(date.getTime())) {
+      if (!Number.isNaN(date.getTime())) {
         return date.toLocaleString();
       }
     }
     const date = new Date(dateTime);
-    if (!isNaN(date.getTime())) {
+    if (!Number.isNaN(date.getTime())) {
       return date.toLocaleString();
     }
     return '';
@@ -317,92 +341,139 @@ function formatDateTime(dateTime: string | number | null): string {
 </script>
 
 <template>
-  <div v-if="modalVisible" class="fixed inset-0 z-[9999] flex items-center justify-center bg-black bg-opacity-50">
-    <div class="bg-white rounded-lg shadow-xl w-4/5 h-4/5 max-w-4xl max-h-[600px] flex flex-col">
+  <div
+    v-if="modalVisible"
+    class="fixed inset-0 z-[9999] flex items-center justify-center bg-black bg-opacity-50"
+  >
+    <div
+      class="flex h-4/5 max-h-[600px] w-4/5 max-w-4xl flex-col rounded-lg bg-white shadow-xl"
+    >
       <!-- 头部 -->
-      <div class="flex items-center justify-between p-4 border-b">
+      <div class="flex items-center justify-between border-b p-4">
         <h3 class="text-lg font-semibold">{{ title }}</h3>
         <button
           @click="cancelSelection"
           class="text-gray-400 hover:text-gray-600"
         >
-          <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+          <svg
+            class="h-6 w-6"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M6 18L18 6M6 6l12 12"
+            />
           </svg>
         </button>
       </div>
 
       <!-- 面包屑导航 -->
-      <div class="flex items-center gap-2 p-4 bg-gray-50 border-b text-sm">
-        <span class="text-gray-600 flex-shrink-0">当前路径:</span>
-        <div class="flex-1 min-w-0">
-          <div class="bg-white px-2 py-1 rounded border font-mono overflow-x-auto scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100">
+      <div class="flex items-center gap-2 border-b bg-gray-50 p-4 text-sm">
+        <span class="flex-shrink-0 text-gray-600">当前路径:</span>
+        <div class="min-w-0 flex-1">
+          <div
+            class="scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100 overflow-x-auto rounded border bg-white px-2 py-1 font-mono"
+          >
             <div class="flex items-center whitespace-nowrap">
-              <template v-for="(pathItem, index) in breadcrumbPaths" :key="index">
+              <template
+                v-for="(pathItem, index) in breadcrumbPaths"
+                :key="index"
+              >
                 <button
-                  class="text-blue-600 hover:text-blue-800 hover:underline cursor-pointer flex-shrink-0"
+                  class="flex-shrink-0 cursor-pointer text-blue-600 hover:text-blue-800 hover:underline"
                   @click="navigateToBreadcrumbPath(pathItem)"
                 >
                   {{ pathItem.name }}
                 </button>
-                                  <span v-if="index < breadcrumbPaths.length - 1" class="mx-1 text-gray-400 flex-shrink-0">/</span>
-                </template>
-              </div>
+                <span
+                  v-if="index < breadcrumbPaths.length - 1"
+                  class="mx-1 flex-shrink-0 text-gray-400"
+                  >/</span
+                >
+              </template>
             </div>
+          </div>
         </div>
         <button
           v-if="canGoBack"
-          class="flex items-center gap-1 px-2 py-1 text-sm bg-blue-500 text-white rounded hover:bg-blue-600 flex-shrink-0"
+          class="flex flex-shrink-0 items-center gap-1 rounded bg-blue-500 px-2 py-1 text-sm text-white hover:bg-blue-600"
           @click="goBackToParent"
         >
-          <ArrowLeftIcon class="w-4 h-4" />
+          <ArrowLeftIcon class="h-4 w-4" />
           返回上级
         </button>
       </div>
 
       <!-- 文件列表 -->
-      <div class="flex-1 flex flex-col overflow-hidden">
+      <div class="flex flex-1 flex-col overflow-hidden">
         <div class="flex-1 overflow-auto p-4">
-          <div v-if="loading" class="flex items-center justify-center h-32">
+          <div v-if="loading" class="flex h-32 items-center justify-center">
             <div class="text-gray-500">加载中...</div>
           </div>
-          <div v-else-if="fileList.length === 0" class="flex items-center justify-center h-32">
+          <div
+            v-else-if="fileList.length === 0"
+            class="flex h-32 items-center justify-center"
+          >
             <div class="text-gray-500">暂无文件</div>
           </div>
           <div v-else class="grid gap-2">
             <div
               v-for="file in fileList"
               :key="file.file_id"
-              class="flex items-center gap-3 p-3 border rounded hover:bg-gray-50 cursor-pointer"
+              class="flex cursor-pointer items-center gap-3 rounded border p-3 hover:bg-gray-50"
               :class="{
-                'bg-blue-50 border-blue-200': isFileSelected(file.file_id) || selectedFolder === file.file_id,
+                'border-blue-200 bg-blue-50':
+                  isFileSelected(file.file_id) ||
+                  selectedFolder === file.file_id,
               }"
               @click="handleFileClick(file)"
               @dblclick="file.is_folder ? enterFolder(file) : null"
             >
               <!-- 图标 -->
               <div class="flex-shrink-0">
-                <FolderIcon v-if="file.is_folder" class="w-6 h-6 text-blue-500" />
-                <FileIcon v-else class="w-6 h-6 text-gray-500" />
+                <FolderIcon
+                  v-if="file.is_folder"
+                  class="h-6 w-6 text-blue-500"
+                />
+                <FileIcon v-else class="h-6 w-6 text-gray-500" />
               </div>
 
               <!-- 文件信息 -->
-              <div class="flex-1 min-w-0">
-                <div class="font-medium truncate">{{ file.file_name }}</div>
-                <div class="text-sm text-gray-500 flex items-center gap-4">
-                  <span v-if="!file.is_folder">{{ formatFileSize(file.file_size || 0) }}</span>
-                  <span v-if="file.updated_at">{{ formatDateTime(file.updated_at) }}</span>
+              <div class="min-w-0 flex-1">
+                <div class="truncate font-medium">{{ file.file_name }}</div>
+                <div class="flex items-center gap-4 text-sm text-gray-500">
+                  <span v-if="!file.is_folder">{{
+                    formatFileSize(file.file_size || 0)
+                  }}</span>
+                  <span v-if="file.updated_at">{{
+                    formatDateTime(file.updated_at)
+                  }}</span>
                 </div>
               </div>
 
               <!-- 选中状态 -->
               <div class="flex-shrink-0">
                 <div
-                  v-if="isFileSelected(file.file_id) || selectedFolder === file.file_id"
-                  class="w-5 h-5 bg-blue-500 rounded-full flex items-center justify-center"
+                  v-if="
+                    isFileSelected(file.file_id) ||
+                    selectedFolder === file.file_id
+                  "
+                  class="flex h-5 w-5 items-center justify-center rounded-full bg-blue-500"
                 >
-                  <svg class="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20">
-                    <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" />
+                  <svg
+                    class="h-3 w-3 text-white"
+                    fill="currentColor"
+                    viewBox="0 0 20 20"
+                  >
+                    <path
+                      fill-rule="evenodd"
+                      d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                      clip-rule="evenodd"
+                    />
                   </svg>
                 </div>
               </div>
@@ -411,15 +482,19 @@ function formatDateTime(dateTime: string | number | null): string {
         </div>
 
         <!-- 分页控件 -->
-        <div v-if="pagination.totalPages > 1" class="flex items-center justify-between px-4 py-3 border-t bg-gray-50">
+        <div
+          v-if="pagination.totalPages > 1"
+          class="flex items-center justify-between border-t bg-gray-50 px-4 py-3"
+        >
           <div class="text-sm text-gray-600">
-            共 {{ pagination.total }} 项，第 {{ pagination.current }} / {{ pagination.totalPages }} 页
+            共 {{ pagination.total }} 项，第 {{ pagination.current }} /
+            {{ pagination.totalPages }} 页
           </div>
           <div class="flex items-center gap-2">
             <button
               :disabled="pagination.current <= 1"
               @click="handlePageChange(pagination.current - 1)"
-              class="px-3 py-1 text-sm border rounded hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed"
+              class="rounded border px-3 py-1 text-sm hover:bg-gray-100 disabled:cursor-not-allowed disabled:opacity-50"
             >
               上一页
             </button>
@@ -432,9 +507,9 @@ function formatDateTime(dateTime: string | number | null): string {
                 @click="handlePageChange(page)"
                 :class="{
                   'bg-blue-500 text-white': page === pagination.current,
-                  'hover:bg-gray-100': page !== pagination.current
+                  'hover:bg-gray-100': page !== pagination.current,
                 }"
-                class="px-3 py-1 text-sm border rounded min-w-[32px]"
+                class="min-w-[32px] rounded border px-3 py-1 text-sm"
               >
                 {{ page }}
               </button>
@@ -444,11 +519,13 @@ function formatDateTime(dateTime: string | number | null): string {
               <button
                 v-if="pagination.current > 3"
                 @click="handlePageChange(1)"
-                class="px-3 py-1 text-sm border rounded hover:bg-gray-100 min-w-[32px]"
+                class="min-w-[32px] rounded border px-3 py-1 text-sm hover:bg-gray-100"
               >
                 1
               </button>
-              <span v-if="pagination.current > 4" class="px-2 text-gray-500">...</span>
+              <span v-if="pagination.current > 4" class="px-2 text-gray-500"
+                >...</span
+              >
 
               <button
                 v-for="page in getVisiblePages()"
@@ -456,18 +533,22 @@ function formatDateTime(dateTime: string | number | null): string {
                 @click="handlePageChange(page)"
                 :class="{
                   'bg-blue-500 text-white': page === pagination.current,
-                  'hover:bg-gray-100': page !== pagination.current
+                  'hover:bg-gray-100': page !== pagination.current,
                 }"
-                class="px-3 py-1 text-sm border rounded min-w-[32px]"
+                class="min-w-[32px] rounded border px-3 py-1 text-sm"
               >
                 {{ page }}
               </button>
 
-              <span v-if="pagination.current < pagination.totalPages - 3" class="px-2 text-gray-500">...</span>
+              <span
+                v-if="pagination.current < pagination.totalPages - 3"
+                class="px-2 text-gray-500"
+                >...</span
+              >
               <button
                 v-if="pagination.current < pagination.totalPages - 2"
                 @click="handlePageChange(pagination.totalPages)"
-                class="px-3 py-1 text-sm border rounded hover:bg-gray-100 min-w-[32px]"
+                class="min-w-[32px] rounded border px-3 py-1 text-sm hover:bg-gray-100"
               >
                 {{ pagination.totalPages }}
               </button>
@@ -476,7 +557,7 @@ function formatDateTime(dateTime: string | number | null): string {
             <button
               :disabled="pagination.current >= pagination.totalPages"
               @click="handlePageChange(pagination.current + 1)"
-              class="px-3 py-1 text-sm border rounded hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed"
+              class="rounded border px-3 py-1 text-sm hover:bg-gray-100 disabled:cursor-not-allowed disabled:opacity-50"
             >
               下一页
             </button>
@@ -485,19 +566,19 @@ function formatDateTime(dateTime: string | number | null): string {
       </div>
 
       <!-- 底部按钮 -->
-      <div class="flex items-center justify-between p-4 border-t bg-gray-50">
+      <div class="flex items-center justify-between border-t bg-gray-50 p-4">
         <div class="text-sm text-gray-600">
           已选择 {{ selectedFiles.size + (selectedFolder ? 1 : 0) }} 项
         </div>
         <div class="flex gap-2">
           <button
-            class="px-4 py-2 text-gray-600 border border-gray-300 rounded hover:bg-gray-50"
+            class="rounded border border-gray-300 px-4 py-2 text-gray-600 hover:bg-gray-50"
             @click="cancelSelection"
           >
             取消
           </button>
           <button
-            class="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 disabled:opacity-50"
+            class="rounded bg-blue-500 px-4 py-2 text-white hover:bg-blue-600 disabled:opacity-50"
             :disabled="selectedFiles.size === 0 && !selectedFolder"
             @click="confirmSelection"
           >

@@ -49,7 +49,8 @@ const routes: RouteRecordRaw[] = [
       {
         name: 'CoulddriveTemplateManager',
         path: 'template-manager',
-        component: () => import('#/views/coulddrive/template-manager/index.vue'),
+        component: () =>
+          import('#/views/coulddrive/template-manager/index.vue'),
         meta: {
           title: '规则模板',
           icon: 'mdi:file-document-multiple',
@@ -58,7 +59,8 @@ const routes: RouteRecordRaw[] = [
       {
         name: 'CoulddriveResourceManager',
         path: 'resource-manager',
-        component: () => import('#/views/coulddrive/resource-manager/index.vue'),
+        component: () =>
+          import('#/views/coulddrive/resource-manager/index.vue'),
         meta: {
           title: '资源管理',
           icon: 'mdi:database',

@@ -1,16 +1,14 @@
 import type { VbenFormProps } from '@vben/common-ui';
+
 import type { VxeGridProps } from '#/adapter/vxe-table';
 
-import { h } from 'vue';
-
-import { $t } from '@vben/locales';
-
-import { Tag, Switch } from 'ant-design-vue';
-
-import { TEMPLATE_TYPE_OPTIONS, TEMPLATE_CATEGORY_OPTIONS } from '#/api/coulddrive';
+import {
+  TEMPLATE_CATEGORY_OPTIONS,
+  TEMPLATE_TYPE_OPTIONS,
+} from '#/api/coulddrive';
 
 // 重新导出以供组件使用
-export { TEMPLATE_TYPE_OPTIONS, TEMPLATE_CATEGORY_OPTIONS };
+export { TEMPLATE_CATEGORY_OPTIONS, TEMPLATE_TYPE_OPTIONS };
 
 // 查询表单配置
 export const templateQuerySchema: VbenFormProps['schema'] = [
@@ -18,10 +16,7 @@ export const templateQuerySchema: VbenFormProps['schema'] = [
     component: 'Select',
     componentProps: {
       placeholder: '请选择模板类型',
-      options: [
-        { label: '全部类型', value: '' },
-        ...TEMPLATE_TYPE_OPTIONS,
-      ],
+      options: [{ label: '全部类型', value: '' }, ...TEMPLATE_TYPE_OPTIONS],
       allowClear: true,
     },
     fieldName: 'template_type',
@@ -31,10 +26,7 @@ export const templateQuerySchema: VbenFormProps['schema'] = [
     component: 'Select',
     componentProps: {
       placeholder: '请选择分类',
-      options: [
-        { label: '全部分类', value: '' },
-        ...TEMPLATE_CATEGORY_OPTIONS,
-      ],
+      options: [{ label: '全部分类', value: '' }, ...TEMPLATE_CATEGORY_OPTIONS],
       allowClear: true,
     },
     fieldName: 'category',
@@ -79,7 +71,10 @@ export const templateQuerySchema: VbenFormProps['schema'] = [
 ];
 
 // 表格列配置
-export function useTemplateColumns(onActionClick: (params: any) => void, onStatusChange: (row: any, newVal: boolean) => Promise<boolean>) {
+export function useTemplateColumns(
+  _onActionClick: (params: any) => void,
+  _onStatusChange: (row: any, newVal: boolean) => Promise<boolean>,
+) {
   const columns: VxeGridProps['columns'] = [
     {
       type: 'checkbox',
@@ -246,7 +241,7 @@ export function getTemplateTypeColor(type: string): string {
 
 // 获取模板类型标签文本
 export function getTemplateTypeLabel(type: string): string {
-  const option = TEMPLATE_TYPE_OPTIONS.find(opt => opt.value === type);
+  const option = TEMPLATE_TYPE_OPTIONS.find((opt) => opt.value === type);
   return option?.label || type;
 }
 
@@ -264,7 +259,9 @@ export function getCategoryColor(category: string): string {
 
 // 获取分类标签文本
 export function getCategoryLabel(category: string): string {
-  const option = TEMPLATE_CATEGORY_OPTIONS.find(opt => opt.value === category);
+  const option = TEMPLATE_CATEGORY_OPTIONS.find(
+    (opt) => opt.value === category,
+  );
   return option?.label || category;
 }
 
@@ -279,37 +276,37 @@ export const RULE_CONFIG_EXAMPLES = {
           target: 'extension',
           item_type: 'any',
           mode: 'contains',
-          case_sensitive: false
+          case_sensitive: false,
         },
         {
           pattern: 'temp',
           target: 'extension',
           item_type: 'any',
           mode: 'contains',
-          case_sensitive: false
-        }
-      ]
-    }
+          case_sensitive: false,
+        },
+      ],
+    },
   },
   rename: {
     name: '文件名标准化',
     config: {
       rules: [
         {
-          match_regex: '\\s+',
+          match_regex: String.raw`\s+`,
           replace_string: '_',
           target_scope: 'name',
-          case_sensitive: false
-        }
-      ]
-    }
+          case_sensitive: false,
+        },
+      ],
+    },
   },
   custom: {
     name: '自定义规则',
     config: {
       type: 'custom',
       script: 'function process(item) { return item; }',
-      parameters: {}
-    }
-  }
+      parameters: {},
+    },
+  },
 };

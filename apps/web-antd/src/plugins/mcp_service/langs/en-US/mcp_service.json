@@ -1,0 +1,12 @@
+{
+  "menu": "MCP Config",
+  "title": "MCP Config Management",
+  "columns.mcp": "MCP Name",
+  "columns.config": "Config(JSON)",
+  "actions.create": "Create",
+  "actions.edit": "Edit",
+  "actions.delete": "Delete",
+  "form.mcp": "MCP Name",
+  "form.config": "Config(JSON)",
+  "tips.example": "Example: {\n  \"max_query_length\": 200,\n  \"max_keywords\": 8,\n  \"candidate_limit\": 100,\n  \"final_limit\": 5,\n  \"cache_ttl_seconds\": 60,\n  \"lock_ttl_seconds\": 5,\n  \"drive_account_id\": 1,\n  \"target_folder_id\": \"0\"\n}"
+}

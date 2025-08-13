@@ -1,6 +1,8 @@
-import { ref, computed } from 'vue';
-import { message } from 'ant-design-vue';
 import type { CoulddriveFileInfo } from '#/api';
+
+import { computed, ref } from 'vue';
+
+import { message } from 'ant-design-vue';
 
 export interface PathHistoryItem {
   path: string;
@@ -23,7 +25,7 @@ export interface UsePathNavigationOptions {
 export function usePathNavigation(options: UsePathNavigationOptions = {}) {
   // 路径历史记录
   const pathHistory = ref<PathHistoryItem[]>([
-    { path: '/', file_id: '0', name: '根目录' }
+    { path: '/', file_id: '0', name: '根目录' },
   ]);
 
   // 当前路径和文件ID
@@ -41,17 +43,10 @@ export function usePathNavigation(options: UsePathNavigationOptions = {}) {
    */
   function navigateToPath(path: string, fileId: string = '0') {
     // 找到目标路径在历史记录中的位置
-    const targetIndex = pathHistory.value.findIndex(item => item.path === path);
-    if (targetIndex !== -1) {
-      // 截取历史记录到目标位置
-      pathHistory.value = pathHistory.value.slice(0, targetIndex + 1);
-      const targetItem = pathHistory.value[targetIndex];
-
-      if (targetItem) {
-        currentPath.value = targetItem.path;
-        currentFileId.value = targetItem.file_id;
-      }
-    } else {
+    const targetIndex = pathHistory.value.findIndex(
+      (item) => item.path === path,
+    );
+    if (targetIndex === -1) {
       // 如果在历史记录中找不到，使用传入的参数
       currentPath.value = path;
       currentFileId.value = fileId;
@@ -59,6 +54,15 @@ export function usePathNavigation(options: UsePathNavigationOptions = {}) {
       // 重置历史记录
       if (path === '/') {
         pathHistory.value = [{ path: '/', file_id: '0', name: '根目录' }];
+      }
+    } else {
+      // 截取历史记录到目标位置
+      pathHistory.value = pathHistory.value.slice(0, targetIndex + 1);
+      const targetItem = pathHistory.value[targetIndex];
+
+      if (targetItem) {
+        currentPath.value = targetItem.path;
+        currentFileId.value = targetItem.file_id;
       }
     }
 
@@ -82,7 +86,7 @@ export function usePathNavigation(options: UsePathNavigationOptions = {}) {
     pathHistory.value.push({
       path: folder.file_path,
       file_id: folder.file_id,
-      name: folder.file_name
+      name: folder.file_name,
     });
 
     // 执行进入文件夹回调
@@ -136,6 +140,6 @@ export function usePathNavigation(options: UsePathNavigationOptions = {}) {
     navigateToPath,
     navigateToFolder,
     goBack,
-    resetPath
+    resetPath,
   };
 }

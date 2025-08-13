@@ -1,91 +1,6 @@
-<template>
-  <div class="p-6">
-    <div class="mb-6">
-      <h1 class="text-2xl font-bold text-gray-800 mb-2">应用授权管理</h1>
-      <p class="text-gray-600">管理应用、设备、套餐、兑换码和授权信息</p>
-    </div>
-
-    <!-- 统计卡片 -->
-    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-      <div class="bg-white rounded-lg shadow-sm border p-6">
-        <div class="flex items-center justify-between">
-          <div>
-            <p class="text-sm font-medium text-gray-600">应用总数</p>
-            <p class="text-2xl font-bold text-blue-600">{{ stats.applications }}</p>
-          </div>
-          <div class="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
-            <div class="w-6 h-6 text-blue-600 font-bold text-lg">📱</div>
-          </div>
-        </div>
-      </div>
-
-      <div class="bg-white rounded-lg shadow-sm border p-6">
-        <div class="flex items-center justify-between">
-          <div>
-            <p class="text-sm font-medium text-gray-600">设备总数</p>
-            <p class="text-2xl font-bold text-green-600">{{ stats.devices }}</p>
-          </div>
-          <div class="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
-            <div class="w-6 h-6 text-green-600 font-bold text-lg">💻</div>
-          </div>
-        </div>
-      </div>
-
-      <div class="bg-white rounded-lg shadow-sm border p-6">
-        <div class="flex items-center justify-between">
-          <div>
-            <p class="text-sm font-medium text-gray-600">有效授权</p>
-            <p class="text-2xl font-bold text-orange-600">{{ stats.authorizations }}</p>
-          </div>
-          <div class="w-12 h-12 bg-orange-100 rounded-lg flex items-center justify-center">
-            <div class="w-6 h-6 text-orange-600 font-bold text-lg">🔐</div>
-          </div>
-        </div>
-      </div>
-
-      <div class="bg-white rounded-lg shadow-sm border p-6">
-        <div class="flex items-center justify-between">
-          <div>
-            <p class="text-sm font-medium text-gray-600">兑换码</p>
-            <p class="text-2xl font-bold text-purple-600">{{ stats.redeemCodes }}</p>
-          </div>
-          <div class="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center">
-            <div class="w-6 h-6 text-purple-600 font-bold text-lg">🎫</div>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- 功能导航 -->
-    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-      <div
-        v-for="item in menuItems"
-        :key="item.path"
-        class="bg-white rounded-lg shadow-sm border p-6 hover:shadow-md transition-shadow cursor-pointer"
-        @click="navigateTo(item.path)"
-      >
-        <div class="flex items-center mb-4">
-          <div class="w-12 h-12 rounded-lg flex items-center justify-center mr-4" :class="item.iconBg">
-            <div class="text-2xl">{{ item.icon }}</div>
-          </div>
-          <div>
-            <h3 class="text-lg font-semibold text-gray-800">{{ item.title }}</h3>
-            <p class="text-sm text-gray-600">{{ item.description }}</p>
-          </div>
-        </div>
-        <div class="flex items-center text-blue-600 text-sm font-medium">
-          <span>进入管理</span>
-          <span class="ml-1">→</span>
-        </div>
-      </div>
-    </div>
-  </div>
-</template>
-
 <script lang="ts" setup>
-import { ref, onMounted } from 'vue';
+import { onMounted, ref } from 'vue';
 import { useRouter } from 'vue-router';
-import { MaterialSymbolsAdd } from '@vben/icons';
 
 const router = useRouter();
 
@@ -170,3 +85,106 @@ onMounted(async () => {
   };
 });
 </script>
+
+<template>
+  <div class="p-6">
+    <div class="mb-6">
+      <h1 class="mb-2 text-2xl font-bold text-gray-800">应用授权管理</h1>
+      <p class="text-gray-600">管理应用、设备、套餐、兑换码和授权信息</p>
+    </div>
+
+    <!-- 统计卡片 -->
+    <div class="mb-8 grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-4">
+      <div class="rounded-lg border bg-white p-6 shadow-sm">
+        <div class="flex items-center justify-between">
+          <div>
+            <p class="text-sm font-medium text-gray-600">应用总数</p>
+            <p class="text-2xl font-bold text-blue-600">
+              {{ stats.applications }}
+            </p>
+          </div>
+          <div
+            class="flex h-12 w-12 items-center justify-center rounded-lg bg-blue-100"
+          >
+            <div class="h-6 w-6 text-lg font-bold text-blue-600">📱</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="rounded-lg border bg-white p-6 shadow-sm">
+        <div class="flex items-center justify-between">
+          <div>
+            <p class="text-sm font-medium text-gray-600">设备总数</p>
+            <p class="text-2xl font-bold text-green-600">{{ stats.devices }}</p>
+          </div>
+          <div
+            class="flex h-12 w-12 items-center justify-center rounded-lg bg-green-100"
+          >
+            <div class="h-6 w-6 text-lg font-bold text-green-600">💻</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="rounded-lg border bg-white p-6 shadow-sm">
+        <div class="flex items-center justify-between">
+          <div>
+            <p class="text-sm font-medium text-gray-600">有效授权</p>
+            <p class="text-2xl font-bold text-orange-600">
+              {{ stats.authorizations }}
+            </p>
+          </div>
+          <div
+            class="flex h-12 w-12 items-center justify-center rounded-lg bg-orange-100"
+          >
+            <div class="h-6 w-6 text-lg font-bold text-orange-600">🔐</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="rounded-lg border bg-white p-6 shadow-sm">
+        <div class="flex items-center justify-between">
+          <div>
+            <p class="text-sm font-medium text-gray-600">兑换码</p>
+            <p class="text-2xl font-bold text-purple-600">
+              {{ stats.redeemCodes }}
+            </p>
+          </div>
+          <div
+            class="flex h-12 w-12 items-center justify-center rounded-lg bg-purple-100"
+          >
+            <div class="h-6 w-6 text-lg font-bold text-purple-600">🎫</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 功能导航 -->
+    <div class="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
+      <div
+        v-for="item in menuItems"
+        :key="item.path"
+        class="cursor-pointer rounded-lg border bg-white p-6 shadow-sm transition-shadow hover:shadow-md"
+        @click="navigateTo(item.path)"
+      >
+        <div class="mb-4 flex items-center">
+          <div
+            class="mr-4 flex h-12 w-12 items-center justify-center rounded-lg"
+            :class="item.iconBg"
+          >
+            <div class="text-2xl">{{ item.icon }}</div>
+          </div>
+          <div>
+            <h3 class="text-lg font-semibold text-gray-800">
+              {{ item.title }}
+            </h3>
+            <p class="text-sm text-gray-600">{{ item.description }}</p>
+          </div>
+        </div>
+        <div class="flex items-center text-sm font-medium text-blue-600">
+          <span>进入管理</span>
+          <span class="ml-1">→</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</template>

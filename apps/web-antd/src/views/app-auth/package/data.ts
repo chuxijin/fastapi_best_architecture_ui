@@ -1,4 +1,5 @@
 import type { VbenFormSchema } from '@vben/common-ui';
+
 import type { VxeGridPropTypes } from '#/adapter/vxe-table';
 
 import { h } from 'vue';
@@ -138,7 +139,9 @@ export const schema: VbenFormSchema[] = [
   },
 ];
 
-export function useColumns(onActionClick: (params: any) => void): VxeGridPropTypes.Columns {
+export function useColumns(
+  onActionClick: (params: any) => void,
+): VxeGridPropTypes.Columns {
   return [
     {
       type: 'checkbox',
@@ -184,27 +187,38 @@ export function useColumns(onActionClick: (params: any) => void): VxeGridPropTyp
       slots: {
         default: ({ row }: any) => {
           // 计算当前价格
-          let currentPrice = parseFloat(row.original_price);
+          let currentPrice = Number.parseFloat(row.original_price);
 
           // 如果有折扣率，检查折扣时间并计算折扣价
           if (row.discount_rate) {
             const now = new Date();
-            const discountStart = row.discount_start_time ? new Date(row.discount_start_time) : null;
-            const discountEnd = row.discount_end_time ? new Date(row.discount_end_time) : null;
+            const discountStart = row.discount_start_time
+              ? new Date(row.discount_start_time)
+              : null;
+            const discountEnd = row.discount_end_time
+              ? new Date(row.discount_end_time)
+              : null;
 
             // 检查是否在折扣时间范围内
-            const isInDiscountPeriod = (!discountStart || now >= discountStart) &&
-                                     (!discountEnd || now <= discountEnd);
+            const isInDiscountPeriod =
+              (!discountStart || now >= discountStart) &&
+              (!discountEnd || now <= discountEnd);
 
             if (isInDiscountPeriod) {
-              currentPrice = currentPrice * parseFloat(row.discount_rate);
+              currentPrice =
+                currentPrice * Number.parseFloat(row.discount_rate);
             }
           }
 
-          const isDiscount = currentPrice !== parseFloat(row.original_price);
-          return h('span', {
-            style: { color: isDiscount ? '#ff4d4f' : '#000' },
-          }, `¥${currentPrice.toFixed(2)}`);
+          const isDiscount =
+            currentPrice !== Number.parseFloat(row.original_price);
+          return h(
+            'span',
+            {
+              style: { color: isDiscount ? '#ff4d4f' : '#000' },
+            },
+            `¥${currentPrice.toFixed(2)}`,
+          );
         },
       },
     },
@@ -227,9 +241,13 @@ export function useColumns(onActionClick: (params: any) => void): VxeGridPropTyp
       width: 100,
       slots: {
         default: ({ row }: any) => {
-          return h(Tag, {
-            color: row.is_active ? 'green' : 'red',
-          }, () => row.is_active ? '启用' : '停用');
+          return h(
+            Tag,
+            {
+              color: row.is_active ? 'green' : 'red',
+            },
+            () => (row.is_active ? '启用' : '停用'),
+          );
         },
       },
     },
@@ -252,13 +270,21 @@ export function useColumns(onActionClick: (params: any) => void): VxeGridPropTyp
       fixed: 'right',
       slots: {
         default: ({ row }: any) => [
-          h('a', {
-            onClick: () => onActionClick({ code: 'edit', row }),
-          }, '编辑'),
-          h('a', {
-            style: { marginLeft: '8px', color: '#ff4d4f' },
-            onClick: () => onActionClick({ code: 'delete', row }),
-          }, '删除'),
+          h(
+            'a',
+            {
+              onClick: () => onActionClick({ code: 'edit', row }),
+            },
+            '编辑',
+          ),
+          h(
+            'a',
+            {
+              style: { marginLeft: '8px', color: '#ff4d4f' },
+              onClick: () => onActionClick({ code: 'delete', row }),
+            },
+            '删除',
+          ),
         ],
       },
     },

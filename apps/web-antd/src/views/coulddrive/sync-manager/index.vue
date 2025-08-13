@@ -1,50 +1,49 @@
 <script setup lang="ts">
 import type { VbenFormProps } from '@vben/common-ui';
-import type { VxeTableGridOptions } from '#/adapter/vxe-table';
-import type { OnActionClickParams } from '#/adapter/vxe-table';
 
-import { ref, computed } from 'vue';
+import type {
+  OnActionClickParams,
+  VxeTableGridOptions,
+} from '#/adapter/vxe-table';
 
-import { Page, VbenButton, useVbenModal } from '@vben/common-ui';
+import { ref } from 'vue';
+
+import { Page, useVbenModal, VbenButton } from '@vben/common-ui';
 import { AddData } from '@vben/icons';
-import { createIconifyIcon } from '@vben/icons';
 import { $t } from '@vben/locales';
 
-import { message, Switch } from 'ant-design-vue';
+import { message } from 'ant-design-vue';
 
 import { useVbenForm } from '#/adapter/form';
 import { useVbenVxeGrid } from '#/adapter/vxe-table';
 import {
-  getCoulddriveSyncConfigListApi,
   createCoulddriveSyncConfigApi,
-  updateCoulddriveSyncConfigApi,
   deleteCoulddriveSyncConfigApi,
   executeCoulddriveSyncTaskApi,
-  getAsyncTaskStatusApi,
+  getCoulddriveSyncConfigListApi,
+  updateCoulddriveSyncConfigApi,
 } from '#/api';
-
 import {
+  syncConfigFormSchema,
   syncConfigQuerySchema,
   useSyncConfigColumns,
-  syncConfigFormSchema,
 } from '#/views/coulddrive/sync-manager/data';
 
 // 导入抽屉组件
-import SyncDrawer from './sync-drawer.vue';
-
+import SyncDrawer from './modules/SyncConfigDrawer.vue';
 // 导入记录查看组件
-import SyncRecordModal from './sync-record-modal.vue';
+import SyncRecordModal from './modules/SyncRecordModal.vue';
 
 // 创建图标组件
-const Play = createIconifyIcon('mdi:play');
-const FileDocument = createIconifyIcon('mdi:file-document-outline');
+// const Play = createIconifyIcon('mdi:play');
+// const FileDocument = createIconifyIcon('mdi:file-document-outline');
 
 // 记录查看相关状态
 const recordModalVisible = ref(false);
 const selectedConfigForRecord = ref<any>(null);
 
 // 编辑状态
-const editingConfigId = ref<number | null>(null);
+const editingConfigId = ref<null | number>(null);
 
 // 抽屉状态
 const drawerVisible = ref(false);
@@ -54,17 +53,22 @@ const drawerEditData = ref<any>(null);
 const switchLoadingMap = ref<Map<number, boolean>>(new Map());
 
 // 任务执行状态
-const executingTasks = ref<Map<number, {
-  status: 'idle' | 'executing' | 'completed';
-  startTime?: Date;
-}>>(new Map());
+const executingTasks = ref<
+  Map<
+    number,
+    {
+      startTime?: Date;
+      status: 'completed' | 'executing' | 'idle';
+    }
+  >
+>(new Map());
 
 // 查询表单配置
 const queryFormOptions: VbenFormProps = {
   collapsed: true,
   showCollapseButton: true,
   submitButtonOptions: {
-    content: $t('page.form.query'),
+    content: $t('common.search'),
   },
   schema: syncConfigQuerySchema,
 };
@@ -98,7 +102,7 @@ const gridOptions: VxeTableGridOptions = {
             ...formValues,
           };
           return await getCoulddriveSyncConfigListApi(params);
-        } catch (error) {
+        } catch {
           message.error('获取同步配置列表失败');
           return {
             items: [],
@@ -116,7 +120,7 @@ const gridOptions: VxeTableGridOptions = {
 
 const [Grid, gridApi] = useVbenVxeGrid({
   formOptions: queryFormOptions,
-  gridOptions
+  gridOptions,
 });
 
 // 编辑表单配置
@@ -162,7 +166,7 @@ const [EditModal, editModalApi] = useVbenModal({
 
         await editModalApi.close();
         onRefresh();
-      } catch (error) {
+      } catch {
         message.error('更新失败');
       } finally {
         editModalApi.unlock();
@@ -217,24 +221,24 @@ async function handleStatusChange(row: any, checked: boolean) {
 // 操作处理
 function onActionClick({ code, row }: OnActionClickParams) {
   switch (code) {
-    case 'execute': {
-      executeSync(row);
+    case 'copy': {
+      copyConfig(row);
+      break;
+    }
+    case 'delete': {
+      deleteConfig(row);
       break;
     }
     case 'edit': {
       openEditDrawer(row);
       break;
     }
-    case 'copy': {
-      copyConfig(row);
+    case 'execute': {
+      executeSync(row);
       break;
     }
     case 'logs': {
       showLogs(row);
-      break;
-    }
-    case 'delete': {
-      deleteConfig(row);
       break;
     }
   }
@@ -246,18 +250,21 @@ async function executeSync(config: any) {
     // 设置执行中状态
     executingTasks.value.set(config.id, {
       status: 'executing',
-      startTime: new Date()
+      startTime: new Date(),
     });
 
-    message.loading({ content: '正在执行同步任务...', key: `sync_task_${config.id}` });
+    message.loading({
+      content: '正在执行同步任务...',
+      key: `sync_task_${config.id}`,
+    });
 
-        // 提交同步任务
+    // 提交同步任务
     const submitResult = await executeCoulddriveSyncTaskApi(config.id);
 
     if (submitResult.task_id) {
       // 设置已完成状态
       executingTasks.value.set(config.id, {
-        status: 'completed'
+        status: 'completed',
       });
 
       // 检查是否有执行结果
@@ -268,7 +275,7 @@ async function executeSync(config: any) {
           const processed = stats.files_processed || 0;
           const transferred = stats.files_transferred || 0;
           const deleted = stats.files_deleted || 0;
-          const folderCreated = stats.folder_created || 0;
+          // const folderCreated = stats.folder_created || 0;
 
           let successMsg = '同步任务执行成功';
           const details = [];
@@ -286,7 +293,7 @@ async function executeSync(config: any) {
 
           message.success({
             content: successMsg,
-            key: `sync_task_${config.id}`
+            key: `sync_task_${config.id}`,
           });
 
           // 同步成功后刷新表格数据
@@ -295,13 +302,13 @@ async function executeSync(config: any) {
           const errorMsg = result.error || '同步任务执行失败';
           message.error({
             content: `同步任务失败：${errorMsg}`,
-            key: `sync_task_${config.id}`
+            key: `sync_task_${config.id}`,
           });
         }
       } else {
         message.success({
           content: '同步任务已提交成功',
-          key: `sync_task_${config.id}`
+          key: `sync_task_${config.id}`,
         });
 
         // 任务提交成功
@@ -318,23 +325,19 @@ async function executeSync(config: any) {
 
       message.error({
         content: '提交同步任务失败',
-        key: `sync_task_${config.id}`
+        key: `sync_task_${config.id}`,
       });
     }
-  } catch (error) {
+  } catch {
     // 重置为空闲状态
     executingTasks.value.set(config.id, { status: 'idle' });
 
     message.error({
       content: '提交同步任务失败',
-      key: `sync_task_${config.id}`
+      key: `sync_task_${config.id}`,
     });
   }
 }
-
-
-
-
 
 // 显示日志
 function showLogs(config: any) {
@@ -378,7 +381,7 @@ async function deleteConfig(config: any) {
     await deleteCoulddriveSyncConfigApi(config.id);
     message.success(`删除配置 ${config.remark} 成功`);
     onRefresh();
-  } catch (error) {
+  } catch {
     message.error('删除配置失败');
   }
 }
@@ -433,7 +436,9 @@ function onDrawerSuccess() {
             <a-spin size="small" />
             <span class="text-blue-600">执行中</span>
           </template>
-          <template v-else-if="executingTasks.get(row.id)?.status === 'completed'">
+          <template
+            v-else-if="executingTasks.get(row.id)?.status === 'completed'"
+          >
             <span class="text-green-600">已完成</span>
           </template>
           <template v-else>

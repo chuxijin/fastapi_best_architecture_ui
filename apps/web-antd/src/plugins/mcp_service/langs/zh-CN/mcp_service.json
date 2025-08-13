@@ -1,0 +1,12 @@
+{
+  "menu": "MCP 配置",
+  "title": "MCP 配置管理",
+  "columns.mcp": "MCP 名称",
+  "columns.config": "配置(JSON)",
+  "actions.create": "新增配置",
+  "actions.edit": "编辑",
+  "actions.delete": "删除",
+  "form.mcp": "MCP 名称",
+  "form.config": "配置(JSON)",
+  "tips.example": "示例: {\n  \"max_query_length\": 200,\n  \"max_keywords\": 8,\n  \"candidate_limit\": 100,\n  \"final_limit\": 5,\n  \"cache_ttl_seconds\": 60,\n  \"lock_ttl_seconds\": 5,\n  \"drive_account_id\": 1,\n  \"target_folder_id\": \"0\"\n}"
+}

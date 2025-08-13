@@ -1,9 +1,17 @@
 <script lang="ts" setup>
 import type { VbenFormProps } from '@vben/common-ui';
-import type { OnActionClickParams, VxeTableGridOptions } from '#/adapter/vxe-table';
-import type { AppDeviceResult, CreateAppDeviceParams, DeviceAuthorizationHistory } from '#/api';
 
-import { computed, ref, h, onMounted } from 'vue';
+import type {
+  OnActionClickParams,
+  VxeTableGridOptions,
+} from '#/adapter/vxe-table';
+import type {
+  AppDeviceResult,
+  CreateAppDeviceParams,
+  DeviceAuthorizationHistory,
+} from '#/api';
+
+import { computed, h, onMounted, ref } from 'vue';
 
 import { Page, useVbenModal, VbenButton } from '@vben/common-ui';
 import { MaterialSymbolsAdd } from '@vben/icons';
@@ -16,15 +24,15 @@ import { useVbenVxeGrid } from '#/adapter/vxe-table';
 import {
   createAppDeviceApi,
   deleteAppDeviceApi,
+  disableAuthorizationApi,
   getAppDeviceListApi,
-  updateAppDeviceApi,
-  getDeviceAuthorizationHistoryApi,
   getApplicationOptions,
   getAppPackageListApi,
+  getDeviceAuthorizationHistoryApi,
   manualAuthorizeDeviceApi,
   redeemCodeAuthorizeApi,
+  updateAppDeviceApi,
   updateAuthorizationTimeApi,
-  disableAuthorizationApi,
 } from '#/api';
 
 import { querySchema, schema, useColumns } from './data';
@@ -33,7 +41,7 @@ const formOptions: VbenFormProps = {
   collapsed: true,
   showCollapseButton: true,
   submitButtonOptions: {
-    content: $t('page.form.query'),
+    content: $t('common.search'),
   },
   schema: querySchema,
 };
@@ -80,7 +88,9 @@ function onActionClick({ code, row }: OnActionClickParams<AppDeviceResult>) {
     case 'delete': {
       deleteAppDeviceApi(row.id).then(() => {
         message.success({
-          content: $t('ui.actionMessage.deleteSuccess', [row.device_name || row.device_id]),
+          content: $t('ui.actionMessage.deleteSuccess', [
+            row.device_name || row.device_id,
+          ]),
           key: 'action_process_msg',
         });
         onRefresh();
@@ -175,7 +185,7 @@ async function showHistoryModal(device: AppDeviceResult) {
     const data = await getDeviceAuthorizationHistoryApi(device.id);
     historyData.value = data;
     historyModalApi.open();
-  } catch (error) {
+  } catch {
     message.error('获取授权历史失败');
   }
 }
@@ -186,13 +196,19 @@ const [ManualAuthModal, manualAuthModalApi] = useVbenModal({
   destroyOnClose: true,
   async onConfirm() {
     try {
-      if (!manualAuthForm.value.application_id || !manualAuthForm.value.package_id || !currentDevice.value?.device_id) {
+      if (
+        !manualAuthForm.value.application_id ||
+        !manualAuthForm.value.package_id ||
+        !currentDevice.value?.device_id
+      ) {
         message.error('请填写完整的授权信息');
         return;
       }
 
       // 获取选中的套餐信息
-      const selectedPackage = packageOptions.value.find(pkg => pkg.value === Number(manualAuthForm.value.package_id));
+      const selectedPackage = packageOptions.value.find(
+        (pkg) => pkg.value === Number(manualAuthForm.value.package_id),
+      );
       if (!selectedPackage) {
         message.error('请选择有效的套餐');
         return;
@@ -200,7 +216,9 @@ const [ManualAuthModal, manualAuthModalApi] = useVbenModal({
 
       // 从套餐标签中提取天数（格式：套餐名称 (天数天)）
       const durationMatch = selectedPackage.label.match(/\((\d+)天\)/);
-      const durationDays = durationMatch ? parseInt(durationMatch[1]) : 30; // 默认30天
+      const durationDays = durationMatch
+        ? Number.parseInt(durationMatch[1] ?? '30', 10)
+        : 30; // 默认30天
 
       await manualAuthorizeDeviceApi({
         application_id: Number(manualAuthForm.value.application_id),
@@ -238,7 +256,10 @@ const [RedeemAuthModal, redeemAuthModalApi] = useVbenModal({
   destroyOnClose: true,
   async onConfirm() {
     try {
-      if (!redeemAuthForm.value.redeem_code || !currentDevice.value?.device_id) {
+      if (
+        !redeemAuthForm.value.redeem_code ||
+        !currentDevice.value?.device_id
+      ) {
         message.error('请填写完整的授权信息');
         return;
       }
@@ -296,7 +317,8 @@ const historyColumns = [
     key: 'status_text',
     width: 100,
     customRender: ({ record }: any) => {
-      const color = record.status === 1 ? 'green' : record.status === 0 ? 'red' : 'orange';
+      const color =
+        record.status === 1 ? 'green' : record.status === 0 ? 'red' : 'orange';
       return h(Tag, { color }, () => record.status_text);
     },
   },
@@ -343,15 +365,23 @@ const historyColumns = [
     fixed: 'right' as const,
     customRender: ({ record }: any) => {
       return h('div', { class: 'flex gap-2' }, [
-        h(VbenButton, {
-          size: 'sm',
-          onClick: () => handleEditAuthTime(record),
-        }, () => '修改时间'),
-        h(VbenButton, {
-          size: 'sm',
-          danger: true,
-          onClick: () => handleDisableAuth(record),
-        }, () => '失效'),
+        h(
+          VbenButton,
+          {
+            size: 'sm',
+            onClick: () => handleEditAuthTime(record),
+          },
+          () => '修改时间',
+        ),
+        h(
+          VbenButton,
+          {
+            size: 'sm',
+            danger: true,
+            onClick: () => handleDisableAuth(record),
+          },
+          () => '失效',
+        ),
       ]);
     },
   },
@@ -417,7 +447,10 @@ const [EditAuthModal, editAuthModalApi] = useVbenModal({
     if (isOpen && currentAuth.value) {
       // 设置默认值
       editAuthForm.value = {
-        end_time: currentAuth.value.end_time === '永久' ? '' : currentAuth.value.end_time.replace(' ', 'T'),
+        end_time:
+          currentAuth.value.end_time === '永久'
+            ? ''
+            : currentAuth.value.end_time.replace(' ', 'T'),
         remark: currentAuth.value.remark || '',
       };
     }
@@ -473,37 +506,53 @@ onMounted(() => {
           <div class="info-grid">
             <div class="info-item">
               <span class="info-label">设备ID:</span>
-              <span class="info-value">{{ historyData.device_info.device_id }}</span>
+              <span class="info-value">{{
+                historyData.device_info.device_id
+              }}</span>
             </div>
             <div class="info-item">
               <span class="info-label">设备名称:</span>
-              <span class="info-value">{{ historyData.device_info.device_name || '-' }}</span>
+              <span class="info-value">{{
+                historyData.device_info.device_name || '-'
+              }}</span>
             </div>
             <div class="info-item">
               <span class="info-label">设备类型:</span>
-              <span class="info-value">{{ historyData.device_info.device_type || '-' }}</span>
+              <span class="info-value">{{
+                historyData.device_info.device_type || '-'
+              }}</span>
             </div>
             <div class="info-item">
               <span class="info-label">操作系统:</span>
-              <span class="info-value">{{ historyData.device_info.os_info || '-' }}</span>
+              <span class="info-value">{{
+                historyData.device_info.os_info || '-'
+              }}</span>
             </div>
             <div class="info-item">
               <span class="info-label">IP地址:</span>
-              <span class="info-value">{{ historyData.device_info.ip_address || '-' }}</span>
+              <span class="info-value">{{
+                historyData.device_info.ip_address || '-'
+              }}</span>
             </div>
             <div class="info-item">
               <span class="info-label">首次发现:</span>
-              <span class="info-value">{{ historyData.device_info.first_seen }}</span>
+              <span class="info-value">{{
+                historyData.device_info.first_seen
+              }}</span>
             </div>
           </div>
         </div>
 
         <!-- 授权历史 -->
         <div class="history-section">
-          <div class="flex justify-between items-center mb-4">
+          <div class="mb-4 flex items-center justify-between">
             <h3>授权历史 (共 {{ historyData.total_count }} 条记录)</h3>
             <div class="flex gap-2">
-              <VbenButton type="primary" size="sm" @click="manualAuthModalApi.open()">
+              <VbenButton
+                type="primary"
+                size="sm"
+                @click="manualAuthModalApi.open()"
+              >
                 手动授权
               </VbenButton>
               <VbenButton size="sm" @click="redeemAuthModalApi.open()">
@@ -523,13 +572,16 @@ onMounted(() => {
       </div>
     </HistoryModal>
 
-            <!-- 手动授权弹窗 -->
+    <!-- 手动授权弹窗 -->
     <ManualAuthModal>
       <div class="p-4">
         <div class="space-y-4">
           <div>
-            <label class="block text-sm font-medium mb-1">应用</label>
-            <select v-model="manualAuthForm.application_id" class="w-full border rounded px-3 py-2">
+            <label class="mb-1 block text-sm font-medium">应用</label>
+            <select
+              v-model="manualAuthForm.application_id"
+              class="w-full rounded border px-3 py-2"
+            >
               <option value="">请选择应用</option>
               <option
                 v-for="app in applicationOptions"
@@ -541,17 +593,20 @@ onMounted(() => {
             </select>
           </div>
           <div>
-            <label class="block text-sm font-medium mb-1">设备</label>
+            <label class="mb-1 block text-sm font-medium">设备</label>
             <input
               type="text"
-              class="w-full border rounded px-3 py-2 bg-gray-100"
+              class="w-full rounded border bg-gray-100 px-3 py-2"
               :value="currentDevice?.device_id"
               readonly
             />
           </div>
           <div>
-            <label class="block text-sm font-medium mb-1">套餐</label>
-            <select v-model="manualAuthForm.package_id" class="w-full border rounded px-3 py-2">
+            <label class="mb-1 block text-sm font-medium">套餐</label>
+            <select
+              v-model="manualAuthForm.package_id"
+              class="w-full rounded border px-3 py-2"
+            >
               <option value="">请选择套餐</option>
               <option
                 v-for="pkg in packageOptions"
@@ -566,31 +621,31 @@ onMounted(() => {
       </div>
     </ManualAuthModal>
 
-            <!-- 兑换码授权弹窗 -->
+    <!-- 兑换码授权弹窗 -->
     <RedeemAuthModal>
       <div class="p-4">
         <div class="space-y-4">
           <div>
-            <label class="block text-sm font-medium mb-1">兑换码说明</label>
-            <p class="text-sm text-gray-600 bg-gray-50 p-2 rounded">
+            <label class="mb-1 block text-sm font-medium">兑换码说明</label>
+            <p class="rounded bg-gray-50 p-2 text-sm text-gray-600">
               兑换码包含应用信息，无需选择应用
             </p>
           </div>
           <div>
-            <label class="block text-sm font-medium mb-1">设备</label>
+            <label class="mb-1 block text-sm font-medium">设备</label>
             <input
               type="text"
-              class="w-full border rounded px-3 py-2 bg-gray-100"
+              class="w-full rounded border bg-gray-100 px-3 py-2"
               :value="currentDevice?.device_id"
               readonly
             />
           </div>
           <div>
-            <label class="block text-sm font-medium mb-1">兑换码</label>
+            <label class="mb-1 block text-sm font-medium">兑换码</label>
             <input
               v-model="redeemAuthForm.redeem_code"
               type="text"
-              class="w-full border rounded px-3 py-2"
+              class="w-full rounded border px-3 py-2"
               placeholder="请输入兑换码"
             />
           </div>
@@ -603,31 +658,31 @@ onMounted(() => {
       <div class="p-4">
         <div class="space-y-4">
           <div>
-            <label class="block text-sm font-medium mb-1">当前授权信息</label>
-            <div v-if="currentAuth" class="bg-gray-50 p-3 rounded">
+            <label class="mb-1 block text-sm font-medium">当前授权信息</label>
+            <div v-if="currentAuth" class="rounded bg-gray-50 p-3">
               <p><strong>应用:</strong> {{ currentAuth.application_name }}</p>
               <p><strong>当前结束时间:</strong> {{ currentAuth.end_time }}</p>
               <p><strong>当前状态:</strong> {{ currentAuth.status_text }}</p>
             </div>
           </div>
           <div>
-            <label class="block text-sm font-medium mb-1">新的结束时间</label>
+            <label class="mb-1 block text-sm font-medium">新的结束时间</label>
             <input
               v-model="editAuthForm.end_time"
               type="datetime-local"
-              class="w-full border rounded px-3 py-2"
+              class="w-full rounded border px-3 py-2"
               placeholder="留空表示永久授权"
             />
-            <p class="text-xs text-gray-500 mt-1">留空表示永久授权</p>
+            <p class="mt-1 text-xs text-gray-500">留空表示永久授权</p>
           </div>
           <div>
-            <label class="block text-sm font-medium mb-1">备注</label>
+            <label class="mb-1 block text-sm font-medium">备注</label>
             <textarea
               v-model="editAuthForm.remark"
-              class="w-full border rounded px-3 py-2"
+              class="w-full rounded border px-3 py-2"
               rows="3"
               placeholder="请输入修改原因或备注信息"
-            />
+            ></textarea>
           </div>
         </div>
       </div>
@@ -647,17 +702,17 @@ onMounted(() => {
 .device-info h3,
 .history-section h3 {
   margin-bottom: 16px;
-  color: #333;
   font-size: 16px;
   font-weight: 600;
+  color: #333;
 }
 
 .info-grid {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
   gap: 12px;
-  background: #f5f5f5;
   padding: 16px;
+  background: #f5f5f5;
   border-radius: 8px;
 }
 
@@ -667,15 +722,15 @@ onMounted(() => {
 }
 
 .info-label {
-  font-weight: 500;
-  color: #666;
   min-width: 80px;
   margin-right: 8px;
+  font-weight: 500;
+  color: #666;
 }
 
 .info-value {
-  color: #333;
   flex: 1;
+  color: #333;
 }
 
 .history-section {
@@ -683,8 +738,8 @@ onMounted(() => {
 }
 
 :deep(.ant-table-thead > tr > th) {
-  background: #fafafa;
   font-weight: 600;
+  background: #fafafa;
 }
 
 :deep(.ant-table-tbody > tr:hover > td) {
@@ -693,8 +748,8 @@ onMounted(() => {
 
 /* 加宽授权历史模态框 */
 :deep(.ant-modal) {
-  max-width: 1200px;
   width: 90vw;
+  max-width: 1200px;
 }
 
 :deep(.ant-modal-content) {

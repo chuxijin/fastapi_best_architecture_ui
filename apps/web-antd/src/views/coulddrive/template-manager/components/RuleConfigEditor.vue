@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { ref, computed, watch } from 'vue';
+import { computed, ref, watch } from 'vue';
+
 import { message } from 'ant-design-vue';
 
 interface Props {
@@ -19,7 +20,7 @@ const props = withDefaults(defineProps<Props>(), {
 const emit = defineEmits<Emits>();
 
 // 编辑模式：visual（可视化）或 json（JSON）
-const editMode = ref<'visual' | 'json'>('visual');
+const editMode = ref<'json' | 'visual'>('visual');
 
 // JSON 文本
 const jsonText = ref(props.modelValue);
@@ -62,32 +63,44 @@ const customConfig = ref({
 // 根据模板类型获取当前配置
 const currentConfig = computed(() => {
   switch (props.templateType) {
-    case 'exclusion':
-      return exclusionConfig.value;
-    case 'rename':
-      return renameConfig.value;
-    case 'custom':
+    case 'custom': {
       return customConfig.value;
-    default:
+    }
+    case 'exclusion': {
+      return exclusionConfig.value;
+    }
+    case 'rename': {
+      return renameConfig.value;
+    }
+    default: {
       return {};
+    }
   }
 });
 
 // 监听模板类型变化
-watch(() => props.templateType, (newType) => {
-  if (newType) {
-    // 模板类型变化时，重新解析当前的JSON数据
-    parseJsonToVisual();
-  }
-}, { immediate: true });
+watch(
+  () => props.templateType,
+  (newType) => {
+    if (newType) {
+      // 模板类型变化时，重新解析当前的JSON数据
+      parseJsonToVisual();
+    }
+  },
+  { immediate: true },
+);
 
 // 监听外部值变化
-watch(() => props.modelValue, (newValue) => {
-  if (newValue && newValue !== jsonText.value) {
-    jsonText.value = newValue;
-    parseJsonToVisual();
-  }
-}, { immediate: true });
+watch(
+  () => props.modelValue,
+  (newValue) => {
+    if (newValue && newValue !== jsonText.value) {
+      jsonText.value = newValue;
+      parseJsonToVisual();
+    }
+  },
+  { immediate: true },
+);
 
 // 解析 JSON 到可视化配置
 function parseJsonToVisual() {
@@ -100,53 +113,60 @@ function parseJsonToVisual() {
 
     // 根据类型设置对应的配置
     switch (props.templateType) {
-      case 'exclusion':
-        // 兼容旧格式：优先使用rules，如果没有则使用patterns
-        const exclusionRules = parsed.rules || parsed.patterns || [];
-        if (exclusionRules.length > 0) {
-          exclusionConfig.value.rules = exclusionRules;
-        } else if (!isEmpty) {
-          // 只有在非空配置时才保持默认的空规则
-          exclusionConfig.value.rules = [{
-            pattern: '',
-            target: 'name',
-            item_type: 'any',
-            mode: 'contains',
-            case_sensitive: false,
-          }];
-        } else {
-          // 新增模式下，保持空数组
-          exclusionConfig.value.rules = [];
-        }
-        break;
-      case 'rename':
-        if (parsed.rules && parsed.rules.length > 0) {
-          renameConfig.value.rules = parsed.rules;
-        } else if (!isEmpty) {
-          // 只有在非空配置时才保持默认的空规则
-          renameConfig.value.rules = [{
-            match_regex: '',
-            replace_string: '',
-            target_scope: 'name',
-            case_sensitive: false,
-          }];
-        } else {
-          // 新增模式下，保持空数组
-          renameConfig.value.rules = [];
-        }
-        break;
-      case 'custom':
-        if (!isEmpty) {
-          customConfig.value = { ...customConfig.value, ...parsed };
-        } else {
+      case 'custom': {
+        if (isEmpty) {
           // 新增模式下，保持空对象
           customConfig.value = {
             type: 'custom',
             script: '',
             parameters: {},
           };
+        } else {
+          customConfig.value = { ...customConfig.value, ...parsed };
         }
         break;
+      }
+      case 'exclusion': {
+        // 兼容旧格式：优先使用rules，如果没有则使用patterns
+        const exclusionRules = parsed.rules || parsed.patterns || [];
+        if (exclusionRules.length > 0) {
+          exclusionConfig.value.rules = exclusionRules;
+        } else if (isEmpty) {
+          // 新增模式下，保持空数组
+          exclusionConfig.value.rules = [];
+        } else {
+          // 只有在非空配置时才保持默认的空规则
+          exclusionConfig.value.rules = [
+            {
+              pattern: '',
+              target: 'name',
+              item_type: 'any',
+              mode: 'contains',
+              case_sensitive: false,
+            },
+          ];
+        }
+        break;
+      }
+      case 'rename': {
+        if (parsed.rules && parsed.rules.length > 0) {
+          renameConfig.value.rules = parsed.rules;
+        } else if (isEmpty) {
+          // 新增模式下，保持空数组
+          renameConfig.value.rules = [];
+        } else {
+          // 只有在非空配置时才保持默认的空规则
+          renameConfig.value.rules = [
+            {
+              match_regex: '',
+              replace_string: '',
+              target_scope: 'name',
+              case_sensitive: false,
+            },
+          ];
+        }
+        break;
+      }
     }
   } catch (error) {
     console.error('解析 JSON 失败:', error);
@@ -168,7 +188,7 @@ function updateJsonText() {
     JSON.parse(jsonText.value);
     emit('update:modelValue', jsonText.value);
     parseJsonToVisual();
-  } catch (error) {
+  } catch {
     message.error('JSON 格式错误');
   }
 }
@@ -209,7 +229,7 @@ function removeRenameRule(index: number) {
 }
 
 // 切换编辑模式
-function switchEditMode(mode: 'visual' | 'json') {
+function switchEditMode(mode: 'json' | 'visual') {
   if (mode === 'json' && editMode.value === 'visual') {
     // 从可视化切换到 JSON，更新 JSON 文本
     updateVisualConfig();
@@ -244,7 +264,7 @@ function insertExample() {
     rename: {
       rules: [
         {
-          match_regex: '\\s+',
+          match_regex: String.raw`\s+`,
           replace_string: '_',
           target_scope: 'name',
           case_sensitive: false,
@@ -253,7 +273,8 @@ function insertExample() {
     },
     custom: {
       type: 'custom',
-      script: 'function process(item) {\n  // 自定义处理逻辑\n  return item;\n}',
+      script:
+        'function process(item) {\n  // 自定义处理逻辑\n  return item;\n}',
       parameters: {
         enabled: true,
         timeout: 5000,
@@ -264,15 +285,18 @@ function insertExample() {
   const example = examples[props.templateType as keyof typeof examples];
   if (example) {
     switch (props.templateType) {
-      case 'exclusion':
-        exclusionConfig.value = example as any;
-        break;
-      case 'rename':
-        renameConfig.value = example as any;
-        break;
-      case 'custom':
+      case 'custom': {
         customConfig.value = example as any;
         break;
+      }
+      case 'exclusion': {
+        exclusionConfig.value = example as any;
+        break;
+      }
+      case 'rename': {
+        renameConfig.value = example as any;
+        break;
+      }
     }
     updateVisualConfig();
     message.success('已插入示例配置');
@@ -284,14 +308,15 @@ function insertExample() {
   <div class="rule-config-editor">
     <!-- 编辑模式切换 -->
     <div class="mb-4 flex items-center justify-between">
-      <a-radio-group v-model:value="editMode" @change="switchEditMode(editMode)">
+      <a-radio-group
+        v-model:value="editMode"
+        @change="switchEditMode(editMode)"
+      >
         <a-radio-button value="visual">可视化配置</a-radio-button>
         <a-radio-button value="json">JSON 配置</a-radio-button>
       </a-radio-group>
 
-      <a-button size="small" @click="insertExample">
-        插入示例配置
-      </a-button>
+      <a-button size="small" @click="insertExample"> 插入示例配置 </a-button>
     </div>
 
     <!-- 可视化配置 -->
@@ -299,15 +324,19 @@ function insertExample() {
       <!-- 排除规则配置 -->
       <div v-if="templateType === 'exclusion'" class="exclusion-config">
         <div class="mb-4">
-          <div class="flex items-center justify-between mb-2">
+          <div class="mb-2 flex items-center justify-between">
             <h4 class="text-sm font-medium">排除模式</h4>
             <a-button size="small" type="primary" @click="addExclusionPattern">
               添加模式
             </a-button>
           </div>
 
-          <div v-for="(pattern, index) in exclusionConfig.rules" :key="index" class="mb-3 p-3 border rounded">
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+          <div
+            v-for="(pattern, index) in exclusionConfig.rules"
+            :key="index"
+            class="mb-3 rounded border p-3"
+          >
+            <div class="grid grid-cols-1 gap-3 md:grid-cols-2">
               <a-form-item label="匹配模式" class="mb-2">
                 <a-input
                   v-model:value="pattern.pattern"
@@ -317,7 +346,10 @@ function insertExample() {
               </a-form-item>
 
               <a-form-item label="匹配目标" class="mb-2">
-                <a-select v-model:value="pattern.target" @change="updateVisualConfig">
+                <a-select
+                  v-model:value="pattern.target"
+                  @change="updateVisualConfig"
+                >
                   <a-select-option value="name">文件名</a-select-option>
                   <a-select-option value="path">路径</a-select-option>
                   <a-select-option value="extension">扩展名</a-select-option>
@@ -325,7 +357,10 @@ function insertExample() {
               </a-form-item>
 
               <a-form-item label="项目类型" class="mb-2">
-                <a-select v-model:value="pattern.item_type" @change="updateVisualConfig">
+                <a-select
+                  v-model:value="pattern.item_type"
+                  @change="updateVisualConfig"
+                >
                   <a-select-option value="file">文件</a-select-option>
                   <a-select-option value="folder">文件夹</a-select-option>
                   <a-select-option value="any">文件和文件夹</a-select-option>
@@ -333,7 +368,10 @@ function insertExample() {
               </a-form-item>
 
               <a-form-item label="匹配模式" class="mb-2">
-                <a-select v-model:value="pattern.mode" @change="updateVisualConfig">
+                <a-select
+                  v-model:value="pattern.mode"
+                  @change="updateVisualConfig"
+                >
                   <a-select-option value="contains">包含匹配</a-select-option>
                   <a-select-option value="exact">精确匹配</a-select-option>
                   <a-select-option value="wildcard">通配符</a-select-option>
@@ -366,15 +404,19 @@ function insertExample() {
       <!-- 重命名规则配置 -->
       <div v-else-if="templateType === 'rename'" class="rename-config">
         <div class="mb-4">
-          <div class="flex items-center justify-between mb-2">
+          <div class="mb-2 flex items-center justify-between">
             <h4 class="text-sm font-medium">重命名规则</h4>
             <a-button size="small" type="primary" @click="addRenameRule">
               添加规则
             </a-button>
           </div>
 
-          <div v-for="(rule, index) in renameConfig.rules" :key="index" class="mb-3 p-3 border rounded">
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+          <div
+            v-for="(rule, index) in renameConfig.rules"
+            :key="index"
+            class="mb-3 rounded border p-3"
+          >
+            <div class="grid grid-cols-1 gap-3 md:grid-cols-2">
               <a-form-item label="匹配正则" class="mb-2">
                 <a-input
                   v-model:value="rule.match_regex"
@@ -392,7 +434,10 @@ function insertExample() {
               </a-form-item>
 
               <a-form-item label="作用范围" class="mb-2">
-                <a-select v-model:value="rule.target_scope" @change="updateVisualConfig">
+                <a-select
+                  v-model:value="rule.target_scope"
+                  @change="updateVisualConfig"
+                >
                   <a-select-option value="name">文件名</a-select-option>
                   <a-select-option value="path">路径</a-select-option>
                 </a-select>
@@ -424,7 +469,10 @@ function insertExample() {
       <div v-else-if="templateType === 'custom'" class="custom-config">
         <div class="grid grid-cols-1 gap-4">
           <a-form-item label="规则类型">
-            <a-select v-model:value="customConfig.type" @change="updateVisualConfig">
+            <a-select
+              v-model:value="customConfig.type"
+              @change="updateVisualConfig"
+            >
               <a-select-option value="custom">自定义脚本</a-select-option>
               <a-select-option value="filter">过滤器</a-select-option>
               <a-select-option value="transform">转换器</a-select-option>
@@ -445,14 +493,16 @@ function insertExample() {
               :value="JSON.stringify(customConfig.parameters, null, 2)"
               :rows="4"
               placeholder='{"enabled": true, "timeout": 5000}'
-              @change="(e: any) => {
-                try {
-                  customConfig.parameters = JSON.parse(e.target.value);
-                  updateVisualConfig();
-                } catch (error) {
-                  console.error('JSON解析失败:', error);
+              @change="
+                (e: any) => {
+                  try {
+                    customConfig.parameters = JSON.parse(e.target.value);
+                    updateVisualConfig();
+                  } catch (error) {
+                    console.error('JSON解析失败:', error);
+                  }
                 }
-              }"
+              "
             />
           </a-form-item>
         </div>
@@ -482,6 +532,6 @@ function insertExample() {
 }
 
 .json-config {
-  font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+  font-family: Monaco, Menlo, 'Ubuntu Mono', monospace;
 }
 </style>

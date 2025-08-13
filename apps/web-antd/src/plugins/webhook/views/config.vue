@@ -1,46 +1,12 @@
-<template>
-  <Page auto-content-height>
-    <Grid>
-      <template #toolbar-actions>
-        <div class="flex gap-2">
-          <VbenButton @click="() => configFormModalApi.open()">
-            <MaterialSymbolsAdd class="size-5" />
-            新增配置
-          </VbenButton>
-          <VbenButton @click="batchDeleteConfigs" variant="destructive">
-            <MaterialSymbolsDelete class="size-5" />
-            批量删除
-          </VbenButton>
-        </div>
-      </template>
-
-      <template #action="{ row }">
-        <div class="flex gap-1">
-          <VbenButton @click="editConfig(row)">编辑</VbenButton>
-          <VbenButton
-            :variant="row.is_active ? 'destructive' : 'default'"
-            @click="toggleConfigStatus(row)"
-          >
-            {{ row.is_active ? '禁用' : '启用' }}
-          </VbenButton>
-          <VbenButton variant="destructive" @click="deleteConfig(row)">删除</VbenButton>
-        </div>
-      </template>
-    </Grid>
-
-    <!-- 配置表单模态框 -->
-    <ConfigFormModal :title="configFormTitle">
-      <ConfigForm />
-    </ConfigFormModal>
-  </Page>
-</template>
-
 <script setup lang="ts">
 import type { VbenFormProps } from '@vben/common-ui';
 import type { VxeTableGridOptions } from '@vben/plugins/vxe-table';
 
-import type { OnActionClickParams } from '#/adapter/vxe-table';
-import type { WebhookConfig, CreateWebhookConfigParam, UpdateWebhookConfigParam } from '../api';
+import type {
+  CreateWebhookConfigParam,
+  UpdateWebhookConfigParam,
+  WebhookConfig,
+} from '../api';
 
 import { computed, ref } from 'vue';
 
@@ -52,11 +18,12 @@ import { message } from 'ant-design-vue';
 
 import { useVbenForm } from '#/adapter/form';
 import { useVbenVxeGrid } from '#/adapter/vxe-table';
+
 import {
-  getWebhookConfigListApi,
   createWebhookConfigApi,
-  updateWebhookConfigApi,
   deleteWebhookConfigsApi,
+  getWebhookConfigListApi,
+  updateWebhookConfigApi,
   updateWebhookConfigStatusApi,
 } from '../api';
 
@@ -118,7 +85,7 @@ const gridOptions: VxeTableGridOptions<WebhookConfig> = {
     pageSize: 10,
     pageSizes: [10, 20, 50, 100],
   },
-    columns: [
+  columns: [
     { type: 'checkbox', width: 50 },
     { field: 'id', title: 'ID', width: 60 },
     { field: 'name', title: '配置名称', minWidth: 150 },
@@ -127,28 +94,33 @@ const gridOptions: VxeTableGridOptions<WebhookConfig> = {
       field: 'secret_key',
       title: '密钥',
       width: 100,
-      formatter: ({ cellValue }: { cellValue: string | null }) =>
-        cellValue ? '***已设置***' : '未设置'
+      formatter: ({ cellValue }: { cellValue: null | string }) =>
+        cellValue ? '***已设置***' : '未设置',
     },
     {
       field: 'required_headers',
       title: '请求头',
       width: 80,
-      formatter: ({ cellValue }: { cellValue: Record<string, any> | null }) =>
-        cellValue && Object.keys(cellValue).length > 0 ? `${Object.keys(cellValue).length}个` : '无'
+      formatter: ({ cellValue }: { cellValue: null | Record<string, any> }) =>
+        cellValue && Object.keys(cellValue).length > 0
+          ? `${Object.keys(cellValue).length}个`
+          : '无',
     },
     {
       field: 'allowed_event_types',
       title: '事件类型',
       width: 100,
-      formatter: ({ cellValue }: { cellValue: string[] | null }) =>
-        cellValue && cellValue.length > 0 ? `${cellValue.length}个类型` : '无限制'
+      formatter: ({ cellValue }: { cellValue: null | string[] }) =>
+        cellValue && cellValue.length > 0
+          ? `${cellValue.length}个类型`
+          : '无限制',
     },
     {
       field: 'is_active',
       title: '状态',
       width: 70,
-      formatter: ({ cellValue }: { cellValue: boolean }) => cellValue ? '启用' : '禁用'
+      formatter: ({ cellValue }: { cellValue: boolean }) =>
+        cellValue ? '启用' : '禁用',
     },
     { field: 'created_time', title: '创建时间', width: 150 },
     { field: 'updated_time', title: '更新时间', width: 150 },
@@ -184,32 +156,17 @@ const [Grid, gridApi] = useVbenVxeGrid({
         slots: { default: 'action' },
       },
     ],
-  }
+  },
 });
 
 function onRefresh() {
   gridApi.query();
 }
 
-function onActionClick({ code, row }: OnActionClickParams<WebhookConfig>) {
-  switch (code) {
-    case 'edit': {
-      editConfig(row);
-      break;
-    }
-    case 'delete': {
-      deleteConfig(row);
-      break;
-    }
-    case 'toggle': {
-      toggleConfigStatus(row);
-      break;
-    }
-  }
-}
+// 保留操作函数（当前通过 slots 触发，不直接用回调）
 
 // 当前编辑的配置
-const currentConfig = ref<WebhookConfig | null>(null);
+const currentConfig = ref<null | WebhookConfig>(null);
 
 // 表单标题
 const configFormTitle = computed(() => {
@@ -275,14 +232,20 @@ const [ConfigFormModal, configFormModalApi] = useVbenModal({
       const data = await configFormApi.getValues();
       try {
         // 处理JSON字段
-        if (data.required_headers && typeof data.required_headers === 'string') {
+        if (
+          data.required_headers &&
+          typeof data.required_headers === 'string'
+        ) {
           try {
             data.required_headers = JSON.parse(data.required_headers);
           } catch {
             data.required_headers = {};
           }
         }
-        if (data.allowed_event_types && typeof data.allowed_event_types === 'string') {
+        if (
+          data.allowed_event_types &&
+          typeof data.allowed_event_types === 'string'
+        ) {
           try {
             data.allowed_event_types = JSON.parse(data.allowed_event_types);
           } catch {
@@ -292,7 +255,10 @@ const [ConfigFormModal, configFormModalApi] = useVbenModal({
 
         if (currentConfig.value) {
           // 更新
-          await updateWebhookConfigApi(currentConfig.value.id, data as UpdateWebhookConfigParam);
+          await updateWebhookConfigApi(
+            currentConfig.value.id,
+            data as UpdateWebhookConfigParam,
+          );
           message.success('更新配置成功');
         } else {
           // 创建
@@ -302,7 +268,7 @@ const [ConfigFormModal, configFormModalApi] = useVbenModal({
 
         await configFormModalApi.close();
         onRefresh();
-      } catch (error) {
+      } catch {
         message.error('操作失败');
       } finally {
         configFormModalApi.unlock();
@@ -344,7 +310,7 @@ const deleteConfig = async (config: WebhookConfig) => {
     await deleteWebhookConfigsApi([config.id]);
     message.success('删除配置成功');
     onRefresh();
-  } catch (error) {
+  } catch {
     message.error('删除配置失败');
   }
 };
@@ -355,7 +321,7 @@ const toggleConfigStatus = async (config: WebhookConfig) => {
     await updateWebhookConfigStatusApi(config.id, !config.is_active);
     message.success(`${config.is_active ? '禁用' : '启用'}配置成功`);
     onRefresh();
-  } catch (error) {
+  } catch {
     message.error('更新配置状态失败');
   }
 };
@@ -368,16 +334,55 @@ const batchDeleteConfigs = async () => {
     return;
   }
 
-  const ids = selectedRows.map(row => row.id);
+  const ids = selectedRows.map((row) => row.id);
   try {
     await deleteWebhookConfigsApi(ids);
     message.success('批量删除成功');
     onRefresh();
-  } catch (error) {
+  } catch {
     message.error('批量删除失败');
   }
 };
 </script>
+
+<template>
+  <Page auto-content-height>
+    <Grid>
+      <template #toolbar-actions>
+        <div class="flex gap-2">
+          <VbenButton @click="() => configFormModalApi.open()">
+            <MaterialSymbolsAdd class="size-5" />
+            新增配置
+          </VbenButton>
+          <VbenButton @click="batchDeleteConfigs" variant="destructive">
+            <MaterialSymbolsDelete class="size-5" />
+            批量删除
+          </VbenButton>
+        </div>
+      </template>
+
+      <template #action="{ row }">
+        <div class="flex gap-1">
+          <VbenButton @click="editConfig(row)">编辑</VbenButton>
+          <VbenButton
+            :variant="row.is_active ? 'destructive' : 'default'"
+            @click="toggleConfigStatus(row)"
+          >
+            {{ row.is_active ? '禁用' : '启用' }}
+          </VbenButton>
+          <VbenButton variant="destructive" @click="deleteConfig(row)">
+            删除
+          </VbenButton>
+        </div>
+      </template>
+    </Grid>
+
+    <!-- 配置表单模态框 -->
+    <ConfigFormModal :title="configFormTitle">
+      <ConfigForm />
+    </ConfigFormModal>
+  </Page>
+</template>
 
 <style scoped>
 .webhook-config-management {

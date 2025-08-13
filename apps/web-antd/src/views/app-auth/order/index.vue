@@ -1,9 +1,13 @@
 <script lang="ts" setup>
 import type { VbenFormProps } from '@vben/common-ui';
-import type { OnActionClickParams, VxeTableGridOptions } from '#/adapter/vxe-table';
+
+import type {
+  OnActionClickParams,
+  VxeTableGridOptions,
+} from '#/adapter/vxe-table';
 import type { AppOrderResult, CreateAppOrderParams } from '#/api';
 
-import { computed, ref, onMounted } from 'vue';
+import { computed, onMounted, ref } from 'vue';
 
 import { Page, useVbenModal, VbenButton } from '@vben/common-ui';
 import { MaterialSymbolsAdd } from '@vben/icons';
@@ -17,9 +21,9 @@ import {
   createAppOrderApi,
   deleteAppOrderApi,
   getAppOrderListApi,
-  updateAppOrderApi,
-  getPackageList,
   getDeviceList,
+  getPackageList,
+  updateAppOrderApi,
 } from '#/api';
 
 import { querySchema, schema, useColumns } from './data';
@@ -29,7 +33,7 @@ const initSelectOptions = async () => {
   try {
     const [packageRes, deviceRes] = await Promise.all([
       getPackageList({ page: 1, size: 100 }),
-      getDeviceList({ page: 1, size: 100 })
+      getDeviceList({ page: 1, size: 100 }),
     ]);
 
     const packageOptions = packageRes.items.map((item: any) => ({
@@ -42,17 +46,28 @@ const initSelectOptions = async () => {
       value: item.id,
     }));
 
-    // 更新编辑表单的套餐选项
-    const schemaPackageField = schema.find(item => item.fieldName === 'package_id');
-    if (schemaPackageField && schemaPackageField.componentProps) {
-      schemaPackageField.componentProps.options = packageOptions;
-    }
+    // 安全设置 schema 字段的 options（兼容 object/function）
+    const setFieldOptions = (
+      fields: any[],
+      fieldName: string,
+      opts: Array<{ label: string; value: number }>,
+    ) => {
+      const field = fields.find((i: any) => i.fieldName === fieldName);
+      if (!field) return;
+      const cp = field.componentProps;
+      if (typeof cp === 'function') {
+        const original = cp;
+        field.componentProps = (value: any, actions: any) => {
+          const base = (original as any)(value, actions) || {};
+          return { ...base, options: opts } as any;
+        };
+      } else {
+        field.componentProps = { ...(cp as any), options: opts } as any;
+      }
+    };
 
-    // 更新编辑表单的设备选项
-    const schemaDeviceField = schema.find(item => item.fieldName === 'device_id');
-    if (schemaDeviceField && schemaDeviceField.componentProps) {
-      schemaDeviceField.componentProps.options = deviceOptions;
-    }
+    setFieldOptions(schema as any[], 'package_id', packageOptions);
+    setFieldOptions(schema as any[], 'device_id', deviceOptions);
   } catch (error) {
     console.error('加载选项数据失败:', error);
   }
@@ -62,7 +77,7 @@ const formOptions: VbenFormProps = {
   collapsed: true,
   showCollapseButton: true,
   submitButtonOptions: {
-    content: $t('page.form.query'),
+    content: $t('common.search'),
   },
   schema: querySchema,
 };
@@ -143,7 +158,6 @@ const modalTitle = computed(() => {
 
 const [Modal, modalApi] = useVbenModal({
   destroyOnClose: true,
-  width: 800,
   async onConfirm() {
     const { valid } = await formApi.validate();
     if (valid) {

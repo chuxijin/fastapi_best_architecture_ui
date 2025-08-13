@@ -2,7 +2,12 @@ import type { VbenFormSchema } from '#/adapter/form';
 import type { OnActionClickFn, VxeGridProps } from '#/adapter/vxe-table';
 
 import { $t } from '@vben/locales';
-import { DRIVE_TYPE_OPTIONS, DRIVE_TYPE_TAG_OPTIONS, SYNC_METHOD_OPTIONS } from '#/api';
+
+import {
+  DRIVE_TYPE_OPTIONS,
+  DRIVE_TYPE_TAG_OPTIONS,
+  SYNC_METHOD_OPTIONS,
+} from '#/api';
 
 // 同步配置查询表单配置
 export const syncConfigQuerySchema: VbenFormSchema[] = [
@@ -17,10 +22,7 @@ export const syncConfigQuerySchema: VbenFormSchema[] = [
   {
     component: 'Select',
     componentProps: {
-      options: [
-        { label: '全部', value: '' },
-        ...DRIVE_TYPE_OPTIONS,
-      ],
+      options: [{ label: '全部', value: '' }, ...DRIVE_TYPE_OPTIONS],
       placeholder: '请选择网盘类型',
     },
     fieldName: 'type',
@@ -44,7 +46,7 @@ export const syncConfigQuerySchema: VbenFormSchema[] = [
 // 同步配置表格列配置
 export function useSyncConfigColumns(
   onActionClick?: OnActionClickFn<any>,
-  onStatusChange?: (row: any, newVal: boolean) => Promise<boolean>,
+  _onStatusChange?: (row: any, newVal: boolean) => Promise<boolean>,
 ): VxeGridProps['columns'] {
   return [
     {
@@ -86,6 +88,7 @@ export function useSyncConfigColumns(
       cellRender: {
         name: 'CellTag',
         options: SYNC_METHOD_OPTIONS.map((option, index) => ({
+          // eslint-disable-next-line unicorn/no-nested-ternary
           color: index === 0 ? 'blue' : index === 1 ? 'orange' : 'red',
           label: option.label,
           value: option.value,
@@ -111,12 +114,14 @@ export function useSyncConfigColumns(
       title: '最后同步',
       width: 180,
       formatter: ({ row }) => {
-        return row.last_sync ? new Date(row.last_sync).toLocaleString() : '未同步';
+        return row.last_sync
+          ? new Date(row.last_sync).toLocaleString()
+          : '未同步';
       },
     },
     {
       field: 'operation',
-      title: $t('page.table.operation'),
+      title: $t('common.table.operation'),
       align: 'center',
       fixed: 'right',
       width: 280,
@@ -182,7 +187,7 @@ export const syncConfigFormSchema: VbenFormSchema[] = [
   {
     component: 'ApiSelect',
     componentProps: {
-      api: async (params: any) => {
+      api: async (_params: any) => {
         // 这里需要根据网盘类型动态加载账号
         return [];
       },

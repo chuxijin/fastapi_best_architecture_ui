@@ -1,8 +1,16 @@
 <script lang="ts" setup>
 import type { VbenFormProps } from '@vben/common-ui';
-import type { OnActionClickParams, VxeTableGridOptions } from '#/adapter/vxe-table';
-import type { AppApplicationResult, CreateAppApplicationParams, ApplicationTrendData } from '#/api';
 import type { EchartsUIType } from '@vben/plugins/echarts';
+
+import type {
+  OnActionClickParams,
+  VxeTableGridOptions,
+} from '#/adapter/vxe-table';
+import type {
+  AppApplicationResult,
+  ApplicationTrendData,
+  CreateAppApplicationParams,
+} from '#/api';
 
 import { computed, ref } from 'vue';
 
@@ -11,7 +19,7 @@ import { MaterialSymbolsAdd } from '@vben/icons';
 import { $t } from '@vben/locales';
 import { EchartsUI, useEcharts } from '@vben/plugins/echarts';
 
-import { message, Button } from 'ant-design-vue';
+import { message } from 'ant-design-vue';
 
 import { useVbenForm } from '#/adapter/form';
 import { useVbenVxeGrid } from '#/adapter/vxe-table';
@@ -19,8 +27,8 @@ import {
   createAppApplicationApi,
   deleteAppApplicationApi,
   getAppApplicationListApi,
-  updateAppApplicationApi,
   getApplicationRegistrationTrendApi,
+  updateAppApplicationApi,
 } from '#/api';
 
 import { querySchema, schema, useColumns } from './data';
@@ -29,7 +37,7 @@ const formOptions: VbenFormProps = {
   collapsed: true,
   showCollapseButton: true,
   submitButtonOptions: {
-    content: $t('page.form.query'),
+    content: $t('common.search'),
   },
   schema: querySchema,
 };
@@ -71,7 +79,10 @@ function onRefresh() {
   gridApi.query();
 }
 
-function onActionClick({ code, row }: OnActionClickParams<AppApplicationResult>) {
+function onActionClick({
+  code,
+  row,
+}: OnActionClickParams<AppApplicationResult>) {
   switch (code) {
     case 'delete': {
       deleteAppApplicationApi(row.id).then(() => {
@@ -165,7 +176,7 @@ async function showTrendModal(app: AppApplicationResult) {
     const data = await getApplicationRegistrationTrendApi(app.id, 30);
     trendData.value = data;
     trendModalApi.open();
-  } catch (error) {
+  } catch {
     message.error('获取趋势数据失败');
   }
 }
@@ -173,8 +184,8 @@ async function showTrendModal(app: AppApplicationResult) {
 function renderTrendChart() {
   if (!trendData.value) return;
 
-  const dates = trendData.value.trend_data.map(item => item.date);
-  const counts = trendData.value.trend_data.map(item => item.count);
+  const dates = trendData.value.trend_data.map((item) => item.date);
+  const counts = trendData.value.trend_data.map((item) => item.count);
   const maxCount = Math.max(...counts);
 
   renderEcharts({
@@ -331,16 +342,16 @@ function renderTrendChart() {
 }
 
 .stat-item {
-  text-align: center;
   padding: 16px;
+  text-align: center;
   background: #f5f5f5;
   border-radius: 8px;
 }
 
 .stat-label {
+  margin-bottom: 8px;
   font-size: 14px;
   color: #666;
-  margin-bottom: 8px;
 }
 
 .stat-value {

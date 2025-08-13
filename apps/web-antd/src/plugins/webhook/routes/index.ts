@@ -21,6 +21,15 @@ const routes: RouteRecordRaw[] = [
       icon: 'mdi:cog',
     },
   },
+  {
+    name: 'PluginMcpConfigs',
+    path: '/plugins/mcp/configs',
+    component: () => import('#/plugins/mcp_service/views/index.vue'),
+    meta: {
+      title: $t('mcp_service.menu'),
+      icon: 'mdi:cog-outline',
+    },
+  },
 ];
 
 export default routes;

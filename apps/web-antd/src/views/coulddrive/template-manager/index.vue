@@ -1,19 +1,21 @@
 <script setup lang="ts">
 import type { VbenFormProps } from '@vben/common-ui';
-import type { VxeTableGridOptions } from '#/adapter/vxe-table';
-import type { OnActionClickParams } from '#/adapter/vxe-table';
+
 import type {
+  OnActionClickParams,
+  VxeTableGridOptions,
+} from '#/adapter/vxe-table';
+import type {
+  CreateRuleTemplateParams,
   RuleTemplateDetail,
   RuleTemplateListParams,
-  CreateRuleTemplateParams,
   UpdateRuleTemplateParams,
 } from '#/api';
 
-import { ref, computed, h, watch, nextTick } from 'vue';
+import { h, nextTick, ref, watch } from 'vue';
 
-import { Page, VbenButton, useVbenModal } from '@vben/common-ui';
-import { AddData } from '@vben/icons';
-import { createIconifyIcon } from '@vben/icons';
+import { Page, useVbenModal, VbenButton } from '@vben/common-ui';
+import { AddData, createIconifyIcon } from '@vben/icons';
 import { $t } from '@vben/locales';
 
 import { message, Modal } from 'ant-design-vue';
@@ -21,28 +23,27 @@ import { message, Modal } from 'ant-design-vue';
 import { useVbenForm } from '#/adapter/form';
 import { useVbenVxeGrid } from '#/adapter/vxe-table';
 import {
-  getRuleTemplateListApi,
-  createRuleTemplateApi,
-  updateRuleTemplateApi,
-  deleteRuleTemplateApi,
   batchDeleteRuleTemplatesApi,
-  toggleRuleTemplateActiveApi,
-  useRuleTemplateApi,
+  createRuleTemplateApi,
+  deleteRuleTemplateApi,
+  getRuleTemplateListApi,
   getRuleTemplateStatsApi,
+  toggleRuleTemplateActiveApi,
+  updateRuleTemplateApi,
 } from '#/api';
+
+import RuleConfigEditor from './components/RuleConfigEditor.vue';
 import {
-  templateQuerySchema,
-  useTemplateColumns,
-  templateFormSchema,
-  getTemplateTypeColor,
-  getTemplateTypeLabel,
   getCategoryColor,
   getCategoryLabel,
+  getTemplateTypeColor,
+  getTemplateTypeLabel,
   RULE_CONFIG_EXAMPLES,
   TEMPLATE_CATEGORY_OPTIONS,
+  templateFormSchema,
+  templateQuerySchema,
+  useTemplateColumns,
 } from './data';
-import RuleConfigEditor from './components/RuleConfigEditor.vue';
-
 
 // 创建图标组件
 const Edit = createIconifyIcon('mdi:pencil');
@@ -50,7 +51,7 @@ const Delete = createIconifyIcon('mdi:delete');
 const Eye = createIconifyIcon('mdi:eye');
 
 // 编辑状态
-const editingTemplateId = ref<number | null>(null);
+const editingTemplateId = ref<null | number>(null);
 
 // 开关加载状态
 const switchLoadingMap = ref<Map<number, boolean>>(new Map());
@@ -58,14 +59,12 @@ const switchLoadingMap = ref<Map<number, boolean>>(new Map());
 // 统计信息
 const statsData = ref<any>(null);
 
-
-
 // 查询表单配置
 const queryFormOptions: VbenFormProps = {
   collapsed: true,
   showCollapseButton: true,
   submitButtonOptions: {
-    content: $t('page.form.query'),
+    content: $t('common.search'),
   },
   schema: templateQuerySchema,
 };
@@ -118,7 +117,7 @@ const gridOptions: VxeTableGridOptions = {
 
 const [Grid, gridApi] = useVbenVxeGrid({
   formOptions: queryFormOptions,
-  gridOptions
+  gridOptions,
 });
 
 // 编辑表单配置
@@ -172,7 +171,7 @@ const [EditModal, editModalApi] = useVbenModal({
       let ruleConfig;
       try {
         ruleConfig = JSON.parse(ruleConfigValue.value || '{}');
-      } catch (e) {
+      } catch {
         message.error('规则配置格式错误，请输入有效的JSON');
         return;
       }
@@ -202,7 +201,7 @@ const [EditModal, editModalApi] = useVbenModal({
 
       await editModalApi.close();
       onRefresh();
-    } catch (error) {
+    } catch {
       message.error(editingTemplateId.value ? '更新失败' : '创建失败');
     } finally {
       editModalApi.unlock();
@@ -292,16 +291,16 @@ async function handleStatusChange(row: any, checked: boolean) {
 // 操作处理
 function onActionClick({ code, row }: OnActionClickParams) {
   switch (code) {
-    case 'view': {
-      viewTemplate(row);
+    case 'delete': {
+      deleteTemplate(row);
       break;
     }
     case 'edit': {
       editTemplate(row);
       break;
     }
-    case 'delete': {
-      deleteTemplate(row);
+    case 'view': {
+      viewTemplate(row);
       break;
     }
   }
@@ -309,7 +308,10 @@ function onActionClick({ code, row }: OnActionClickParams) {
 
 // 查看模板
 function viewTemplate(template: any) {
-  const configContent = renderRuleConfig(template.template_type, template.rule_config);
+  const configContent = renderRuleConfig(
+    template.template_type,
+    template.rule_config,
+  );
 
   Modal.info({
     title: `查看模板: ${template.template_name}`,
@@ -317,11 +319,19 @@ function viewTemplate(template: any) {
       h('div', { class: 'grid grid-cols-2 gap-4' }, [
         h('div', [
           h('span', { class: 'font-medium text-gray-600' }, '类型: '),
-          h('span', { class: 'text-blue-600' }, getTemplateTypeLabel(template.template_type)),
+          h(
+            'span',
+            { class: 'text-blue-600' },
+            getTemplateTypeLabel(template.template_type),
+          ),
         ]),
         h('div', [
           h('span', { class: 'font-medium text-gray-600' }, '分类: '),
-          h('span', { class: 'text-green-600' }, template.category ? getCategoryLabel(template.category) : '无'),
+          h(
+            'span',
+            { class: 'text-green-600' },
+            template.category ? getCategoryLabel(template.category) : '无',
+          ),
         ]),
       ]),
       h('div', [
@@ -340,16 +350,24 @@ function viewTemplate(template: any) {
 // 渲染规则配置
 function renderRuleConfig(templateType: string, ruleConfig: any) {
   switch (templateType) {
-    case 'exclusion':
-      return renderExclusionConfig(ruleConfig);
-    case 'rename':
-      return renderRenameConfig(ruleConfig);
-    case 'custom':
+    case 'custom': {
       return renderCustomConfig(ruleConfig);
-    default:
-      return h('pre', {
-        class: 'bg-gray-50 p-3 rounded border text-sm max-h-60 overflow-auto'
-      }, JSON.stringify(ruleConfig, null, 2));
+    }
+    case 'exclusion': {
+      return renderExclusionConfig(ruleConfig);
+    }
+    case 'rename': {
+      return renderRenameConfig(ruleConfig);
+    }
+    default: {
+      return h(
+        'pre',
+        {
+          class: 'bg-gray-50 p-3 rounded border text-sm max-h-60 overflow-auto',
+        },
+        JSON.stringify(ruleConfig, null, 2),
+      );
+    }
   }
 }
 
@@ -365,36 +383,127 @@ function renderExclusionConfig(config: any) {
 
   return h('div', { class: 'space-y-3' }, [
     h('div', [
-      h('div', { class: 'font-medium text-sm text-gray-700 mb-2' }, '规则类型:'),
-      h('span', { class: 'bg-blue-100 text-blue-800 px-2 py-1 rounded text-xs' }, type || '未指定'),
+      h(
+        'div',
+        { class: 'font-medium text-sm text-gray-700 mb-2' },
+        '规则类型:',
+      ),
+      h(
+        'span',
+        { class: 'bg-blue-100 text-blue-800 px-2 py-1 rounded text-xs' },
+        type || '未指定',
+      ),
     ]),
-    ...(rules.length > 0 ? [h('div', [
-      h('div', { class: 'font-medium text-sm text-gray-700 mb-2' }, '排除规则:'),
-      h('div', { class: 'space-y-1' }, rules.map((rule: any) =>
-        h('div', { class: 'bg-red-50 px-2 py-1 rounded text-sm border-l-2 border-red-200' }, [
-          h('span', { class: 'font-medium' }, `模式: ${rule.pattern}`),
-          h('span', { class: 'text-gray-600 ml-2' }, `目标: ${rule.target}`),
-          h('span', { class: 'text-gray-600 ml-2' }, `类型: ${rule.item_type}`),
-          h('span', { class: 'text-gray-600 ml-2' }, `匹配: ${rule.mode}`),
-        ])
-      )),
-    ])] : []),
-    ...(excludeDirs.length > 0 ? [h('div', [
-      h('div', { class: 'font-medium text-sm text-gray-700 mb-2' }, '排除目录:'),
-      h('div', { class: 'flex flex-wrap gap-1' }, excludeDirs.map((dir: string) =>
-        h('span', { class: 'bg-orange-100 text-orange-800 px-2 py-1 rounded text-xs' }, dir)
-      )),
-    ])] : []),
-    ...(maxSize ? [h('div', [
-      h('div', { class: 'font-medium text-sm text-gray-700 mb-2' }, '文件大小限制:'),
-      h('span', { class: 'bg-purple-100 text-purple-800 px-2 py-1 rounded text-xs' }, `${maxSize}${sizeUnit || ''}`),
-    ])] : []),
-    ...(typeof ignoreCase === 'boolean' ? [h('div', [
-      h('div', { class: 'font-medium text-sm text-gray-700 mb-2' }, '忽略大小写:'),
-      h('span', {
-        class: ignoreCase ? 'bg-green-100 text-green-800 px-2 py-1 rounded text-xs' : 'bg-gray-100 text-gray-800 px-2 py-1 rounded text-xs'
-      }, ignoreCase ? '是' : '否'),
-    ])] : []),
+    ...(rules.length > 0
+      ? [
+          h('div', [
+            h(
+              'div',
+              { class: 'font-medium text-sm text-gray-700 mb-2' },
+              '排除规则:',
+            ),
+            h(
+              'div',
+              { class: 'space-y-1' },
+              rules.map((rule: any) =>
+                h(
+                  'div',
+                  {
+                    class:
+                      'bg-red-50 px-2 py-1 rounded text-sm border-l-2 border-red-200',
+                  },
+                  [
+                    h(
+                      'span',
+                      { class: 'font-medium' },
+                      `模式: ${rule.pattern}`,
+                    ),
+                    h(
+                      'span',
+                      { class: 'text-gray-600 ml-2' },
+                      `目标: ${rule.target}`,
+                    ),
+                    h(
+                      'span',
+                      { class: 'text-gray-600 ml-2' },
+                      `类型: ${rule.item_type}`,
+                    ),
+                    h(
+                      'span',
+                      { class: 'text-gray-600 ml-2' },
+                      `匹配: ${rule.mode}`,
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ]),
+        ]
+      : []),
+    ...(excludeDirs.length > 0
+      ? [
+          h('div', [
+            h(
+              'div',
+              { class: 'font-medium text-sm text-gray-700 mb-2' },
+              '排除目录:',
+            ),
+            h(
+              'div',
+              { class: 'flex flex-wrap gap-1' },
+              excludeDirs.map((dir: string) =>
+                h(
+                  'span',
+                  {
+                    class:
+                      'bg-orange-100 text-orange-800 px-2 py-1 rounded text-xs',
+                  },
+                  dir,
+                ),
+              ),
+            ),
+          ]),
+        ]
+      : []),
+    ...(maxSize
+      ? [
+          h('div', [
+            h(
+              'div',
+              { class: 'font-medium text-sm text-gray-700 mb-2' },
+              '文件大小限制:',
+            ),
+            h(
+              'span',
+              {
+                class:
+                  'bg-purple-100 text-purple-800 px-2 py-1 rounded text-xs',
+              },
+              `${maxSize}${sizeUnit || ''}`,
+            ),
+          ]),
+        ]
+      : []),
+    ...(typeof ignoreCase === 'boolean'
+      ? [
+          h('div', [
+            h(
+              'div',
+              { class: 'font-medium text-sm text-gray-700 mb-2' },
+              '忽略大小写:',
+            ),
+            h(
+              'span',
+              {
+                class: ignoreCase
+                  ? 'bg-green-100 text-green-800 px-2 py-1 rounded text-xs'
+                  : 'bg-gray-100 text-gray-800 px-2 py-1 rounded text-xs',
+              },
+              ignoreCase ? '是' : '否',
+            ),
+          ]),
+        ]
+      : []),
   ]);
 }
 
@@ -411,52 +520,161 @@ function renderRenameConfig(config: any) {
 
   return h('div', { class: 'space-y-3' }, [
     h('div', [
-      h('div', { class: 'font-medium text-sm text-gray-700 mb-2' }, '规则类型:'),
-      h('span', { class: 'bg-blue-100 text-blue-800 px-2 py-1 rounded text-xs' }, type || '未指定'),
+      h(
+        'div',
+        { class: 'font-medium text-sm text-gray-700 mb-2' },
+        '规则类型:',
+      ),
+      h(
+        'span',
+        { class: 'bg-blue-100 text-blue-800 px-2 py-1 rounded text-xs' },
+        type || '未指定',
+      ),
     ]),
-    ...(rules.length > 0 ? [h('div', [
-      h('div', { class: 'font-medium text-sm text-gray-700 mb-2' }, '重命名规则:'),
-      h('div', { class: 'space-y-1' }, rules.map((rule: any) =>
-        h('div', { class: 'bg-yellow-50 px-2 py-1 rounded text-sm border-l-2 border-yellow-200' }, [
-          h('span', { class: 'font-medium' }, `正则: ${rule.match_regex}`),
-          h('span', { class: 'text-gray-600 ml-2' }, `替换: ${rule.replace_string}`),
-          h('span', { class: 'text-gray-600 ml-2' }, `作用域: ${rule.target_scope}`),
-          h('span', { class: 'text-gray-600 ml-2' }, `大小写敏感: ${rule.case_sensitive ? '是' : '否'}`),
-        ])
-      )),
-    ])] : []),
-    ...(format ? [h('div', [
-      h('div', { class: 'font-medium text-sm text-gray-700 mb-2' }, '格式模板:'),
-      h('code', { class: 'bg-yellow-50 px-2 py-1 rounded text-sm border' }, format),
-    ])] : []),
-    ...(find && replace !== undefined ? [h('div', [
-      h('div', { class: 'font-medium text-sm text-gray-700 mb-2' }, '字符替换:'),
-      h('div', { class: 'bg-yellow-50 p-2 rounded border text-sm' }, [
-        h('div', [
-          h('span', { class: 'text-gray-600' }, '查找: '),
-          h('code', { class: 'bg-gray-100 px-1 rounded' }, find),
-        ]),
-        h('div', { class: 'mt-1' }, [
-          h('span', { class: 'text-gray-600' }, '替换: '),
-          h('code', { class: 'bg-gray-100 px-1 rounded' }, replace),
-        ]),
-      ]),
-    ])] : []),
-    ...(caseType ? [h('div', [
-      h('div', { class: 'font-medium text-sm text-gray-700 mb-2' }, '大小写转换:'),
-      h('span', { class: 'bg-green-100 text-green-800 px-2 py-1 rounded text-xs' },
-        caseType === 'lower' ? '转为小写' : caseType === 'upper' ? '转为大写' : caseType),
-    ])] : []),
-    ...(timezone ? [h('div', [
-      h('div', { class: 'font-medium text-sm text-gray-700 mb-2' }, '时区:'),
-      h('span', { class: 'bg-purple-100 text-purple-800 px-2 py-1 rounded text-xs' }, timezone),
-    ])] : []),
-    ...(typeof preserveExtension === 'boolean' ? [h('div', [
-      h('div', { class: 'font-medium text-sm text-gray-700 mb-2' }, '保留扩展名:'),
-      h('span', {
-        class: preserveExtension ? 'bg-green-100 text-green-800 px-2 py-1 rounded text-xs' : 'bg-gray-100 text-gray-800 px-2 py-1 rounded text-xs'
-      }, preserveExtension ? '是' : '否'),
-    ])] : []),
+    ...(rules.length > 0
+      ? [
+          h('div', [
+            h(
+              'div',
+              { class: 'font-medium text-sm text-gray-700 mb-2' },
+              '重命名规则:',
+            ),
+            h(
+              'div',
+              { class: 'space-y-1' },
+              rules.map((rule: any) =>
+                h(
+                  'div',
+                  {
+                    class:
+                      'bg-yellow-50 px-2 py-1 rounded text-sm border-l-2 border-yellow-200',
+                  },
+                  [
+                    h(
+                      'span',
+                      { class: 'font-medium' },
+                      `正则: ${rule.match_regex}`,
+                    ),
+                    h(
+                      'span',
+                      { class: 'text-gray-600 ml-2' },
+                      `替换: ${rule.replace_string}`,
+                    ),
+                    h(
+                      'span',
+                      { class: 'text-gray-600 ml-2' },
+                      `作用域: ${rule.target_scope}`,
+                    ),
+                    h(
+                      'span',
+                      { class: 'text-gray-600 ml-2' },
+                      `大小写敏感: ${rule.case_sensitive ? '是' : '否'}`,
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ]),
+        ]
+      : []),
+    ...(format
+      ? [
+          h('div', [
+            h(
+              'div',
+              { class: 'font-medium text-sm text-gray-700 mb-2' },
+              '格式模板:',
+            ),
+            h(
+              'code',
+              { class: 'bg-yellow-50 px-2 py-1 rounded text-sm border' },
+              format,
+            ),
+          ]),
+        ]
+      : []),
+    ...(find && replace !== undefined
+      ? [
+          h('div', [
+            h(
+              'div',
+              { class: 'font-medium text-sm text-gray-700 mb-2' },
+              '字符替换:',
+            ),
+            h('div', { class: 'bg-yellow-50 p-2 rounded border text-sm' }, [
+              h('div', [
+                h('span', { class: 'text-gray-600' }, '查找: '),
+                h('code', { class: 'bg-gray-100 px-1 rounded' }, find),
+              ]),
+              h('div', { class: 'mt-1' }, [
+                h('span', { class: 'text-gray-600' }, '替换: '),
+                h('code', { class: 'bg-gray-100 px-1 rounded' }, replace),
+              ]),
+            ]),
+          ]),
+        ]
+      : []),
+    ...(caseType
+      ? [
+          h('div', [
+            h(
+              'div',
+              { class: 'font-medium text-sm text-gray-700 mb-2' },
+              '大小写转换:',
+            ),
+            h(
+              'span',
+              {
+                class: 'bg-green-100 text-green-800 px-2 py-1 rounded text-xs',
+              },
+              caseType === 'lower'
+                ? '转为小写'
+                : caseType === 'upper'
+                  ? '转为大写'
+                  : caseType,
+            ),
+          ]),
+        ]
+      : []),
+    ...(timezone
+      ? [
+          h('div', [
+            h(
+              'div',
+              { class: 'font-medium text-sm text-gray-700 mb-2' },
+              '时区:',
+            ),
+            h(
+              'span',
+              {
+                class:
+                  'bg-purple-100 text-purple-800 px-2 py-1 rounded text-xs',
+              },
+              timezone,
+            ),
+          ]),
+        ]
+      : []),
+    ...(typeof preserveExtension === 'boolean'
+      ? [
+          h('div', [
+            h(
+              'div',
+              { class: 'font-medium text-sm text-gray-700 mb-2' },
+              '保留扩展名:',
+            ),
+            h(
+              'span',
+              {
+                class: preserveExtension
+                  ? 'bg-green-100 text-green-800 px-2 py-1 rounded text-xs'
+                  : 'bg-gray-100 text-gray-800 px-2 py-1 rounded text-xs',
+              },
+              preserveExtension ? '是' : '否',
+            ),
+          ]),
+        ]
+      : []),
   ]);
 }
 
@@ -470,39 +688,119 @@ function renderCustomConfig(config: any) {
 
   return h('div', { class: 'space-y-3' }, [
     h('div', [
-      h('div', { class: 'font-medium text-sm text-gray-700 mb-2' }, '规则类型:'),
-      h('span', { class: 'bg-blue-100 text-blue-800 px-2 py-1 rounded text-xs' }, type || '未指定'),
+      h(
+        'div',
+        { class: 'font-medium text-sm text-gray-700 mb-2' },
+        '规则类型:',
+      ),
+      h(
+        'span',
+        { class: 'bg-blue-100 text-blue-800 px-2 py-1 rounded text-xs' },
+        type || '未指定',
+      ),
     ]),
-    ...(action ? [h('div', [
-      h('div', { class: 'font-medium text-sm text-gray-700 mb-2' }, '执行动作:'),
-      h('span', { class: 'bg-green-100 text-green-800 px-2 py-1 rounded text-xs' }, action),
-    ])] : []),
-    ...(checkMethod ? [h('div', [
-      h('div', { class: 'font-medium text-sm text-gray-700 mb-2' }, '检查方法:'),
-      h('span', { class: 'bg-purple-100 text-purple-800 px-2 py-1 rounded text-xs' }, checkMethod),
-    ])] : []),
-    ...(duplicateSuffix ? [h('div', [
-      h('div', { class: 'font-medium text-sm text-gray-700 mb-2' }, '重复文件后缀:'),
-      h('code', { class: 'bg-yellow-50 px-2 py-1 rounded text-sm border' }, duplicateSuffix),
-    ])] : []),
-    ...(rules.length > 0 ? [h('div', [
-      h('div', { class: 'font-medium text-sm text-gray-700 mb-2' }, '分类规则:'),
-      h('div', { class: 'space-y-2' }, rules.map((rule: any, index: number) =>
-        h('div', { class: 'bg-indigo-50 p-3 rounded border' }, [
-          h('div', { class: 'text-sm font-medium text-gray-700' }, `规则 ${index + 1}`),
-          h('div', { class: 'mt-1 text-sm' }, [
-            h('span', { class: 'text-gray-600' }, '文件扩展名: '),
-            h('div', { class: 'mt-1 flex flex-wrap gap-1' }, (rule.extensions || []).map((ext: string) =>
-              h('span', { class: 'bg-blue-100 text-blue-800 px-1 py-0.5 rounded text-xs' }, ext)
-            )),
+    ...(action
+      ? [
+          h('div', [
+            h(
+              'div',
+              { class: 'font-medium text-sm text-gray-700 mb-2' },
+              '执行动作:',
+            ),
+            h(
+              'span',
+              {
+                class: 'bg-green-100 text-green-800 px-2 py-1 rounded text-xs',
+              },
+              action,
+            ),
           ]),
-          h('div', { class: 'mt-2 text-sm' }, [
-            h('span', { class: 'text-gray-600' }, '目标文件夹: '),
-            h('code', { class: 'bg-gray-100 px-1 rounded' }, rule.target_folder || ''),
+        ]
+      : []),
+    ...(checkMethod
+      ? [
+          h('div', [
+            h(
+              'div',
+              { class: 'font-medium text-sm text-gray-700 mb-2' },
+              '检查方法:',
+            ),
+            h(
+              'span',
+              {
+                class:
+                  'bg-purple-100 text-purple-800 px-2 py-1 rounded text-xs',
+              },
+              checkMethod,
+            ),
           ]),
-        ])
-      )),
-    ])] : []),
+        ]
+      : []),
+    ...(duplicateSuffix
+      ? [
+          h('div', [
+            h(
+              'div',
+              { class: 'font-medium text-sm text-gray-700 mb-2' },
+              '重复文件后缀:',
+            ),
+            h(
+              'code',
+              { class: 'bg-yellow-50 px-2 py-1 rounded text-sm border' },
+              duplicateSuffix,
+            ),
+          ]),
+        ]
+      : []),
+    ...(rules.length > 0
+      ? [
+          h('div', [
+            h(
+              'div',
+              { class: 'font-medium text-sm text-gray-700 mb-2' },
+              '分类规则:',
+            ),
+            h(
+              'div',
+              { class: 'space-y-2' },
+              rules.map((rule: any, index: number) =>
+                h('div', { class: 'bg-indigo-50 p-3 rounded border' }, [
+                  h(
+                    'div',
+                    { class: 'text-sm font-medium text-gray-700' },
+                    `规则 ${index + 1}`,
+                  ),
+                  h('div', { class: 'mt-1 text-sm' }, [
+                    h('span', { class: 'text-gray-600' }, '文件扩展名: '),
+                    h(
+                      'div',
+                      { class: 'mt-1 flex flex-wrap gap-1' },
+                      (rule.extensions || []).map((ext: string) =>
+                        h(
+                          'span',
+                          {
+                            class:
+                              'bg-blue-100 text-blue-800 px-1 py-0.5 rounded text-xs',
+                          },
+                          ext,
+                        ),
+                      ),
+                    ),
+                  ]),
+                  h('div', { class: 'mt-2 text-sm' }, [
+                    h('span', { class: 'text-gray-600' }, '目标文件夹: '),
+                    h(
+                      'code',
+                      { class: 'bg-gray-100 px-1 rounded' },
+                      rule.target_folder || '',
+                    ),
+                  ]),
+                ]),
+              ),
+            ),
+          ]),
+        ]
+      : []),
   ]);
 }
 
@@ -511,8 +809,6 @@ function editTemplate(template: any) {
   editModalApi.setData(template);
   editModalApi.open();
 }
-
-
 
 // 删除模板
 async function deleteTemplate(template: any) {
@@ -548,14 +844,16 @@ async function deleteTemplate(template: any) {
 
 // 批量删除
 async function batchDeleteTemplates() {
-  const selectedRows = (gridApi as any).getCheckboxRecords() as RuleTemplateDetail[];
+  const selectedRows = (
+    gridApi as any
+  ).getCheckboxRecords() as RuleTemplateDetail[];
   if (selectedRows.length === 0) {
     message.warning('请选择要删除的模板');
     return;
   }
 
   // 检查是否包含系统模板
-  const systemTemplates = selectedRows.filter(row => row.is_system);
+  const systemTemplates = selectedRows.filter((row) => row.is_system);
   if (systemTemplates.length > 0) {
     message.warning('选中的模板包含系统模板，系统模板不允许删除');
     return;
@@ -575,7 +873,7 @@ async function batchDeleteTemplates() {
 
   if (confirmed) {
     try {
-      const ids = selectedRows.map(row => row.id);
+      const ids = selectedRows.map((row) => row.id);
       await batchDeleteRuleTemplatesApi(ids);
       message.success(`成功删除 ${selectedRows.length} 个模板`);
       onRefresh();
@@ -609,7 +907,8 @@ async function loadStats() {
 
 // 插入示例配置
 function insertExampleConfig(type: string) {
-  const example = RULE_CONFIG_EXAMPLES[type as keyof typeof RULE_CONFIG_EXAMPLES];
+  const example =
+    RULE_CONFIG_EXAMPLES[type as keyof typeof RULE_CONFIG_EXAMPLES];
   if (example) {
     const configStr = JSON.stringify(example.config, null, 2);
     formApi.setFieldValue('rule_config_json', configStr);
@@ -624,26 +923,32 @@ loadStats();
 <template>
   <Page auto-content-height>
     <!-- 统计卡片 -->
-    <div v-if="statsData" class="mb-4 grid grid-cols-1 md:grid-cols-4 gap-4">
-      <div class="bg-white p-4 rounded-lg shadow">
-        <div class="text-2xl font-bold text-blue-600">{{ statsData.total_count }}</div>
+    <div v-if="statsData" class="mb-4 grid grid-cols-1 gap-4 md:grid-cols-4">
+      <div class="rounded-lg bg-white p-4 shadow">
+        <div class="text-2xl font-bold text-blue-600">
+          {{ statsData.total_count }}
+        </div>
         <div class="text-gray-600">总模板数</div>
       </div>
-      <div class="bg-white p-4 rounded-lg shadow">
-        <div class="text-2xl font-bold text-green-600">{{ statsData.active_count }}</div>
+      <div class="rounded-lg bg-white p-4 shadow">
+        <div class="text-2xl font-bold text-green-600">
+          {{ statsData.active_count }}
+        </div>
         <div class="text-gray-600">启用模板</div>
       </div>
-      <div class="bg-white p-4 rounded-lg shadow">
-        <div class="text-2xl font-bold text-purple-600">{{ statsData.system_count }}</div>
+      <div class="rounded-lg bg-white p-4 shadow">
+        <div class="text-2xl font-bold text-purple-600">
+          {{ statsData.system_count }}
+        </div>
         <div class="text-gray-600">系统模板</div>
       </div>
-      <div class="bg-white p-4 rounded-lg shadow">
-        <div class="text-2xl font-bold text-orange-600">{{ statsData.user_count }}</div>
+      <div class="rounded-lg bg-white p-4 shadow">
+        <div class="text-2xl font-bold text-orange-600">
+          {{ statsData.user_count }}
+        </div>
         <div class="text-gray-600">用户模板</div>
       </div>
     </div>
-
-
 
     <Grid>
       <template #toolbar-actions>
@@ -674,7 +979,10 @@ loadStats();
 
       <!-- 标签插槽 -->
       <template #tags="{ row }">
-        <div v-if="row.tags && row.tags.length > 0" class="flex flex-wrap gap-1">
+        <div
+          v-if="row.tags && row.tags.length > 0"
+          class="flex flex-wrap gap-1"
+        >
           <a-tag v-for="tag in row.tags" :key="tag" size="small">
             {{ tag }}
           </a-tag>
@@ -702,17 +1010,30 @@ loadStats();
       <template #action="{ row }">
         <div class="flex gap-2">
           <a-tooltip title="查看">
-            <a-button type="text" size="small" @click="onActionClick({ code: 'view', row })">
+            <a-button
+              type="text"
+              size="small"
+              @click="onActionClick({ code: 'view', row })"
+            >
               <Eye class="size-4" />
             </a-button>
           </a-tooltip>
           <a-tooltip title="编辑">
-            <a-button type="text" size="small" @click="onActionClick({ code: 'edit', row })">
+            <a-button
+              type="text"
+              size="small"
+              @click="onActionClick({ code: 'edit', row })"
+            >
               <Edit class="size-4" />
             </a-button>
           </a-tooltip>
           <a-tooltip v-if="!row.is_system" title="删除">
-            <a-button type="text" danger size="small" @click="onActionClick({ code: 'delete', row })">
+            <a-button
+              type="text"
+              danger
+              size="small"
+              @click="onActionClick({ code: 'delete', row })"
+            >
               <Delete class="size-4" />
             </a-button>
           </a-tooltip>
@@ -720,12 +1041,14 @@ loadStats();
       </template>
     </Grid>
 
-        <!-- 编辑模态框 -->
+    <!-- 编辑模态框 -->
     <EditModal :title="editingTemplateId ? '编辑规则模板' : '新增规则模板'">
       <div class="space-y-6">
         <!-- 第一行：模板名称 -->
         <div>
-          <label class="block text-sm font-medium text-gray-700 mb-2">模板名称</label>
+          <label class="mb-2 block text-sm font-medium text-gray-700"
+            >模板名称</label
+          >
           <a-input
             v-model:value="formData.template_name"
             placeholder="请输入模板名称"
@@ -736,7 +1059,9 @@ loadStats();
         <!-- 第二行：模板类型 + 分类 -->
         <div class="grid grid-cols-2 gap-4">
           <div>
-            <label class="block text-sm font-medium text-gray-700 mb-2">模板类型</label>
+            <label class="mb-2 block text-sm font-medium text-gray-700"
+              >模板类型</label
+            >
             <a-select
               v-model:value="formData.template_type"
               placeholder="请选择模板类型"
@@ -748,9 +1073,11 @@ loadStats();
               <a-select-option value="custom">自定义规则</a-select-option>
             </a-select>
           </div>
-                    <div>
-            <label class="block text-sm font-medium text-gray-700 mb-2">分类</label>
-                                                <a-select
+          <div>
+            <label class="mb-2 block text-sm font-medium text-gray-700"
+              >分类</label
+            >
+            <a-select
               v-model:value="formData.category"
               placeholder="请选择分类"
               class="w-full"
@@ -769,7 +1096,9 @@ loadStats();
 
         <!-- 第三行：描述 -->
         <div>
-          <label class="block text-sm font-medium text-gray-700 mb-2">描述</label>
+          <label class="mb-2 block text-sm font-medium text-gray-700"
+            >描述</label
+          >
           <a-textarea
             v-model:value="formData.description"
             placeholder="请输入模板描述"
@@ -781,7 +1110,9 @@ loadStats();
         <!-- 第四行：标签 + 状态 -->
         <div class="grid grid-cols-2 gap-4">
           <div>
-            <label class="block text-sm font-medium text-gray-700 mb-2">标签</label>
+            <label class="mb-2 block text-sm font-medium text-gray-700"
+              >标签</label
+            >
             <a-select
               v-model:value="formData.tags"
               mode="tags"
@@ -790,7 +1121,9 @@ loadStats();
             />
           </div>
           <div>
-            <label class="block text-sm font-medium text-gray-700 mb-2">状态</label>
+            <label class="mb-2 block text-sm font-medium text-gray-700"
+              >状态</label
+            >
             <a-switch
               v-model:checked="formData.is_active"
               checked-children="启用"
@@ -801,7 +1134,9 @@ loadStats();
 
         <!-- 规则配置 -->
         <div>
-          <label class="block text-sm font-medium text-gray-700 mb-2">规则配置</label>
+          <label class="mb-2 block text-sm font-medium text-gray-700"
+            >规则配置</label
+          >
           <RuleConfigEditor
             v-model="ruleConfigValue"
             :template-type="currentTemplateType"

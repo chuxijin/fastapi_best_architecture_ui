@@ -1,17 +1,18 @@
 import type { TableColumnsType } from 'ant-design-vue';
+
 import type { VbenFormSchema } from '#/adapter/form';
 import type { OnActionClickFn, VxeGridProps } from '#/adapter/vxe-table';
+import type { CategoryTreeNode } from '#/api';
 
 import { $t } from '@vben/locales';
+
 import {
-  DRIVE_TYPE_TAG_OPTIONS,
-  DRIVE_TYPE_LABEL_MAP,
   DRIVE_TYPE_COLOR_MAP,
+  DRIVE_TYPE_LABEL_MAP,
+  DRIVE_TYPE_OPTIONS,
+  DRIVE_TYPE_TAG_OPTIONS,
   getCategoryTreeApi,
-  type CategoryTreeNode
 } from '#/api';
-
-
 
 // 资源状态选项
 export const RESOURCE_STATUS_OPTIONS = [
@@ -201,82 +202,81 @@ export const DEFAULT_STATISTICS = {
 };
 
 // 动态查询表单配置函数
-export function createResourceQuerySchema(categoryOptions?: { domainOptions: any[]; resourceTypeOptions: any[] }): VbenFormSchema[] {
+export function createResourceQuerySchema(categoryOptions?: {
+  domainOptions: any[];
+  resourceTypeOptions: any[];
+}): VbenFormSchema[] {
   const domainOptions = categoryOptions?.domainOptions || [];
   const resourceTypeOptions = categoryOptions?.resourceTypeOptions || [];
 
   return [
-  {
-    component: 'Input',
-    componentProps: {
-      placeholder: '请输入关键词搜索',
+    {
+      component: 'Input',
+      componentProps: {
+        placeholder: '请输入关键词搜索',
+      },
+      fieldName: 'keyword',
+      label: '关键词',
     },
-    fieldName: 'keyword',
-    label: '关键词',
-  },
-  {
-    component: 'Select',
-    componentProps: {
-      options: domainOptions,
-      placeholder: '请选择领域',
-      allowClear: true,
+    {
+      component: 'Select',
+      componentProps: {
+        options: domainOptions,
+        placeholder: '请选择领域',
+        allowClear: true,
+      },
+      fieldName: 'domain',
+      label: '领域',
     },
-    fieldName: 'domain',
-    label: '领域',
-  },
-  {
-    component: 'Select',
-    componentProps: {
-      placeholder: '请选择科目',
-      allowClear: true,
-      options: [],
+    {
+      component: 'Select',
+      componentProps: {
+        placeholder: '请选择科目',
+        allowClear: true,
+        options: [],
+      },
+      fieldName: 'subject',
+      label: '科目',
     },
-    fieldName: 'subject',
-    label: '科目',
-  },
-  {
-    component: 'Select',
-    componentProps: {
-      options: resourceTypeOptions,
-      placeholder: '请选择资源类型',
+    {
+      component: 'Select',
+      componentProps: {
+        options: resourceTypeOptions,
+        placeholder: '请选择资源类型',
+      },
+      fieldName: 'resource_type',
+      label: '资源类型',
     },
-    fieldName: 'resource_type',
-    label: '资源类型',
-  },
-  {
-    component: 'Select',
-    componentProps: {
-      options: [
-        { label: '百度网盘', value: 'BaiduDrive' },
-        { label: '夸克网盘', value: 'QuarkDrive' },
-        { label: 'Alist网盘', value: 'AlistDrive' },
-      ],
-      placeholder: '请选择网盘类型',
-      allowClear: true,
+    {
+      component: 'Select',
+      componentProps: {
+        options: DRIVE_TYPE_OPTIONS,
+        placeholder: '请选择网盘类型',
+        allowClear: true,
+      },
+      fieldName: 'url_type',
+      label: '网盘类型',
     },
-    fieldName: 'url_type',
-    label: '网盘类型',
-  },
-  {
-    component: 'Select',
-    componentProps: {
-      options: RESOURCE_STATUS_OPTIONS,
-      placeholder: '请选择状态',
-      allowClear: true,
+    {
+      component: 'Select',
+      componentProps: {
+        options: RESOURCE_STATUS_OPTIONS,
+        placeholder: '请选择状态',
+        allowClear: true,
+      },
+      fieldName: 'status',
+      label: '状态',
     },
-    fieldName: 'status',
-    label: '状态',
-  },
-  {
-    component: 'Select',
-    componentProps: {
-      options: AUDIT_STATUS_OPTIONS,
-      placeholder: '请选择审核状态',
-      allowClear: true,
+    {
+      component: 'Select',
+      componentProps: {
+        options: AUDIT_STATUS_OPTIONS,
+        placeholder: '请选择审核状态',
+        allowClear: true,
+      },
+      fieldName: 'audit_status',
+      label: '审核状态',
     },
-    fieldName: 'audit_status',
-    label: '审核状态',
-  },
   ];
 }
 
@@ -285,11 +285,15 @@ export const resourceQuerySchema = createResourceQuerySchema();
 
 // 工具函数
 export const getUrlTypeLabel = (type: string) => {
-  return DRIVE_TYPE_LABEL_MAP[type as keyof typeof DRIVE_TYPE_LABEL_MAP] || type;
+  return (
+    DRIVE_TYPE_LABEL_MAP[type as keyof typeof DRIVE_TYPE_LABEL_MAP] || type
+  );
 };
 
 export const getUrlTypeColor = (type: string) => {
-  return DRIVE_TYPE_COLOR_MAP[type as keyof typeof DRIVE_TYPE_COLOR_MAP] || 'default';
+  return (
+    DRIVE_TYPE_COLOR_MAP[type as keyof typeof DRIVE_TYPE_COLOR_MAP] || 'default'
+  );
 };
 
 export const getStatusLabel = (status: number) => {
@@ -301,19 +305,31 @@ export const getStatusColor = (status: number) => {
 };
 
 export const getAuditStatusLabel = (status: number) => {
-  return AUDIT_STATUS_LABEL_MAP[status as keyof typeof AUDIT_STATUS_LABEL_MAP] || '未知';
+  return (
+    AUDIT_STATUS_LABEL_MAP[status as keyof typeof AUDIT_STATUS_LABEL_MAP] ||
+    '未知'
+  );
 };
 
 export const getAuditStatusColor = (status: number) => {
-  return AUDIT_STATUS_COLOR_MAP[status as keyof typeof AUDIT_STATUS_COLOR_MAP] || 'default';
+  return (
+    AUDIT_STATUS_COLOR_MAP[status as keyof typeof AUDIT_STATUS_COLOR_MAP] ||
+    'default'
+  );
 };
 
 export const getExpiredTypeLabel = (type: number) => {
-  return EXPIRED_TYPE_LABEL_MAP[type as keyof typeof EXPIRED_TYPE_LABEL_MAP] || '未知';
+  return (
+    EXPIRED_TYPE_LABEL_MAP[type as keyof typeof EXPIRED_TYPE_LABEL_MAP] ||
+    '未知'
+  );
 };
 
 export const getExpiredTypeColor = (type: number) => {
-  return EXPIRED_TYPE_COLOR_MAP[type as keyof typeof EXPIRED_TYPE_COLOR_MAP] || 'default';
+  return (
+    EXPIRED_TYPE_COLOR_MAP[type as keyof typeof EXPIRED_TYPE_COLOR_MAP] ||
+    'default'
+  );
 };
 
 // 格式化文件大小
@@ -454,18 +470,20 @@ export function useResourceColumns(
       minWidth: 160,
       align: 'center',
       formatter: ({ row }) => {
-        return row.created_time ? new Date(row.created_time).toLocaleString('zh-CN', {
-          year: 'numeric',
-          month: '2-digit',
-          day: '2-digit',
-          hour: '2-digit',
-          minute: '2-digit',
-        }) : '-';
+        return row.created_time
+          ? new Date(row.created_time).toLocaleString('zh-CN', {
+              year: 'numeric',
+              month: '2-digit',
+              day: '2-digit',
+              hour: '2-digit',
+              minute: '2-digit',
+            })
+          : '-';
       },
     },
     {
       field: 'operation',
-      title: $t('page.table.operation'),
+      title: $t('common.table.operation'),
       align: 'center',
       fixed: 'right',
       width: 200,
@@ -519,20 +537,24 @@ export async function getCategoryOptions() {
   try {
     const categoryResponse = await getCategoryTreeApi();
 
-    // API直接返回数组，不需要.data
-    const categories = categoryResponse.data || categoryResponse || [];
+    // 兼容返回值：优先取数组，否则尝试 .data
+    const categories = Array.isArray(categoryResponse)
+      ? categoryResponse
+      : (categoryResponse as any)?.data || [];
 
     // 扁平化整个分类树
     const flattenedCategories = flattenCategoryTree(categories);
 
     // 提取各类型的选项 - 使用中文名称作为value
     const domainOptions = flattenedCategories
-      .filter(cat => cat.category_type === 'domain' && cat.status === 1)
-      .map(cat => ({ label: cat.name, value: cat.name }));
+      .filter((cat) => cat.category_type === 'domain' && cat.status === 1)
+      .map((cat) => ({ label: cat.name, value: cat.name }));
 
     const resourceTypeOptions = flattenedCategories
-      .filter(cat => cat.category_type === 'resource_type' && cat.status === 1)
-      .map(cat => ({ label: cat.name, value: cat.name }));
+      .filter(
+        (cat) => cat.category_type === 'resource_type' && cat.status === 1,
+      )
+      .map((cat) => ({ label: cat.name, value: cat.name }));
 
     return {
       domainOptions,
@@ -550,10 +572,33 @@ export async function getCategoryOptions() {
 }
 
 // 表单配置函数
-export function createResourceFormSchema(categoryOptions?: { domainOptions: any[]; resourceTypeOptions: any[]; allCategories: CategoryTreeNode[] }): VbenFormSchema[] {
+export function createResourceFormSchema(categoryOptions?: {
+  allCategories: CategoryTreeNode[];
+  domainOptions: any[];
+  resourceTypeOptions: any[];
+}): VbenFormSchema[] {
   const domainOptions = categoryOptions?.domainOptions || [];
   const resourceTypeOptions = categoryOptions?.resourceTypeOptions || [];
   const allCategories = categoryOptions?.allCategories || [];
+
+  // 工具：从本地分类树按领域名称构造科目下拉
+  function buildSubjectOptionsByDomain(
+    categories: CategoryTreeNode[],
+    domainName: string,
+  ): Array<{ label: string; value: string }> {
+    if (!domainName) return [];
+    const domainCategory = categories.find(
+      (cat) => cat.category_type === 'domain' && cat.name === domainName,
+    );
+    if (!domainCategory) return [];
+    const subjects = categories.filter(
+      (cat) =>
+        cat.category_type === 'subject' &&
+        cat.parent_id === domainCategory.id &&
+        cat.status === 1,
+    );
+    return subjects.map((s) => ({ label: s.name, value: s.name }));
+  }
 
   return [
     {
@@ -565,81 +610,19 @@ export function createResourceFormSchema(categoryOptions?: { domainOptions: any[
           // 当领域改变时，清空科目并更新科目选项
           formApi.setFieldValue('subject', '');
 
-          if (value) {
-            try {
-              // 使用传入的分类数据（已经是扁平化的）
-              const categories = allCategories;
+          const options = value
+            ? buildSubjectOptionsByDomain(allCategories, value)
+            : [];
 
-              if (categories.length === 0) {
-                console.warn('分类数据为空，无法更新科目选项');
-                return;
-              }
-
-              // 找到对应的领域分类 - 使用中文名称匹配
-              const domainCategory = categories.find(
-                cat => cat.category_type === 'domain' && cat.name === value
-              );
-
-              if (domainCategory) {
-                // 获取该领域下的科目选项
-                const subjects = categories.filter(
-                  cat => cat.category_type === 'subject' &&
-                         cat.parent_id === domainCategory.id &&
-                         cat.status === 1
-                );
-
-                const subjectOptions = subjects.map(subject => ({
-                  label: subject.name,
-                  value: subject.name,
-                }));
-
-                // 更新科目字段的选项
-                formApi.updateSchema([
-                  {
-                    fieldName: 'subject',
-                    componentProps: {
-                      options: subjectOptions,
-                      placeholder: '请选择科目',
-                    },
-                  },
-                ]);
-              } else {
-                // 清空科目选项
-                formApi.updateSchema([
-                  {
-                    fieldName: 'subject',
-                    componentProps: {
-                      options: [],
-                      placeholder: '暂无科目选项',
-                    },
-                  },
-                ]);
-              }
-            } catch (error) {
-              console.error('获取科目选项失败:', error);
-              // 清空科目选项
-              formApi.updateSchema([
-                {
-                  fieldName: 'subject',
-                  componentProps: {
-                    options: [],
-                    placeholder: '获取科目选项失败',
-                  },
-                },
-              ]);
-            }
-          } else {
-            // 清空科目选项
-            formApi.updateSchema([
-              {
-                fieldName: 'subject',
-                componentProps: {
-                  options: [],
-                  placeholder: '请先选择领域',
-                },
+          formApi.updateSchema([
+            {
+              fieldName: 'subject',
+              componentProps: {
+                options,
+                placeholder: options.length > 0 ? '请选择科目' : '请先选择领域',
               },
-            ]);
-          }
+            },
+          ]);
         },
       },
       fieldName: 'domain',
@@ -687,11 +670,7 @@ export function createResourceFormSchema(categoryOptions?: { domainOptions: any[
     {
       component: 'Select',
       componentProps: {
-        options: [
-          { label: '百度网盘', value: 'BaiduDrive' },
-          { label: '夸克网盘', value: 'QuarkDrive' },
-          { label: 'Alist网盘', value: 'AlistDrive' },
-        ],
+        options: DRIVE_TYPE_OPTIONS,
         placeholder: '请选择网盘类型',
       },
       fieldName: 'url_type',
@@ -744,10 +723,19 @@ export function createResourceFormSchema(categoryOptions?: { domainOptions: any[
       label: '提取码',
     },
     {
-      component: 'Switch',
+      component: 'Select',
+      componentProps: {
+        options: [
+          { label: '无操作', value: 0 },
+          { label: '定时删除', value: 1 },
+          { label: '定时刷新', value: 2 },
+          { label: '定时更新', value: 3 },
+        ],
+        placeholder: '选择临时处理模式',
+      },
       fieldName: 'is_temp_file',
-      label: '是否为临时文件',
-      defaultValue: false,
+      label: '临时处理模式',
+      defaultValue: 0,
     },
     {
       component: 'InputNumber',

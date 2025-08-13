@@ -1,4 +1,5 @@
 import type { VbenFormSchema } from '@vben/common-ui';
+
 import type { VxeGridPropTypes } from '#/adapter/vxe-table';
 
 import { h } from 'vue';
@@ -102,7 +103,9 @@ export const schema: VbenFormSchema[] = [
   },
 ];
 
-export function useColumns(onActionClick: (params: any) => void): VxeGridPropTypes.Columns {
+export function useColumns(
+  onActionClick: (params: any) => void,
+): VxeGridPropTypes.Columns {
   return [
     {
       type: 'checkbox',
@@ -119,9 +122,13 @@ export function useColumns(onActionClick: (params: any) => void): VxeGridPropTyp
       minWidth: 180,
       slots: {
         default: ({ row }) => [
-          h('span', {
-            style: { fontFamily: 'monospace', fontSize: '14px' },
-          }, row.order_no),
+          h(
+            'span',
+            {
+              style: { fontFamily: 'monospace', fontSize: '14px' },
+            },
+            row.order_no,
+          ),
         ],
       },
     },
@@ -171,10 +178,15 @@ export function useColumns(onActionClick: (params: any) => void): VxeGridPropTyp
             1: { text: '已支付', color: 'green' },
             2: { text: '支付失败', color: 'red' },
           };
-          const status = statusMap[row.payment_status as keyof typeof statusMap];
-          return h(Tag, {
-            color: status?.color || 'default',
-          }, () => status?.text || '未知');
+          const status =
+            statusMap[row.payment_status as keyof typeof statusMap];
+          return h(
+            Tag,
+            {
+              color: status?.color || 'default',
+            },
+            () => status?.text || '未知',
+          );
         },
       },
     },
@@ -191,9 +203,13 @@ export function useColumns(onActionClick: (params: any) => void): VxeGridPropTyp
             3: { text: '已取消', color: 'red' },
           };
           const status = statusMap[row.order_status as keyof typeof statusMap];
-          return h(Tag, {
-            color: status?.color || 'default',
-          }, () => status?.text || '未知');
+          return h(
+            Tag,
+            {
+              color: status?.color || 'default',
+            },
+            () => status?.text || '未知',
+          );
         },
       },
     },
@@ -219,13 +235,21 @@ export function useColumns(onActionClick: (params: any) => void): VxeGridPropTyp
       fixed: 'right',
       slots: {
         default: ({ row }: any) => [
-          h('a', {
-            onClick: () => onActionClick({ code: 'edit', row }),
-          }, '编辑'),
-          h('a', {
-            style: { marginLeft: '8px', color: '#ff4d4f' },
-            onClick: () => onActionClick({ code: 'delete', row }),
-          }, '删除'),
+          h(
+            'a',
+            {
+              onClick: () => onActionClick({ code: 'edit', row }),
+            },
+            '编辑',
+          ),
+          h(
+            'a',
+            {
+              style: { marginLeft: '8px', color: '#ff4d4f' },
+              onClick: () => onActionClick({ code: 'delete', row }),
+            },
+            '删除',
+          ),
         ],
       },
     },

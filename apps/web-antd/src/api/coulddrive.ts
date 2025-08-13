@@ -5,16 +5,22 @@ import { requestClient } from './request';
 // ==================== 枚举定义 ====================
 
 // 递归速度枚举
-export type RecursionSpeed = 'normal' | 'slow' | 'fast';
+export type RecursionSpeed = 'fast' | 'normal' | 'slow';
 
 // 同步方法枚举
-export type SyncMethod = 'incremental' | 'full' | 'overwrite';
+export type SyncMethod = 'full' | 'incremental' | 'overwrite';
 
 // 模板类型枚举
-export type TemplateType = 'exclusion' | 'rename' | 'custom';
+export type TemplateType = 'custom' | 'exclusion' | 'rename';
 
 // 模板分类枚举
-export type TemplateCategory = '文件过滤' | '开发工具' | '文件命名' | '备份管理' | '自动分类' | '文件去重';
+export type TemplateCategory =
+  | '备份管理'
+  | '开发工具'
+  | '文件去重'
+  | '文件命名'
+  | '文件过滤'
+  | '自动分类';
 
 // ==================== 常量定义 ====================
 
@@ -34,9 +40,21 @@ export const RECURSION_SPEED_OPTIONS = [
 
 // 同步方法选项（用于前端显示）
 export const SYNC_METHOD_OPTIONS = [
-  { label: '增量同步', value: 'incremental', description: '只添加新文件，不删除目标中已有的文件' },
-  { label: '完全同步', value: 'full', description: '添加新文件，删除目标中多余的文件' },
-  { label: '覆盖同步', value: 'overwrite', description: '删除目标中所有文件，然后添加源中的所有文件' },
+  {
+    label: '增量同步',
+    value: 'incremental',
+    description: '只添加新文件，不删除目标中已有的文件',
+  },
+  {
+    label: '完全同步',
+    value: 'full',
+    description: '添加新文件，删除目标中多余的文件',
+  },
+  {
+    label: '覆盖同步',
+    value: 'overwrite',
+    description: '删除目标中所有文件，然后添加源中的所有文件',
+  },
 ] as const;
 
 // 网盘类型选项
@@ -62,12 +80,16 @@ export const DRIVE_TYPE_COLOR_MAP = {
 
 // 获取网盘类型标签
 export const getDriveTypeLabel = (type: string) => {
-  return DRIVE_TYPE_LABEL_MAP[type as keyof typeof DRIVE_TYPE_LABEL_MAP] || type;
+  return (
+    DRIVE_TYPE_LABEL_MAP[type as keyof typeof DRIVE_TYPE_LABEL_MAP] || type
+  );
 };
 
 // 获取网盘类型颜色
 export const getDriveTypeColor = (type: string) => {
-  return DRIVE_TYPE_COLOR_MAP[type as keyof typeof DRIVE_TYPE_COLOR_MAP] || 'default';
+  return (
+    DRIVE_TYPE_COLOR_MAP[type as keyof typeof DRIVE_TYPE_COLOR_MAP] || 'default'
+  );
 };
 
 // 网盘类型标签选项（用于表格渲染）
@@ -94,7 +116,6 @@ export const TEMPLATE_CATEGORY_OPTIONS = [
   { label: '文件去重', value: '文件去重' as TemplateCategory },
 ] as const;
 
-
 // ==================== 类型定义 ====================
 
 // 分类管理相关
@@ -103,7 +124,7 @@ export interface CategoryDetail {
   name: string;
   code: string;
   description?: string;
-  category_type: 'domain' | 'subject' | 'resource_type';
+  category_type: 'domain' | 'resource_type' | 'subject';
   parent_id?: number;
   level: number;
   path: string;
@@ -120,7 +141,7 @@ export interface CategoryTreeNode {
   name: string;
   code: string;
   description?: string;
-  category_type: 'domain' | 'subject' | 'resource_type';
+  category_type: 'domain' | 'resource_type' | 'subject';
   parent_id?: number;
   level: number;
   sort: number;
@@ -130,7 +151,7 @@ export interface CategoryTreeNode {
 }
 
 export interface CategoryListParams {
-  category_type?: 'domain' | 'subject' | 'resource_type';
+  category_type?: 'domain' | 'resource_type' | 'subject';
   parent_id?: number;
   status?: number;
   keyword?: string;
@@ -142,7 +163,7 @@ export interface CreateCategoryParams {
   name: string;
   code: string;
   description?: string;
-  category_type: 'domain' | 'subject' | 'resource_type';
+  category_type: 'domain' | 'resource_type' | 'subject';
   parent_id?: number;
   sort?: number;
   status?: number;
@@ -225,7 +246,9 @@ export interface CoulddriveUserGroupDetail {
   status: string;
 }
 
-export type CoulddriveRelationshipItem = CoulddriveUserFriendDetail | CoulddriveUserGroupDetail;
+export type CoulddriveRelationshipItem =
+  | CoulddriveUserFriendDetail
+  | CoulddriveUserGroupDetail;
 
 // 网盘账户详情
 export interface CoulddriveDriveAccountDetail {
@@ -469,7 +492,10 @@ export interface RuleTemplateStatsDetail {
 export interface DomainSubjectMapping {
   domains: Array<{ label: string; value: string }>;
   subjects: Record<string, string[]>;
-  domain_subject_options: Record<string, Array<{ label: string; value: string }>>;
+  domain_subject_options: Record<
+    string,
+    Array<{ label: string; value: string }>
+  >;
 }
 
 // ==================== 同步任务 API ====================
@@ -478,18 +504,25 @@ export interface DomainSubjectMapping {
  * 提交异步同步任务
  */
 export async function executeCoulddriveSyncTaskApi(configId: number) {
-  return requestClient.post<AsyncTaskSubmitResult>(`/api/v1/couldsync/execute/${configId}`, {}, {
-    timeout: 30 * 1000, // 30秒超时，仅用于提交任务
-  });
+  return requestClient.post<AsyncTaskSubmitResult>(
+    `/api/v1/couldsync/execute/${configId}`,
+    {},
+    {
+      timeout: 30 * 60 * 1000, // 30分钟超时，仅用于提交任务（长耗时任务）
+    },
+  );
 }
 
 /**
  * 查询异步任务状态
  */
 export async function getAsyncTaskStatusApi(taskId: string) {
-  return requestClient.get<AsyncTaskStatus>(`/api/v1/couldsync/task/status/${taskId}`, {
-    timeout: 10 * 1000, // 10秒超时
-  });
+  return requestClient.get<AsyncTaskStatus>(
+    `/api/v1/couldsync/task/status/${taskId}`,
+    {
+      timeout: 10 * 1000, // 10秒超时
+    },
+  );
 }
 
 /**
@@ -509,7 +542,10 @@ export async function getCoulddriveSyncConfigListApi(
 export async function createCoulddriveSyncConfigApi(
   params: CreateCoulddriveSyncConfigParams,
 ) {
-  return requestClient.post<CoulddriveSyncConfigDetail>('/api/v1/couldsync/config', params);
+  return requestClient.post<CoulddriveSyncConfigDetail>(
+    '/api/v1/couldsync/config',
+    params,
+  );
 }
 
 /**
@@ -558,13 +594,16 @@ export async function getCoulddriveRelationshipListApi(
   params: CoulddriveRelationshipParams,
   token: string,
 ) {
-  return requestClient.get<PaginationResult>('/api/v1/coulduser/relationshiplist', {
-    params,
-    headers: {
-      'X-Token': token,
+  return requestClient.get<PaginationResult>(
+    '/api/v1/coulduser/relationshiplist',
+    {
+      params,
+      headers: {
+        'X-Token': token,
+      },
+      timeout: 60 * 2 * 1000, // 2分钟超时
     },
-    timeout: 60 * 2 * 1000, // 2分钟超时
-  });
+  );
 }
 
 /**
@@ -585,12 +624,16 @@ export async function createCoulddriveUserApi(
   params: CoulddriveUserInfoParams,
   token: string,
 ) {
-  return requestClient.post<CoulddriveUserInfo>('/api/v1/coulduser/create', {}, {
-    params,
-    headers: {
-      'X-Token': token,
+  return requestClient.post<CoulddriveUserInfo>(
+    '/api/v1/coulduser/create',
+    {},
+    {
+      params,
+      headers: {
+        'X-Token': token,
+      },
     },
-  });
+  );
 }
 
 /**
@@ -604,9 +647,10 @@ export async function deleteCoulddriveUserApi(userId: number) {
  * 刷新 Coulddrive 用户信息
  */
 export async function refreshCoulddriveUserApi(userId: number) {
-  return requestClient.put<CoulddriveUserInfo>(`/api/v1/coulduser/${userId}/refresh`);
+  return requestClient.put<CoulddriveUserInfo>(
+    `/api/v1/coulduser/${userId}/refresh`,
+  );
 }
-
 
 // ==================== 文件管理 API ====================
 
@@ -622,7 +666,7 @@ export async function getCoulddriveFileListApi(
     headers: {
       'X-Token': token,
     },
-    timeout: 60000
+    timeout: 60_000,
   });
 }
 
@@ -638,7 +682,7 @@ export async function getCoulddriveShareFileListApi(
     headers: {
       'X-Token': token,
     },
-    timeout: 60000
+    timeout: 60_000,
   });
 }
 
@@ -649,11 +693,15 @@ export async function createCoulddriveFolderApi(
   params: CoulddriveMkdirParams,
   token: string,
 ) {
-  return requestClient.post<CoulddriveFileInfo>('/api/v1/couldfile/mkdir', params, {
-    headers: {
-      'X-Token': token,
+  return requestClient.post<CoulddriveFileInfo>(
+    '/api/v1/couldfile/mkdir',
+    params,
+    {
+      headers: {
+        'X-Token': token,
+      },
     },
-  });
+  );
 }
 
 /**
@@ -683,7 +731,7 @@ export async function transferCoulddriveFilesApi(
       'X-Token': token,
     },
     // 转存完成后自动清理文件列表缓存
-    timeout: 60000, // 转存可能需要较长时间
+    timeout: 60_000, // 转存可能需要较长时间
   });
 }
 
@@ -694,11 +742,15 @@ export async function createCoulddriveShareApi(
   params: CoulddriveShareParams,
   token: string,
 ) {
-  return requestClient.post<CoulddriveShareInfo>('/api/v1/couldfile/share', params, {
-    headers: {
-      'X-Token': token,
+  return requestClient.post<CoulddriveShareInfo>(
+    '/api/v1/couldfile/share',
+    params,
+    {
+      headers: {
+        'X-Token': token,
+      },
     },
-  });
+  );
 }
 
 // ==================== 规则模板 API ====================
@@ -706,9 +758,7 @@ export async function createCoulddriveShareApi(
 /**
  * 获取规则模板列表
  */
-export async function getRuleTemplateListApi(
-  params: RuleTemplateListParams,
-) {
+export async function getRuleTemplateListApi(params: RuleTemplateListParams) {
   return requestClient.get<PaginationResult>('/api/v1/template/list', {
     params,
   });
@@ -717,17 +767,19 @@ export async function getRuleTemplateListApi(
 /**
  * 根据类型获取规则模板
  */
-export async function getRuleTemplatesByTypeApi(
-  templateType: TemplateType,
-) {
-  return requestClient.get<RuleTemplateDetail[]>(`/api/v1/template/type/${templateType}`);
+export async function getRuleTemplatesByTypeApi(templateType: TemplateType) {
+  return requestClient.get<RuleTemplateDetail[]>(
+    `/api/v1/template/type/${templateType}`,
+  );
 }
 
 /**
  * 获取规则模板详情
  */
 export async function getRuleTemplateDetailApi(templateId: number) {
-  return requestClient.get<RuleTemplateDetail>(`/api/v1/template/${templateId}`);
+  return requestClient.get<RuleTemplateDetail>(
+    `/api/v1/template/${templateId}`,
+  );
 }
 
 /**
@@ -740,43 +792,63 @@ export async function createRuleTemplateApi(params: CreateRuleTemplateParams) {
 /**
  * 更新规则模板
  */
-export async function updateRuleTemplateApi(templateId: number, params: UpdateRuleTemplateParams) {
-  return requestClient.put<RuleTemplateDetail>(`/api/v1/template/${templateId}`, params);
+export async function updateRuleTemplateApi(
+  templateId: number,
+  params: UpdateRuleTemplateParams,
+) {
+  return requestClient.put<RuleTemplateDetail>(
+    `/api/v1/template/${templateId}`,
+    params,
+  );
 }
 
 /**
  * 删除规则模板
  */
 export async function deleteRuleTemplateApi(templateId: number) {
-  return requestClient.delete<{ message: string }>(`/api/v1/template/${templateId}`);
+  return requestClient.delete<{ message: string }>(
+    `/api/v1/template/${templateId}`,
+  );
 }
 
 /**
  * 批量删除规则模板
  */
 export async function batchDeleteRuleTemplatesApi(ids: number[]) {
-  return requestClient.delete<{ message: string }>('/api/v1/template/', { data: { ids } });
+  return requestClient.delete<{ message: string }>('/api/v1/template/', {
+    data: { ids },
+  });
 }
 
 /**
  * 切换规则模板启用状态
  */
-export async function toggleRuleTemplateActiveApi(templateId: number, isActive: boolean) {
-  return requestClient.put<{ message: string }>(`/api/v1/template/${templateId}/toggle?is_active=${isActive}`, {});
+export async function toggleRuleTemplateActiveApi(
+  templateId: number,
+  isActive: boolean,
+) {
+  return requestClient.put<{ message: string }>(
+    `/api/v1/template/${templateId}/toggle?is_active=${isActive}`,
+    {},
+  );
 }
 
 /**
  * 使用规则模板
  */
 export async function useRuleTemplateApi(templateId: number) {
-  return requestClient.post<RuleTemplateDetail>(`/api/v1/template/${templateId}/use`);
+  return requestClient.post<RuleTemplateDetail>(
+    `/api/v1/template/${templateId}/use`,
+  );
 }
 
 /**
  * 获取规则模板统计信息
  */
 export async function getRuleTemplateStatsApi() {
-  return requestClient.get<RuleTemplateStatsDetail>('/api/v1/template/stats/overview');
+  return requestClient.get<RuleTemplateStatsDetail>(
+    '/api/v1/template/stats/overview',
+  );
 }
 
 // ==================== 资源管理 API ====================
@@ -795,7 +867,7 @@ export interface ResourceDetail {
   resource_intro?: string;
   resource_image?: string;
   extract_code?: string;
-  is_temp_file: boolean;
+  is_temp_file: number; // 0无操作 1定时删除 2定时刷新 3定时更新
   price?: number;
   suggested_price?: number;
   sort: number;
@@ -874,10 +946,10 @@ export interface OverallStatisticsTrendParams {
 export interface OverallStatisticsTrendResponse {
   trend_data: OverallStatisticsTrendData[];
   summary: {
-    total_resources_growth: number;
-    total_views_growth: number;
     average_daily_new_resources: number;
     period_days: number;
+    total_resources_growth: number;
+    total_views_growth: number;
   };
 }
 
@@ -907,7 +979,7 @@ export interface CreateResourceParams {
   resource_intro?: string;
   resource_image?: string;
   extract_code?: string;
-  is_temp_file?: boolean;
+  is_temp_file?: number; // 0无操作 1定时删除 2定时刷新 3定时更新
   price?: number;
   suggested_price?: number;
   sort?: number;
@@ -925,7 +997,7 @@ export interface UpdateResourceParams {
   url?: string;
   url_type?: string;
   extract_code?: string;
-  is_temp_file?: boolean;
+  is_temp_file?: number; // 0无操作 1定时删除 2定时刷新 3定时更新
   price?: number;
   suggested_price?: number;
   sort?: number;
@@ -1026,14 +1098,18 @@ export interface SyncTaskItemListParams {
  * 获取领域和科目映射关系
  */
 export async function getDomainSubjectMappingApi() {
-  return requestClient.get<DomainSubjectMapping>('/api/v1/resources/domain-subjects');
+  return requestClient.get<DomainSubjectMapping>(
+    '/api/v1/resources/domain-subjects',
+  );
 }
 
 /**
  * 根据领域获取科目列表
  */
 export async function getSubjectsByDomainApi(domain: string) {
-  return requestClient.get<Array<{ label: string; value: string }>>(`/api/v1/resources/subjects/${domain}`);
+  return requestClient.get<Array<{ label: string; value: string }>>(
+    `/api/v1/resources/subjects/${domain}`,
+  );
 }
 
 /**
@@ -1065,11 +1141,11 @@ export async function createResourceApi(params: CreateResourceParams) {
 export async function updateResourceApi(
   resourceId: number,
   params: UpdateResourceParams,
-  autoRefresh: boolean = false
+  autoRefresh: boolean = false,
 ) {
   return requestClient.put<ResourceDetail>(
     `/api/v1/resources/${resourceId}?auto_refresh=${autoRefresh}`,
-    params
+    params,
   );
 }
 
@@ -1077,14 +1153,18 @@ export async function updateResourceApi(
  * 刷新资源分享信息
  */
 export async function refreshResourceShareInfoApi(resourceId: number) {
-  return requestClient.put<ResourceDetail>(`/api/v1/resources/${resourceId}/refresh-share-info`);
+  return requestClient.put<ResourceDetail>(
+    `/api/v1/resources/${resourceId}/refresh-share-info`,
+  );
 }
 
 /**
  * 删除资源
  */
 export async function deleteResourceApi(resourceId: number) {
-  return requestClient.delete<{ message: string }>(`/api/v1/resources/${resourceId}`);
+  return requestClient.delete<{ message: string }>(
+    `/api/v1/resources/${resourceId}`,
+  );
 }
 
 /**
@@ -1100,10 +1180,15 @@ export async function getResourceStatisticsApi(userId?: number) {
 /**
  * 获取整体资源统计趋势
  */
-export async function getOverallStatisticsTrendApi(params: OverallStatisticsTrendParams) {
-  return requestClient.get<OverallStatisticsTrendResponse>('/api/v1/resources/statistics/trend', {
-    params,
-  });
+export async function getOverallStatisticsTrendApi(
+  params: OverallStatisticsTrendParams,
+) {
+  return requestClient.get<OverallStatisticsTrendResponse>(
+    '/api/v1/resources/statistics/trend',
+    {
+      params,
+    },
+  );
 }
 
 /**
@@ -1111,11 +1196,11 @@ export async function getOverallStatisticsTrendApi(params: OverallStatisticsTren
  */
 export async function getResourceViewHistoryApi(
   resourceId: number,
-  params: ResourceViewHistoryListParams
+  params: ResourceViewHistoryListParams,
 ) {
   return requestClient.get<PaginationResult>(
     `/api/v1/resources/${resourceId}/view-history`,
-    { params }
+    { params },
   );
 }
 
@@ -1125,7 +1210,7 @@ export async function getResourceViewHistoryApi(
 export async function getResourceViewTrendApi(params: ResourceViewTrendParams) {
   return requestClient.get<ResourceViewTrendResponse>(
     '/api/v1/resources/view-trend',
-    { params }
+    { params },
   );
 }
 
@@ -1134,11 +1219,11 @@ export async function getResourceViewTrendApi(params: ResourceViewTrendParams) {
  */
 export async function updateResourceViewCountApi(
   resourceId: number,
-  params: UpdateResourceViewCountParams
+  params: UpdateResourceViewCountParams,
 ) {
   return requestClient.put<{ message: string }>(
     `/api/v1/resources/${resourceId}/view-count`,
-    params
+    params,
   );
 }
 
@@ -1147,11 +1232,11 @@ export async function updateResourceViewCountApi(
  */
 export async function getSyncTaskListApi(
   configId: number,
-  params: SyncTaskListParams
+  params: SyncTaskListParams,
 ) {
   return requestClient.get<PaginationResult>(
     `/api/v1/couldsync/${configId}/tasks`,
-    { params }
+    { params },
   );
 }
 
@@ -1160,7 +1245,7 @@ export async function getSyncTaskListApi(
  */
 export async function getSyncTaskDetailApi(taskId: number) {
   return requestClient.get<SyncTaskWithRelationDetail>(
-    `/api/v1/couldsync/task/${taskId}`
+    `/api/v1/couldsync/task/${taskId}`,
   );
 }
 
@@ -1169,11 +1254,11 @@ export async function getSyncTaskDetailApi(taskId: number) {
  */
 export async function getSyncTaskItemListApi(
   taskId: number,
-  params: SyncTaskItemListParams
+  params: SyncTaskItemListParams,
 ) {
   return requestClient.get<PaginationResult>(
     `/api/v1/couldsync/task/${taskId}/items`,
-    { params }
+    { params },
   );
 }
 
@@ -1188,118 +1273,118 @@ export const TEACHER_MAPPINGS: Record<string, TeacherMapping> = {
   武忠祥: {
     field: '26考研',
     subject: '数学',
-    sort: 1
+    sort: 1,
   },
   张宇: {
     field: '26考研',
     subject: '数学',
-    sort: 2
+    sort: 2,
   },
   姜晓千: {
     field: '26考研',
     subject: '数学',
-    sort: 3
+    sort: 3,
   },
   李永乐: {
     field: '26考研',
     subject: '数学',
-    sort: 5
+    sort: 5,
   },
   汤家凤: {
     field: '26考研',
     subject: '数学',
-    sort: 6
+    sort: 6,
   },
   杨超: {
     field: '26考研',
     subject: '数学',
-    sort: 7
+    sort: 7,
   },
   周洋鑫: {
     field: '26考研',
     subject: '数学',
-    sort: 8
+    sort: 8,
   },
   田静: {
     field: '26考研',
     subject: '英语',
-    sort: 1
+    sort: 1,
   },
   唐迟: {
     field: '26考研',
     subject: '英语',
-    sort: 2
+    sort: 2,
   },
   刘晓燕: {
     field: '26考研',
     subject: '英语',
-    sort: 3
+    sort: 3,
   },
   王晶婷: {
     field: '26考研',
     subject: '英语',
-    sort: 4
+    sort: 4,
   },
   颉斌斌: {
     field: '26考研',
     subject: '英语',
-    sort: 5
+    sort: 5,
   },
   新东方: {
     field: '26考研',
     subject: '英语',
-    sort: 6
+    sort: 6,
   },
   朱伟: {
     field: '26考研',
     subject: '英语',
-    sort: 7
+    sort: 7,
   },
   石雷鹏: {
     field: '26考研',
     subject: '英语',
-    sort: 8
+    sort: 8,
   },
   王江涛: {
     field: '26考研',
     subject: '英语',
-    sort: 9
+    sort: 9,
   },
   Monkey: {
     field: '26考研',
     subject: '英语',
-    sort: 10
+    sort: 10,
   },
   其他: {
     field: '26考研',
     subject: '英语',
-    sort: 99
+    sort: 99,
   },
   徐涛: {
     field: '26考研',
     subject: '政治',
-    sort: 1
+    sort: 1,
   },
   肖: {
     field: '26考研',
     subject: '政治',
-    sort: 2
+    sort: 2,
   },
   腿姐: {
     field: '26考研',
     subject: '政治',
-    sort: 3
+    sort: 3,
   },
   苏一: {
     field: '26考研',
     subject: '政治',
-    sort: 4
+    sort: 4,
   },
   米鹏: {
     field: '26考研',
     subject: '政治',
-    sort: 5
-  }
+    sort: 5,
+  },
 };
 
 // 智能识别相关接口
@@ -1335,7 +1420,9 @@ async function getCategoryData(): Promise<CategoryTreeNode[]> {
   try {
     const response = await getCategoryTreeApi();
     // API直接返回数组，不需要.data
-    const data = Array.isArray(response) ? response : (response as any)?.data || [];
+    const data = Array.isArray(response)
+      ? response
+      : (response as any)?.data || [];
     return data;
   } catch (error) {
     console.warn('获取分类数据失败:', error);
@@ -1360,28 +1447,43 @@ function buildSmartRecognitionPrompt(categories: CategoryTreeNode[]): string {
   const flatCategories = flattenCategories(categories);
 
   // 从扁平化的分类中提取各级分类
-  const domains = flatCategories.filter(cat => cat.category_type === 'domain');
-  const subjects = flatCategories.filter(cat => cat.category_type === 'subject');
-  const resourceTypes = flatCategories.filter(cat => cat.category_type === 'resource_type');
+  const domains = flatCategories.filter(
+    (cat) => cat.category_type === 'domain',
+  );
+  const subjects = flatCategories.filter(
+    (cat) => cat.category_type === 'subject',
+  );
+  const resourceTypes = flatCategories.filter(
+    (cat) => cat.category_type === 'resource_type',
+  );
 
   // 构建领域分类说明
-  const domainSection = domains.map(domain => {
-    const domainSubjects = subjects.filter(sub => sub.parent_id === domain.id);
-    const subjectList = domainSubjects.map(sub => sub.name).join('、');
-    return `- ${domain.name}：${domain.description || '包含相关内容'}${subjectList ? `（包含：${subjectList}）` : ''}`;
-  }).join('\n');
+  const domainSection = domains
+    .map((domain) => {
+      const domainSubjects = subjects.filter(
+        (sub) => sub.parent_id === domain.id,
+      );
+      const subjectList = domainSubjects.map((sub) => sub.name).join('、');
+      return `- ${domain.name}：${domain.description || '包含相关内容'}${subjectList ? `（包含：${subjectList}）` : ''}`;
+    })
+    .join('\n');
 
   // 构建科目分类说明
-  const subjectSection = domains.map(domain => {
-    const domainSubjects = subjects.filter(sub => sub.parent_id === domain.id);
-    if (domainSubjects.length === 0) return '';
+  const subjectSection = domains
+    .map((domain) => {
+      const domainSubjects = subjects.filter(
+        (sub) => sub.parent_id === domain.id,
+      );
+      if (domainSubjects.length === 0) return '';
 
-    const subjectList = domainSubjects.map(sub => sub.name).join('、');
-    return `${domain.name}领域：\n- ${subjectList}`;
-  }).filter(Boolean).join('\n\n');
+      const subjectList = domainSubjects.map((sub) => sub.name).join('、');
+      return `${domain.name}领域：\n- ${subjectList}`;
+    })
+    .filter(Boolean)
+    .join('\n\n');
 
   // 构建资源类型说明
-  const resourceTypeSection = resourceTypes.map(rt => rt.name).join('、');
+  const resourceTypeSection = resourceTypes.map((rt) => rt.name).join('、');
 
   return `
 你是一个专业的网盘资源信息提取助手。请从用户提供的分享文本中提取资源信息，并以JSON格式返回。
@@ -1446,7 +1548,9 @@ export async function getCategoryListApi(params: CategoryListParams) {
   });
 }
 
-export async function getCategoryTreeApi(categoryType?: 'domain' | 'subject' | 'resource_type') {
+export async function getCategoryTreeApi(
+  categoryType?: 'domain' | 'resource_type' | 'subject',
+) {
   const params = categoryType ? { category_type: categoryType } : {};
   return requestClient.get<CategoryTreeNode[]>('/api/v1/category/tree', {
     params,
@@ -1461,15 +1565,23 @@ export async function createCategoryApi(params: CreateCategoryParams) {
   return requestClient.post<CategoryDetail>('/api/v1/category', params);
 }
 
-export async function updateCategoryApi(categoryId: number, params: UpdateCategoryParams) {
-  return requestClient.put<CategoryDetail>(`/api/v1/category/${categoryId}`, params);
+export async function updateCategoryApi(
+  categoryId: number,
+  params: UpdateCategoryParams,
+) {
+  return requestClient.put<CategoryDetail>(
+    `/api/v1/category/${categoryId}`,
+    params,
+  );
 }
 
 export async function deleteCategoryApi(categoryId: number) {
   return requestClient.delete(`/api/v1/category/${categoryId}`);
 }
 
-export async function getCategoryOptionsApi(categoryType?: 'domain' | 'subject' | 'resource_type') {
+export async function getCategoryOptionsApi(
+  categoryType?: 'domain' | 'resource_type' | 'subject',
+) {
   const params = categoryType ? { category_type: categoryType } : {};
   return requestClient.get<CategoryOption[]>('/api/v1/category/options', {
     params,
@@ -1480,7 +1592,9 @@ export async function getCategoryStatisticsApi() {
   return requestClient.get<CategoryStatistics>('/api/v1/category/statistics');
 }
 
-export async function smartRecognitionApi(content: string): Promise<SmartRecognitionResponse> {
+export async function smartRecognitionApi(
+  content: string,
+): Promise<SmartRecognitionResponse> {
   // 输入验证
   if (!content || content.trim().length < 10) {
     throw new Error('输入内容太短，请提供完整的分享文本');
@@ -1489,9 +1603,10 @@ export async function smartRecognitionApi(content: string): Promise<SmartRecogni
   // 动态获取分类数据
   const categories = await getCategoryData();
 
-  const dynamicPrompt = categories.length > 0
-    ? buildSmartRecognitionPrompt(categories)
-    : `
+  const dynamicPrompt =
+    categories.length > 0
+      ? buildSmartRecognitionPrompt(categories)
+      : `
 你是一个专业的网盘资源信息提取助手。请从用户提供的分享文本中提取资源信息，并以JSON格式返回。
 
 提取规则：
@@ -1527,14 +1642,14 @@ export async function smartRecognitionApi(content: string): Promise<SmartRecogni
 
   // 设置请求超时
   const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), 30000); // 30秒超时
+  const timeoutId = setTimeout(() => controller.abort(), 30_000); // 30秒超时
 
   try {
     const response = await fetch(AI_CONFIG.apiUrl, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${AI_CONFIG.apiKey}`,
+        Authorization: `Bearer ${AI_CONFIG.apiKey}`,
       },
       body: JSON.stringify({
         model: AI_CONFIG.model,
@@ -1564,7 +1679,9 @@ export async function smartRecognitionApi(content: string): Promise<SmartRecogni
       } else if (response.status >= 500) {
         throw new Error('AI服务暂时不可用，请稍后重试');
       } else {
-        throw new Error(`API请求失败: ${response.status} ${response.statusText}`);
+        throw new Error(
+          `API请求失败: ${response.status} ${response.statusText}`,
+        );
       }
     }
 
@@ -1583,7 +1700,9 @@ export async function smartRecognitionApi(content: string): Promise<SmartRecogni
 
       // 移除可能的代码块标记
       if (jsonString.startsWith('```json')) {
-        jsonString = jsonString.replace(/^```json\s*/, '').replace(/\s*```$/, '');
+        jsonString = jsonString
+          .replace(/^```json\s*/, '')
+          .replace(/\s*```$/, '');
       } else if (jsonString.startsWith('```')) {
         jsonString = jsonString.replace(/^```\s*/, '').replace(/\s*```$/, '');
       }
@@ -1595,7 +1714,7 @@ export async function smartRecognitionApi(content: string): Promise<SmartRecogni
 
       // 验证必要字段
       if (typeof parsedResult !== 'object') {
-        throw new Error('AI返回的不是有效的JSON对象');
+        throw new TypeError('AI返回的不是有效的JSON对象');
       }
 
       // 设置默认值
@@ -1644,7 +1763,9 @@ export async function smartRecognitionApi(content: string): Promise<SmartRecogni
 }
 
 // 降级处理：简单的文本提取
-async function fallbackTextExtraction(content: string): Promise<SmartRecognitionResponse> {
+async function fallbackTextExtraction(
+  content: string,
+): Promise<SmartRecognitionResponse> {
   const result: SmartRecognitionResponse = {
     domain: '',
     subject: '',
@@ -1662,7 +1783,7 @@ async function fallbackTextExtraction(content: string): Promise<SmartRecognition
   };
 
   // 提取链接
-  const urlMatch = content.match(/(https?:\/\/[^\s]+)/);
+  const urlMatch = content.match(/(https?:\/\/\S+)/);
   if (urlMatch) {
     result.url = urlMatch[1];
   }
@@ -1677,13 +1798,15 @@ async function fallbackTextExtraction(content: string): Promise<SmartRecognition
   }
 
   // 提取资源名称（在「」或[]中）
-  const nameMatch = content.match(/[「【\[]([^」】\]]+)[」】\]]/);
+  const nameMatch = content.match(/[「【[]([^」】\]]+)[」】\]]/);
   if (nameMatch) {
     result.main_name = nameMatch[1];
   }
 
   // 提取提取码
-  const codeMatch = content.match(/提取码[：:]\s*([a-zA-Z0-9]+)|密码[：:]\s*([a-zA-Z0-9]+)/);
+  const codeMatch = content.match(
+    /提取码[：:]\s*([a-z0-9]+)|密码[：:]\s*([a-z0-9]+)/i,
+  );
   if (codeMatch) {
     result.extract_code = codeMatch[1] || codeMatch[2];
   }
@@ -1696,18 +1819,29 @@ async function fallbackTextExtraction(content: string): Promise<SmartRecognition
       teacherFound = true;
 
       // 根据教师设置对应的科目
-      if (mapping.subject === '数学') {
-        result.domain = '教育';
-        result.subject = '26考研数学';
-        result.resource_type = '课程';
-      } else if (mapping.subject === '英语') {
-        result.domain = '教育';
-        result.subject = '26考研英语';
-        result.resource_type = '课程';
-      } else if (mapping.subject === '政治') {
-        result.domain = '教育';
-        result.subject = '26考研政治';
-        result.resource_type = '课程';
+      switch (mapping.subject) {
+        case '政治': {
+          result.domain = '教育';
+          result.subject = '26考研政治';
+          result.resource_type = '课程';
+
+          break;
+        }
+        case '数学': {
+          result.domain = '教育';
+          result.subject = '26考研数学';
+          result.resource_type = '课程';
+
+          break;
+        }
+        case '英语': {
+          result.domain = '教育';
+          result.subject = '26考研英语';
+          result.resource_type = '课程';
+
+          break;
+        }
+        // No default
       }
       break; // 找到第一个匹配的教师就停止
     }
@@ -1718,8 +1852,16 @@ async function fallbackTextExtraction(content: string): Promise<SmartRecognition
     const name = result.main_name.toLowerCase();
 
     // 教育领域判断
-    if (name.includes('考研') || name.includes('英语') || name.includes('数学') || name.includes('政治') ||
-        name.includes('课程') || name.includes('教学') || name.includes('学习') || name.includes('统考')) {
+    if (
+      name.includes('考研') ||
+      name.includes('英语') ||
+      name.includes('数学') ||
+      name.includes('政治') ||
+      name.includes('课程') ||
+      name.includes('教学') ||
+      name.includes('学习') ||
+      name.includes('统考')
+    ) {
       result.domain = '教育';
       result.resource_type = '课程';
 
@@ -1737,14 +1879,25 @@ async function fallbackTextExtraction(content: string): Promise<SmartRecognition
       }
     }
     // 科技领域判断
-    else if (name.includes('软件') || name.includes('编程') || name.includes('代码') ||
-             name.includes('ai') || name.includes('人工智能') || name.includes('数据') ||
-             name.includes('安全') || name.includes('云计算')) {
+    else if (
+      name.includes('软件') ||
+      name.includes('编程') ||
+      name.includes('代码') ||
+      name.includes('ai') ||
+      name.includes('人工智能') ||
+      name.includes('数据') ||
+      name.includes('安全') ||
+      name.includes('云计算')
+    ) {
       result.domain = '科技';
       result.resource_type = '软件';
 
       // 具体科目判断
-      if (name.includes('编程') || name.includes('代码') || name.includes('开发')) {
+      if (
+        name.includes('编程') ||
+        name.includes('代码') ||
+        name.includes('开发')
+      ) {
         result.subject = '编程开发';
       } else if (name.includes('ai') || name.includes('人工智能')) {
         result.subject = '人工智能';
@@ -1757,8 +1910,14 @@ async function fallbackTextExtraction(content: string): Promise<SmartRecognition
       }
     }
     // 影视领域判断
-    else if (name.includes('电影') || name.includes('电视') || name.includes('综艺') ||
-             name.includes('短剧') || name.includes('影视') || name.includes('视频')) {
+    else if (
+      name.includes('电影') ||
+      name.includes('电视') ||
+      name.includes('综艺') ||
+      name.includes('短剧') ||
+      name.includes('影视') ||
+      name.includes('视频')
+    ) {
       result.domain = '影视';
 
       // 具体科目判断
@@ -1774,7 +1933,7 @@ async function fallbackTextExtraction(content: string): Promise<SmartRecognition
     }
   }
 
-  result.description = content.substring(0, 200); // 取前200个字符作为描述
+  result.description = content.slice(0, 200); // 取前200个字符作为描述
 
   return result;
 }

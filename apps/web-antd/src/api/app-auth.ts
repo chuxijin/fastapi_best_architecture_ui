@@ -10,9 +10,9 @@ export interface PaginationResponse<T> {
   links: {
     first: string;
     last: string;
-    self: string;
     next?: string;
     prev?: string;
+    self: string;
   };
 }
 
@@ -347,8 +347,8 @@ export interface ApplicationTrendData {
   total_registrations: number;
   active_devices: number;
   trend_data: Array<{
-    date: string;
     count: number;
+    date: string;
   }>;
   period: string;
 }
@@ -356,30 +356,30 @@ export interface ApplicationTrendData {
 // 设备授权历史数据
 export interface DeviceAuthorizationHistory {
   device_info: {
-    id: number;
     device_id: string;
     device_name?: string;
     device_type?: string;
-    os_info?: string;
-    ip_address?: string;
-    status: number;
     first_seen: string;
+    id: number;
+    ip_address?: string;
     last_seen?: string;
+    os_info?: string;
+    status: number;
   };
   authorizations: Array<{
-    id: number;
-    application_name: string;
     app_key: string;
+    application_name: string;
+    auth_source?: string;
     auth_type: number;
     auth_type_text: string;
+    created_time: string;
+    end_time: string;
+    id: number;
+    remaining_days?: number;
+    remark?: string;
+    start_time: string;
     status: number;
     status_text: string;
-    start_time: string;
-    end_time: string;
-    remaining_days?: number;
-    auth_source?: string;
-    remark?: string;
-    created_time: string;
   }>;
   total_count: number;
 }
@@ -400,18 +400,28 @@ export interface AppAuthStatistics {
 
 // 应用管理 API
 export async function getAppApplicationListApi(params: AppApplicationParams) {
-  return requestClient.get<PaginationResponse<AppApplicationResult>>('/api/v1/app-auth/applications', { params });
+  return requestClient.get<PaginationResponse<AppApplicationResult>>(
+    '/api/v1/app-auth/applications',
+    { params },
+  );
 }
 
 export async function getAppApplicationApi(id: number) {
-  return requestClient.get<AppApplicationResult>(`/api/v1/app-auth/applications/${id}`);
+  return requestClient.get<AppApplicationResult>(
+    `/api/v1/app-auth/applications/${id}`,
+  );
 }
 
-export async function createAppApplicationApi(data: CreateAppApplicationParams) {
+export async function createAppApplicationApi(
+  data: CreateAppApplicationParams,
+) {
   return requestClient.post('/api/v1/app-auth/applications', data);
 }
 
-export async function updateAppApplicationApi(id: number, data: UpdateAppApplicationParams) {
+export async function updateAppApplicationApi(
+  id: number,
+  data: UpdateAppApplicationParams,
+) {
   return requestClient.put(`/api/v1/app-auth/applications/${id}`, data);
 }
 
@@ -420,12 +430,17 @@ export async function deleteAppApplicationApi(id: number) {
 }
 
 export async function getAppApplicationOptionsApi() {
-  return requestClient.get<{ id: number; name: string }[]>('/api/v1/app-auth/applications/all/options');
+  return requestClient.get<{ id: number; name: string }[]>(
+    '/api/v1/app-auth/applications/all/options',
+  );
 }
 
 // 设备管理 API
 export async function getAppDeviceListApi(params: AppDeviceParams) {
-  return requestClient.get<PaginationResponse<AppDeviceResult>>('/api/v1/app-auth/devices', { params });
+  return requestClient.get<PaginationResponse<AppDeviceResult>>(
+    '/api/v1/app-auth/devices',
+    { params },
+  );
 }
 
 export async function getAppDeviceApi(id: number) {
@@ -436,7 +451,10 @@ export async function createAppDeviceApi(data: CreateAppDeviceParams) {
   return requestClient.post('/api/v1/app-auth/devices', data);
 }
 
-export async function updateAppDeviceApi(id: number, data: UpdateAppDeviceParams) {
+export async function updateAppDeviceApi(
+  id: number,
+  data: UpdateAppDeviceParams,
+) {
   return requestClient.put(`/api/v1/app-auth/devices/${id}`, data);
 }
 
@@ -446,7 +464,10 @@ export async function deleteAppDeviceApi(id: number) {
 
 // 套餐管理 API
 export async function getAppPackageListApi(params: AppPackageParams) {
-  return requestClient.get<PaginationResponse<AppPackageResult>>('/api/v1/app-auth/packages', { params });
+  return requestClient.get<PaginationResponse<AppPackageResult>>(
+    '/api/v1/app-auth/packages',
+    { params },
+  );
 }
 
 export async function getAppPackageApi(id: number) {
@@ -457,7 +478,10 @@ export async function createAppPackageApi(data: CreateAppPackageParams) {
   return requestClient.post('/api/v1/app-auth/packages', data);
 }
 
-export async function updateAppPackageApi(id: number, data: UpdateAppPackageParams) {
+export async function updateAppPackageApi(
+  id: number,
+  data: UpdateAppPackageParams,
+) {
   return requestClient.put(`/api/v1/app-auth/packages/${id}`, data);
 }
 
@@ -467,7 +491,10 @@ export async function deleteAppPackageApi(id: number) {
 
 // 订单管理 API
 export async function getAppOrderListApi(params: AppOrderParams) {
-  return requestClient.get<PaginationResponse<AppOrderResult>>('/api/v1/app-auth/orders', { params });
+  return requestClient.get<PaginationResponse<AppOrderResult>>(
+    '/api/v1/app-auth/orders',
+    { params },
+  );
 }
 
 export async function getAppOrderApi(id: number) {
@@ -478,7 +505,10 @@ export async function createAppOrderApi(data: CreateAppOrderParams) {
   return requestClient.post('/api/v1/app-auth/orders', data);
 }
 
-export async function updateAppOrderApi(id: number, data: UpdateAppOrderParams) {
+export async function updateAppOrderApi(
+  id: number,
+  data: UpdateAppOrderParams,
+) {
   return requestClient.put(`/api/v1/app-auth/orders/${id}`, data);
 }
 
@@ -488,14 +518,21 @@ export async function deleteAppOrderApi(id: number) {
 
 // 兑换码管理 API
 export async function getAppRedeemCodeListApi(params: AppRedeemCodeParams) {
-  return requestClient.get<PaginationResponse<AppRedeemCodeResult>>('/api/v1/app-auth/redeem-codes', { params });
+  return requestClient.get<PaginationResponse<AppRedeemCodeResult>>(
+    '/api/v1/app-auth/redeem-codes',
+    { params },
+  );
 }
 
 export async function getAppRedeemCodeApi(id: number) {
-  return requestClient.get<AppRedeemCodeResult>(`/api/v1/app-auth/redeem-codes/${id}`);
+  return requestClient.get<AppRedeemCodeResult>(
+    `/api/v1/app-auth/redeem-codes/${id}`,
+  );
 }
 
-export async function batchGenerateRedeemCodesApi(data: BatchCreateRedeemCodeParams) {
+export async function batchGenerateRedeemCodesApi(
+  data: BatchCreateRedeemCodeParams,
+) {
   return requestClient.post('/api/v1/app-auth/redeem-codes/batch', data);
 }
 
@@ -505,7 +542,10 @@ export async function deleteAppRedeemCodeApi(id: number) {
 
 // 版本管理 API
 export async function getAppVersionListApi(params: AppVersionParams) {
-  return requestClient.get<PaginationResponse<AppVersionResult>>('/api/v1/app-auth/versions', { params });
+  return requestClient.get<PaginationResponse<AppVersionResult>>(
+    '/api/v1/app-auth/versions',
+    { params },
+  );
 }
 
 export async function getAppVersionApi(id: number) {
@@ -516,7 +556,10 @@ export async function createAppVersionApi(data: CreateAppVersionParams) {
   return requestClient.post('/api/v1/app-auth/versions', data);
 }
 
-export async function updateAppVersionApi(id: number, data: UpdateAppVersionParams) {
+export async function updateAppVersionApi(
+  id: number,
+  data: UpdateAppVersionParams,
+) {
   return requestClient.put(`/api/v1/app-auth/versions/${id}`, data);
 }
 
@@ -525,21 +568,36 @@ export async function deleteAppVersionApi(id: number) {
 }
 
 // 授权管理 API
-export async function getAppAuthorizationListApi(params: AppAuthorizationParams) {
-  return requestClient.get<PaginationResponse<AppAuthorizationResult>>('/api/v1/app-auth/authorizations', {
-    params,
-  });
+export async function getAppAuthorizationListApi(
+  params: AppAuthorizationParams,
+) {
+  return requestClient.get<PaginationResponse<AppAuthorizationResult>>(
+    '/api/v1/app-auth/authorizations',
+    {
+      params,
+    },
+  );
 }
 
 export async function getAppAuthorizationApi(id: number) {
-  return requestClient.get<AppAuthorizationResult>(`/api/v1/app-auth/authorizations/${id}`);
+  return requestClient.get<AppAuthorizationResult>(
+    `/api/v1/app-auth/authorizations/${id}`,
+  );
 }
 
-export async function createAppAuthorizationApi(data: CreateAppAuthorizationParams) {
-  return requestClient.post<AppAuthorizationResult>('/api/v1/app-auth/authorizations', data);
+export async function createAppAuthorizationApi(
+  data: CreateAppAuthorizationParams,
+) {
+  return requestClient.post<AppAuthorizationResult>(
+    '/api/v1/app-auth/authorizations',
+    data,
+  );
 }
 
-export async function updateAppAuthorizationApi(id: number, data: UpdateAppAuthorizationParams) {
+export async function updateAppAuthorizationApi(
+  id: number,
+  data: UpdateAppAuthorizationParams,
+) {
   return requestClient.put(`/api/v1/app-auth/authorizations/${id}`, data);
 }
 
@@ -548,15 +606,23 @@ export async function deleteAppAuthorizationApi(id: number) {
 }
 
 // 获取应用注册趋势
-export async function getApplicationRegistrationTrendApi(applicationId: number, days: number = 30) {
-  return requestClient.get<ApplicationTrendData>(`/api/v1/app-auth/authorizations/application/${applicationId}/trend`, {
-    params: { days },
-  });
+export async function getApplicationRegistrationTrendApi(
+  applicationId: number,
+  days: number = 30,
+) {
+  return requestClient.get<ApplicationTrendData>(
+    `/api/v1/app-auth/authorizations/application/${applicationId}/trend`,
+    {
+      params: { days },
+    },
+  );
 }
 
 // 获取设备授权历史
 export async function getDeviceAuthorizationHistoryApi(deviceId: number) {
-  return requestClient.get<DeviceAuthorizationHistory>(`/api/v1/app-auth/authorizations/device/${deviceId}/history`);
+  return requestClient.get<DeviceAuthorizationHistory>(
+    `/api/v1/app-auth/authorizations/device/${deviceId}/history`,
+  );
 }
 
 // 兑换码授权
@@ -566,7 +632,10 @@ export async function redeemCodeAuthorizationApi(data: RedeemCodeParams) {
 
 // 检查授权状态
 export async function checkAuthorizationApi(data: CheckAuthorizationParams) {
-  return requestClient.post<AuthorizationCheckResult>('/api/v1/app-auth/authorizations/check', data);
+  return requestClient.post<AuthorizationCheckResult>(
+    '/api/v1/app-auth/authorizations/check',
+    data,
+  );
 }
 
 // 手动授权设备
@@ -597,7 +666,10 @@ export interface UpdateAuthTimeParams {
   remark?: string;
 }
 
-export async function updateAuthorizationTimeApi(id: number, data: UpdateAuthTimeParams) {
+export async function updateAuthorizationTimeApi(
+  id: number,
+  data: UpdateAuthTimeParams,
+) {
   return requestClient.put(`/api/v1/app-auth/authorizations/${id}/time`, data);
 }
 
@@ -608,7 +680,9 @@ export async function disableAuthorizationApi(id: number) {
 
 // 统计数据 API
 export async function getAppAuthStatisticsApi() {
-  return requestClient.get<AppAuthStatistics>('/api/v1/app-auth/statistics/overview');
+  return requestClient.get<AppAuthStatistics>(
+    '/api/v1/app-auth/statistics/overview',
+  );
 }
 
 // ==================== API 方法别名 ====================

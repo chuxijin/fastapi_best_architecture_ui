@@ -1,4 +1,5 @@
 import type { VbenFormSchema } from '@vben/common-ui';
+
 import type { VxeGridPropTypes } from '#/adapter/vxe-table';
 
 import { h } from 'vue';
@@ -220,7 +221,9 @@ export const schema: VbenFormSchema[] = [
   },
 ];
 
-export function useColumns(onActionClick: (params: any) => void): VxeGridPropTypes.Columns {
+export function useColumns(
+  onActionClick: (params: any) => void,
+): VxeGridPropTypes.Columns {
   return [
     {
       type: 'checkbox',
@@ -237,9 +240,13 @@ export function useColumns(onActionClick: (params: any) => void): VxeGridPropTyp
       minWidth: 200,
       slots: {
         default: ({ row }: any) => {
-          return h('span', {
-            style: { fontFamily: 'monospace', fontSize: '14px' },
-          }, row.code);
+          return h(
+            'span',
+            {
+              style: { fontFamily: 'monospace', fontSize: '14px' },
+            },
+            row.code,
+          );
         },
       },
     },
@@ -265,9 +272,13 @@ export function useColumns(onActionClick: (params: any) => void): VxeGridPropTyp
       width: 100,
       slots: {
         default: ({ row }: any) => {
-          return h(Tag, {
-            color: row.is_used ? 'red' : 'green',
-          }, () => row.is_used ? '已使用' : '未使用');
+          return h(
+            Tag,
+            {
+              color: row.is_used ? 'red' : 'green',
+            },
+            () => (row.is_used ? '已使用' : '未使用'),
+          );
         },
       },
     },
@@ -308,16 +319,26 @@ export function useColumns(onActionClick: (params: any) => void): VxeGridPropTyp
       slots: {
         default: ({ row }: any) => {
           const actions = [
-            h('a', {
-              onClick: () => onActionClick({ code: 'copy', row }),
-            }, '复制'),
+            h(
+              'a',
+              {
+                onClick: () => onActionClick({ code: 'copy', row }),
+              },
+              '复制',
+            ),
           ];
 
           if (!row.is_used) {
-            actions.push(h('a', {
-              style: { marginLeft: '8px', color: '#ff4d4f' },
-              onClick: () => onActionClick({ code: 'delete', row }),
-            }, '删除'));
+            actions.push(
+              h(
+                'a',
+                {
+                  style: { marginLeft: '8px', color: '#ff4d4f' },
+                  onClick: () => onActionClick({ code: 'delete', row }),
+                },
+                '删除',
+              ),
+            );
           }
 
           return actions;

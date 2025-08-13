@@ -1,15 +1,15 @@
 import type { VbenFormSchema } from '#/adapter/form';
 import type { OnActionClickFn, VxeGridProps } from '#/adapter/vxe-table';
-import type {
-  CoulddriveRelationshipItem,
-  CoulddriveDriveAccountDetail,
-} from '#/api';
+import type { CoulddriveDriveAccountDetail } from '#/api';
 
 import { $t } from '@vben/locales';
+
 import { DRIVE_TYPE_OPTIONS, DRIVE_TYPE_TAG_OPTIONS } from '#/api';
 
 // 用户信息查询表单配置
-export function getUserInfoFormSchema(isEditMode: boolean = false): VbenFormSchema[] {
+export function getUserInfoFormSchema(
+  isEditMode: boolean = false,
+): VbenFormSchema[] {
   return [
     {
       component: 'Select',
@@ -56,10 +56,7 @@ export const userListQuerySchema: VbenFormSchema[] = [
   {
     component: 'Select',
     componentProps: {
-      options: [
-        { label: '全部', value: '' },
-        ...DRIVE_TYPE_OPTIONS,
-      ],
+      options: [{ label: '全部', value: '' }, ...DRIVE_TYPE_OPTIONS],
       placeholder: '请选择网盘类型',
     },
     fieldName: 'type',
@@ -147,12 +144,12 @@ export function useUserListColumns(
   onActionClick?: OnActionClickFn<CoulddriveDriveAccountDetail>,
 ): VxeGridProps['columns'] {
   // 格式化文件大小
-  function formatFileSize(bytes: number | null): string {
+  function formatFileSize(bytes: null | number): string {
     if (!bytes) return '0 B';
     const k = 1024;
     const sizes = ['B', 'KB', 'MB', 'GB', 'TB'];
     const i = Math.floor(Math.log(bytes) / Math.log(k));
-    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+    return `${Number.parseFloat((bytes / k ** i).toFixed(2))} ${sizes[i]}`;
   }
 
   return [
@@ -220,7 +217,7 @@ export function useUserListColumns(
     },
     {
       field: 'operation',
-      title: $t('page.table.operation'),
+      title: $t('common.table.operation'),
       align: 'center',
       fixed: 'right',
       width: 200,

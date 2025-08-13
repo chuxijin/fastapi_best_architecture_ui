@@ -1,67 +1,31 @@
-<template>
-  <Page auto-content-height>
-    <Grid>
-      <template #toolbar-actions>
-        <div class="flex gap-2">
-          <VbenButton @click="() => testModalApi.open()">
-            <SendIcon class="size-5" />
-            测试 Webhook
-          </VbenButton>
-          <VbenButton @click="retryFailed">
-            <RefreshIcon class="size-5" />
-            重试失败事件
-          </VbenButton>
-          <VbenButton @click="batchDelete" variant="destructive">
-            <MaterialSymbolsDelete class="size-5" />
-            批量删除
-          </VbenButton>
-        </div>
-      </template>
-    </Grid>
-
-    <!-- 测试 Webhook 模态框 -->
-    <TestModal title="测试 Webhook 事件">
-      <TestForm />
-    </TestModal>
-
-    <!-- 查看详情模态框 -->
-    <ViewModal title="Webhook 事件详情">
-      <ViewForm />
-    </ViewModal>
-
-
-  </Page>
-</template>
-
 <script setup lang="ts">
 import type { VbenFormProps } from '@vben/common-ui';
 import type { VxeTableGridOptions } from '@vben/plugins/vxe-table';
 
-import type { OnActionClickParams } from '#/adapter/vxe-table';
 import type { WebhookEvent, WebhookReceiveParam } from '../api';
 
-import { computed, ref } from 'vue';
+import type { OnActionClickParams } from '#/adapter/vxe-table';
 
 import { Page, useVbenModal, VbenButton } from '@vben/common-ui';
-import { MaterialSymbolsAdd, MaterialSymbolsDelete, createIconifyIcon } from '@vben/icons';
-
-// 创建图标组件
-const SendIcon = createIconifyIcon('material-symbols:send-outline');
-const RefreshIcon = createIconifyIcon('material-symbols:refresh-rounded');
+import { createIconifyIcon, MaterialSymbolsDelete } from '@vben/icons';
 import { $t } from '@vben/locales';
 
 import { message } from 'ant-design-vue';
 
 import { useVbenForm } from '#/adapter/form';
 import { useVbenVxeGrid } from '#/adapter/vxe-table';
+
 import {
-  getWebhookListApi,
   deleteWebhookApi,
+  getWebhookListApi,
   retryFailedWebhooksApi,
   sendTestWebhookApi,
 } from '../api';
-
 import { querySchema, testSchema, useColumns } from './data';
+
+// 创建图标组件
+const SendIcon = createIconifyIcon('material-symbols:send-outline');
+const RefreshIcon = createIconifyIcon('material-symbols:refresh-rounded');
 
 const formOptions: VbenFormProps = {
   collapsed: true,
@@ -141,18 +105,20 @@ function onActionClick({ code, row }: OnActionClickParams<WebhookEvent>) {
       });
       break;
     }
-    case 'view': {
-      viewModalApi.setData(row).open();
-      break;
-    }
     case 'retry': {
       // 重试单个webhook事件
-      retryFailedWebhooksApi().then(() => {
-        message.success('重试操作完成');
-        onRefresh();
-      }).catch(() => {
-        message.error('重试操作失败');
-      });
+      retryFailedWebhooksApi()
+        .then(() => {
+          message.success('重试操作完成');
+          onRefresh();
+        })
+        .catch(() => {
+          message.error('重试操作失败');
+        });
+      break;
+    }
+    case 'view': {
+      viewModalApi.setData(row).open();
       break;
     }
   }
@@ -189,7 +155,7 @@ const [TestModal, testModalApi] = useVbenModal({
         message.success('测试Webhook发送成功');
         await testModalApi.close();
         onRefresh();
-      } catch (error) {
+      } catch {
         message.error('测试Webhook发送失败');
       } finally {
         testModalApi.unlock();
@@ -314,17 +280,22 @@ const [ViewModal, viewModalApi] = useVbenModal({
           const parsedPayload = JSON.parse(data.payload);
           // 重新格式化JSON，确保Unicode字符不被转义
           formattedPayload = JSON.stringify(parsedPayload, null, 2);
-        } catch (e) {
+        } catch {
           // 如果不是有效的JSON，尝试解码可能的Unicode转义序列
-          formattedPayload = data.payload.replace(/\\u[\dA-F]{4}/gi, match => {
-            return String.fromCharCode(parseInt(match.replace(/\\u/g, ''), 16));
-          });
+          formattedPayload = data.payload.replaceAll(
+            /\\u[\dA-F]{4}/gi,
+            (match) => {
+              return String.fromCodePoint(
+                Number.parseInt(match.replaceAll(String.raw`\u`, ''), 16),
+              );
+            },
+          );
         }
 
         viewFormApi.setValues({
           ...data,
           headers: JSON.stringify(data.headers, null, 2),
-          payload: formattedPayload
+          payload: formattedPayload,
         });
       }
     }
@@ -339,12 +310,12 @@ const batchDelete = async () => {
     return;
   }
 
-  const ids = selectedRows.map(row => row.id);
+  const ids = selectedRows.map((row) => row.id);
   try {
     await deleteWebhookApi(ids);
     message.success('批量删除成功');
     onRefresh();
-  } catch (error) {
+  } catch {
     message.error('批量删除失败');
   }
 };
@@ -355,13 +326,44 @@ const retryFailed = async () => {
     await retryFailedWebhooksApi();
     message.success('重试操作完成');
     onRefresh();
-  } catch (error) {
+  } catch {
     message.error('重试操作失败');
   }
 };
-
-
 </script>
+
+<template>
+  <Page auto-content-height>
+    <Grid>
+      <template #toolbar-actions>
+        <div class="flex gap-2">
+          <VbenButton @click="() => testModalApi.open()">
+            <SendIcon class="size-5" />
+            测试 Webhook
+          </VbenButton>
+          <VbenButton @click="retryFailed">
+            <RefreshIcon class="size-5" />
+            重试失败事件
+          </VbenButton>
+          <VbenButton @click="batchDelete" variant="destructive">
+            <MaterialSymbolsDelete class="size-5" />
+            批量删除
+          </VbenButton>
+        </div>
+      </template>
+    </Grid>
+
+    <!-- 测试 Webhook 模态框 -->
+    <TestModal title="测试 Webhook 事件">
+      <TestForm />
+    </TestModal>
+
+    <!-- 查看详情模态框 -->
+    <ViewModal title="Webhook 事件详情">
+      <ViewForm />
+    </ViewModal>
+  </Page>
+</template>
 
 <style scoped>
 .webhook-management {
@@ -385,22 +387,14 @@ const retryFailed = async () => {
 }
 
 pre {
-  background: #f5f5f5;
-  padding: 8px;
-  border-radius: 4px;
-  font-size: 12px;
   max-height: 200px;
+  padding: 8px;
   overflow-y: auto;
+  font-size: 12px;
+  background: #f5f5f5;
+  border-radius: 4px;
 }
 
-/* 详情模态框基础样式 */
-:deep(.webhook-detail-modal) {
-  .ant-modal-body {
-    padding: 20px !important;
-  }
-}
-
-/* 额外的通用样式确保布局生效 */
 :deep(.webhook-detail-modal) {
   .ant-modal-body {
     padding: 20px !important;
@@ -416,8 +410,8 @@ pre {
 
   /* 针对文本域的特殊处理 */
   .ant-input[readonly] {
-    background-color: #f5f5f5 !important;
     cursor: default !important;
+    background-color: #f5f5f5 !important;
   }
 
   textarea.ant-input[readonly] {

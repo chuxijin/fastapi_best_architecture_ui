@@ -1,53 +1,49 @@
 <script setup lang="ts">
 import type {
+  CoulddriveDriveAccountDetail,
   CoulddriveFileInfo,
   CoulddriveListFilesParams,
-  CoulddriveRemoveParams,
   CoulddriveMkdirParams,
-  CoulddriveDriveAccountDetail,
-  CoulddriveUserListParams,
-  CoulddriveTransferParams,
-  CoulddriveShareParams,
+  CoulddriveRemoveParams,
   CoulddriveShareInfo,
+  CoulddriveShareParams,
+  CoulddriveTransferParams,
+  CoulddriveUserListParams,
 } from '#/api';
 
-import { ref, computed } from 'vue';
+import { ref } from 'vue';
 
-import { Page } from '@vben/common-ui';
-import { useVbenModal } from '@vben/common-ui';
+import { Page, useVbenModal } from '@vben/common-ui';
 
 import { message, Modal } from 'ant-design-vue';
 
 import { useVbenForm } from '#/adapter/form';
 import { useVbenVxeGrid } from '#/adapter/vxe-table';
 import {
-  getCoulddriveFileListApi,
-  removeCoulddriveFilesApi,
   createCoulddriveFolderApi,
-  getCoulddriveUserListApi,
-  getCoulddriveShareFileListApi,
-  transferCoulddriveFilesApi,
   createCoulddriveShareApi,
   DRIVE_TYPE_OPTIONS,
+  getCoulddriveFileListApi,
+  getCoulddriveUserListApi,
+  removeCoulddriveFilesApi,
+  transferCoulddriveFilesApi,
 } from '#/api';
-
+import FileSelector from '#/components/FileSelector.vue';
+import { usePathNavigation } from '#/composables/usePathNavigation';
 
 import { getQueryFormConfig, getTableColumns } from './data';
-import { usePathNavigation } from '#/composables/usePathNavigation';
-import FileSelector from '#/components/FileSelector.vue';
-
 
 // 路径导航逻辑
 const pathNavigation = usePathNavigation({
   onNavigate: () => {
-    gridApi.query();
+    gridApi.reload();
   },
   onEnterFolder: () => {
-    gridApi.query();
+    gridApi.reload();
   },
   onGoBack: () => {
-    gridApi.query();
-  }
+    gridApi.reload();
+  },
 });
 
 const {
@@ -58,15 +54,17 @@ const {
   navigateToPath,
   navigateToFolder,
   goBack,
-  resetPath
+  resetPath,
 } = pathNavigation;
 
 // 其他状态管理
 const authToken = ref<string>('');
-const accountOptions = ref<Array<{ label: string; value: number; cookies: string }>>([]);
+const accountOptions = ref<
+  Array<{ cookies: string; label: string; value: number }>
+>([]);
 const formData = ref({
   type: '',
-  user_id: null as number | null,
+  user_id: null as null | number,
 });
 
 // 获取账号列表
@@ -87,11 +85,13 @@ async function loadAccountOptions(type?: string) {
     const response = await getCoulddriveUserListApi(params);
     const accounts = response.items || [];
 
-    accountOptions.value = accounts.map((account: CoulddriveDriveAccountDetail) => ({
-      label: `${account.username || account.user_id} (${account.type})`,
-      value: account.id,
-      cookies: account.cookies || '',
-    }));
+    accountOptions.value = accounts.map(
+      (account: CoulddriveDriveAccountDetail) => ({
+        label: `${account.username || account.user_id} (${account.type})`,
+        value: account.id,
+        cookies: account.cookies || '',
+      }),
+    );
   } catch (error) {
     console.error('获取账号列表失败:', error);
     message.error('获取账号列表失败');
@@ -101,7 +101,7 @@ async function loadAccountOptions(type?: string) {
 
 // 设置认证Token
 async function setAuthTokenFromAccount(accountId: number) {
-  const account = accountOptions.value.find(acc => acc.value === accountId);
+  const account = accountOptions.value.find((acc) => acc.value === accountId);
   if (account && account.cookies) {
     authToken.value = account.cookies;
   } else {
@@ -123,11 +123,13 @@ const handleFormChange = async (values: any) => {
 
     await queryFormApi.setValues({
       type: values.type,
-      user_id: null
+      user_id: null,
     });
 
     await loadAccountOptions(values.type);
-    const driveTypeLabel = DRIVE_TYPE_OPTIONS.find(option => option.value === values.type)?.label || values.type;
+    const driveTypeLabel =
+      DRIVE_TYPE_OPTIONS.find((option) => option.value === values.type)
+        ?.label || values.type;
     message.info(`已切换到${driveTypeLabel}，请重新选择关联账号`);
   }
 
@@ -137,7 +139,7 @@ const handleFormChange = async (values: any) => {
     if (values.user_id) {
       await setAuthTokenFromAccount(values.user_id);
       resetPath();
-      gridApi.query();
+      gridApi.reload();
       message.success('已选择账号，正在加载文件列表...');
     } else {
       authToken.value = '';
@@ -148,7 +150,7 @@ const handleFormChange = async (values: any) => {
 
 // 创建查询表单
 const [QueryForm, queryFormApi] = useVbenForm(
-  getQueryFormConfig(accountOptions, handleFormChange)
+  getQueryFormConfig(accountOptions, handleFormChange),
 );
 
 // 创建表格
@@ -179,21 +181,21 @@ const [Grid, gridApi] = useVbenVxeGrid({
     columns: getTableColumns(),
     proxyConfig: {
       ajax: {
-                 query: async ({ page }: { page: any }) => {
-           if (!authToken.value && !formData.value.user_id) {
-             message.warning('请先选择关联账号');
-             return { items: [], total: 0 };
-           }
+        query: async ({ page }: { page: any }) => {
+          if (!authToken.value && !formData.value.user_id) {
+            message.warning('请先选择关联账号');
+            return { items: [], total: 0 };
+          }
 
-           const params: CoulddriveListFilesParams = {
-             drive_type: formData.value.type,
-             file_path: currentPath.value,
-             file_id: currentFileId.value,
-             page: page.currentPage,
-             size: page.pageSize,
-           };
-           return await getCoulddriveFileListApi(params, authToken.value);
-         },
+          const params: CoulddriveListFilesParams = {
+            drive_type: formData.value.type,
+            file_path: currentPath.value,
+            file_id: currentFileId.value,
+            page: page.currentPage,
+            size: page.pageSize,
+          };
+          return await getCoulddriveFileListApi(params, authToken.value);
+        },
       },
     },
   },
@@ -237,12 +239,19 @@ const wrappedGoBack = () => {
 // 右键菜单处理
 function handleContextMenuClick(code: string, row: CoulddriveFileInfo) {
   switch (code) {
-    case 'delete':
+    case 'delete': {
       deleteFile(row.file_id, row.file_name);
       break;
-    case 'share':
+    }
+    case 'rename': {
+      message.info(`重命名功能开发中: ${row.file_name}`);
+      break;
+    }
+    case 'share': {
       // 检查是否有多个文件被选中
-      const selectedRows = gridApi.grid.getCheckboxRecords(true) as CoulddriveFileInfo[];
+      const selectedRows = gridApi.grid.getCheckboxRecords(
+        true,
+      ) as CoulddriveFileInfo[];
       if (selectedRows.length > 1) {
         // 如果选中了多个文件，使用批量分享
         openBatchShareModal();
@@ -251,9 +260,7 @@ function handleContextMenuClick(code: string, row: CoulddriveFileInfo) {
         openShareModal(row);
       }
       break;
-    case 'rename':
-      message.info(`重命名功能开发中: ${row.file_name}`);
-      break;
+    }
   }
 }
 
@@ -270,29 +277,34 @@ function deleteFile(fileId: string, fileName: string) {
         drive_type: formData.value.type,
         file_ids: [fileId],
       };
-      return removeCoulddriveFilesApi(params, authToken.value).then(() => {
-        message.success(`删除文件 ${fileName} 成功`);
-        gridApi.query();
-      }).catch((error) => {
-        console.error('删除文件失败:', error);
-        message.error(`删除文件 ${fileName} 失败`);
-      });
+      return removeCoulddriveFilesApi(params, authToken.value)
+        .then(() => {
+          message.success(`删除文件 ${fileName} 成功`);
+          gridApi.query();
+        })
+        .catch((error) => {
+          console.error('删除文件失败:', error);
+          message.error(`删除文件 ${fileName} 失败`);
+        });
     },
   });
 }
 
 // 批量删除
 function deleteSelectedFiles() {
-  const selectedRows = gridApi.grid.getCheckboxRecords(true) as CoulddriveFileInfo[];
+  const selectedRows = gridApi.grid.getCheckboxRecords(
+    true,
+  ) as CoulddriveFileInfo[];
   if (selectedRows.length === 0) {
     message.warning('请选择要删除的文件');
     return;
   }
 
-  const fileNames = selectedRows.map(row => row.file_name).slice(0, 3); // 最多显示3个文件名
-  const displayNames = fileNames.length < selectedRows.length
-    ? `${fileNames.join('、')} 等${selectedRows.length}个文件`
-    : fileNames.join('、');
+  const fileNames = selectedRows.map((row) => row.file_name).slice(0, 3); // 最多显示3个文件名
+  const displayNames =
+    fileNames.length < selectedRows.length
+      ? `${fileNames.join('、')} 等${selectedRows.length}个文件`
+      : fileNames.join('、');
 
   Modal.confirm({
     title: '确认批量删除',
@@ -306,13 +318,15 @@ function deleteSelectedFiles() {
         file_ids: selectedRows.map((row: CoulddriveFileInfo) => row.file_id),
       };
 
-      return removeCoulddriveFilesApi(params, authToken.value).then(() => {
-        message.success(`成功删除 ${selectedRows.length} 个文件`);
-        gridApi.query();
-      }).catch((error) => {
-        console.error('批量删除文件失败:', error);
-        message.error(`批量删除文件失败`);
-      });
+      return removeCoulddriveFilesApi(params, authToken.value)
+        .then(() => {
+          message.success(`成功删除 ${selectedRows.length} 个文件`);
+          gridApi.query();
+        })
+        .catch((error) => {
+          console.error('批量删除文件失败:', error);
+          message.error(`批量删除文件失败`);
+        });
     },
   });
 }
@@ -338,10 +352,12 @@ const [createFolderModal, createFolderModalApi] = useVbenModal({
     const { valid } = await createFolderFormApi.validate();
     if (valid) {
       createFolderModalApi.lock();
-      const { folder_name } = await createFolderFormApi.getValues<{ folder_name: string }>();
+      const { folder_name } = await createFolderFormApi.getValues<{
+        folder_name: string;
+      }>();
       const params: CoulddriveMkdirParams = {
         drive_type: formData.value.type,
-        file_path: currentPath.value + '/' + folder_name,
+        file_path: `${currentPath.value}/${folder_name}`,
         file_name: folder_name,
       };
       try {
@@ -365,7 +381,6 @@ const [createFolderModal, createFolderModalApi] = useVbenModal({
 const fileSelectorVisible = ref(false);
 
 const shareLink = ref('');
-const loadingShareFiles = ref(false);
 
 // 保存分享文件表单
 const [SaveShareForm, saveShareFormApi] = useVbenForm({
@@ -394,7 +409,9 @@ const [saveShareModal, saveShareModalApi] = useVbenModal({
 
     const { valid } = await saveShareFormApi.validate();
     if (valid) {
-      const { share_link } = await saveShareFormApi.getValues<{ share_link: string }>();
+      const { share_link } = await saveShareFormApi.getValues<{
+        share_link: string;
+      }>();
       shareLink.value = share_link;
 
       // 关闭当前模态框，打开文件选择器
@@ -406,7 +423,10 @@ const [saveShareModal, saveShareModalApi] = useVbenModal({
     if (isOpen) {
       saveShareFormApi.resetForm();
       // 根据选择的网盘类型更新占位符
-      const driveTypeLabel = DRIVE_TYPE_OPTIONS.find(option => option.value === formData.value.type)?.label || '网盘';
+      const driveTypeLabel =
+        DRIVE_TYPE_OPTIONS.find(
+          (option) => option.value === formData.value.type,
+        )?.label || '网盘';
       saveShareFormApi.updateSchema([
         {
           component: 'Input',
@@ -431,14 +451,12 @@ function openSaveShareModal() {
 
 // 处理文件选择确认
 async function handleFileSelectConfirm(data: any) {
-  console.log('选择的文件:', data);
-
   if (!data.selectedFiles || data.selectedFiles.length === 0) {
     message.warning('请选择要保存的文件');
     return;
   }
 
-      try {
+  try {
     // 从选中的文件中提取转存所需的元数据
     const firstFile = data.selectedFiles[0];
     const fileExt = firstFile.file_ext || {};
@@ -446,12 +464,12 @@ async function handleFileSelectConfirm(data: any) {
     // 构造文件扩展信息，包含每个文件的扩展信息
     const filesExtInfo = data.selectedFiles.map((file: CoulddriveFileInfo) => ({
       file_id: file.file_id,
-      file_ext: file.file_ext || {}
+      file_ext: file.file_ext || {},
     }));
 
     // 提取所有文件的share_fid_tokens
-    const shareFidTokens = data.selectedFiles.map((file: CoulddriveFileInfo) =>
-      file.file_ext?.share_fid_token || ''
+    const shareFidTokens = data.selectedFiles.map(
+      (file: CoulddriveFileInfo) => file.file_ext?.share_fid_token || '',
     );
 
     // 构造转存参数
@@ -461,7 +479,9 @@ async function handleFileSelectConfirm(data: any) {
       source_id: shareLink.value,
       source_path: data.currentPath || '/', // 分享文件的当前路径
       target_path: currentPath.value, // 保存到当前目录
-      file_ids: data.selectedFiles.map((file: CoulddriveFileInfo) => file.file_id), // 选中的文件ID列表
+      file_ids: data.selectedFiles.map(
+        (file: CoulddriveFileInfo) => file.file_id,
+      ), // 选中的文件ID列表
       ext: {
         // 展开第一个文件的扩展信息作为基础信息
         ...fileExt,
@@ -471,10 +491,10 @@ async function handleFileSelectConfirm(data: any) {
         pdir_fid: data.fileId || '0', // 分享文件的父目录ID
         files_ext_info: filesExtInfo, // 所有文件的扩展信息
         share_fid_tokens: shareFidTokens, // 所有文件的share_fid_token
-      }
+      },
     };
 
-            // 调用转存接口
+    // 调用转存接口
     await transferCoulddriveFilesApi(transferParams, authToken.value);
 
     message.success(`成功保存 ${data.selectedFiles.length} 个文件到当前目录`);
@@ -495,19 +515,19 @@ function handleFileSelectCancel() {
   fileSelectorVisible.value = false;
 }
 
-
-
 // 分享结果相关状态
 const shareResultInfo = ref<CoulddriveShareInfo | null>(null);
 
 // 统一的分享状态（支持单个和批量）
 const shareQueue = ref<CoulddriveFileInfo[]>([]);
-const shareResults = ref<Array<{
-  file: CoulddriveFileInfo;
-  result?: CoulddriveShareInfo;
-  error?: string;
-  status: 'pending' | 'success' | 'error';
-}>>([]);
+const shareResults = ref<
+  Array<{
+    error?: string;
+    file: CoulddriveFileInfo;
+    result?: CoulddriveShareInfo;
+    status: 'error' | 'pending' | 'success';
+  }>
+>([]);
 const shareProgress = ref({
   current: 0,
   total: 0,
@@ -601,16 +621,19 @@ const [createShareModal, createShareModalApi] = useVbenModal({
           password: string;
         }>();
 
-                // 记录是否设置了提取码和实际的提取码
+        // 记录是否设置了提取码和实际的提取码
         currentShareHasPassword.value = formValues.need_password;
-        currentSharePassword.value = formValues.need_password ? formValues.password : '';
-
-
+        currentSharePassword.value = formValues.need_password
+          ? formValues.password
+          : '';
 
         // 关闭设置弹窗，开始执行分享
         await createShareModalApi.close();
-        await executeShare(shareQueue.value, formValues.expired_type, formValues.need_password ? formValues.password : undefined);
-
+        await executeShare(
+          shareQueue.value,
+          formValues.expired_type,
+          formValues.need_password ? formValues.password : undefined,
+        );
       } catch (error) {
         console.error('分享失败:', error);
         message.error('分享失败，请重试');
@@ -667,7 +690,11 @@ const [shareResultModal, shareResultModalApi] = useVbenModal({
 });
 
 // 统一的分享执行函数
-async function executeShare(files: CoulddriveFileInfo[], expiredType: number, password?: string) {
+async function executeShare(
+  files: CoulddriveFileInfo[],
+  expiredType: number,
+  password?: string,
+) {
   if (!files || files.length === 0) {
     message.error('没有选择要分享的文件');
     return;
@@ -684,7 +711,7 @@ async function executeShare(files: CoulddriveFileInfo[], expiredType: number, pa
   }
 
   // 初始化分享状态
-  shareResults.value = files.map(file => ({
+  shareResults.value = files.map((file) => ({
     file,
     status: 'pending' as const,
   }));
@@ -716,7 +743,10 @@ async function executeShare(files: CoulddriveFileInfo[], expiredType: number, pa
         ...(password && { password }),
       };
 
-      const result = await createCoulddriveShareApi(shareParams, authToken.value);
+      const result = await createCoulddriveShareApi(
+        shareParams,
+        authToken.value,
+      );
 
       // 更新结果
       if (shareResults.value[i]) {
@@ -726,7 +756,6 @@ async function executeShare(files: CoulddriveFileInfo[], expiredType: number, pa
           status: 'success',
         };
       }
-
     } catch (error) {
       console.error(`分享文件 ${file.file_name} 失败:`, error);
 
@@ -742,18 +771,24 @@ async function executeShare(files: CoulddriveFileInfo[], expiredType: number, pa
 
     // 如果不是最后一个文件，等待3秒
     if (i < files.length - 1) {
-      await new Promise(resolve => setTimeout(resolve, 3000));
+      await new Promise((resolve) => setTimeout(resolve, 3000));
     }
   }
 
-    // 分享完成
+  // 分享完成
   shareProgress.value.isRunning = false;
 
-  const successCount = shareResults.value.filter(r => r.status === 'success').length;
-  const errorCount = shareResults.value.filter(r => r.status === 'error').length;
+  const successCount = shareResults.value.filter(
+    (r) => r.status === 'success',
+  ).length;
+  const errorCount = shareResults.value.filter(
+    (r) => r.status === 'error',
+  ).length;
 
-    if (files.length > 1) {
-    message.success(`批量分享完成！成功：${successCount}个，失败：${errorCount}个`);
+  if (files.length > 1) {
+    message.success(
+      `批量分享完成！成功：${successCount}个，失败：${errorCount}个`,
+    );
     // 自动关闭进度模态框并显示结果
     shareProgressModalApi.close();
     setTimeout(() => {
@@ -763,7 +798,9 @@ async function executeShare(files: CoulddriveFileInfo[], expiredType: number, pa
     if (successCount > 0) {
       message.success('分享创建成功');
       // 单个分享直接显示结果
-      const firstSuccess = shareResults.value.find(r => r.status === 'success' && r.result);
+      const firstSuccess = shareResults.value.find(
+        (r) => r.status === 'success' && r.result,
+      );
       if (firstSuccess && firstSuccess.result) {
         showShareResult(firstSuccess.result);
         return; // 单个分享不需要显示批量结果
@@ -808,7 +845,9 @@ function openBatchShareModal() {
     return;
   }
 
-  const selectedRows = gridApi.grid.getCheckboxRecords(true) as CoulddriveFileInfo[];
+  const selectedRows = gridApi.grid.getCheckboxRecords(
+    true,
+  ) as CoulddriveFileInfo[];
   if (selectedRows.length === 0) {
     message.warning('请选择要分享的文件');
     return;
@@ -817,7 +856,7 @@ function openBatchShareModal() {
   shareQueue.value = selectedRows;
 
   // 设置文件列表显示
-  const fileList = selectedRows.map(file => file.file_name).join('\n');
+  const fileList = selectedRows.map((file) => file.file_name).join('\n');
   createShareFormApi.setValues({
     file_list: fileList,
     expired_type: 7,
@@ -847,37 +886,44 @@ function copyShareLink() {
 function copySingleShareResult() {
   if (!shareResultInfo.value) return;
 
-  const driveTypeLabel = DRIVE_TYPE_OPTIONS.find(option => option.value === formData.value.type)?.label || '网盘';
+  const driveTypeLabel =
+    DRIVE_TYPE_OPTIONS.find((option) => option.value === formData.value.type)
+      ?.label || '网盘';
 
   let shareText = `我用${driveTypeLabel}分享了「${shareResultInfo.value.title}」，点击链接即可保存。打开「${driveTypeLabel}APP」在线查看，支持多种文档格式转换。
 链接：${shareResultInfo.value.url}`;
-
-
 
   // 如果用户设置了提取码，添加提取码信息
   if (currentShareHasPassword.value && currentSharePassword.value) {
     shareText += `\n提取码：${currentSharePassword.value}`;
   }
 
-  navigator.clipboard.writeText(shareText).then(() => {
-    message.success('分享链接已复制到剪贴板');
-  }).catch(() => {
-    message.error('复制失败，请手动复制分享链接');
-  });
+  navigator.clipboard
+    .writeText(shareText)
+    .then(() => {
+      message.success('分享链接已复制到剪贴板');
+    })
+    .catch(() => {
+      message.error('复制失败，请手动复制分享链接');
+    });
 }
 
 // 复制所有分享结果
 function copyAllShareResults() {
-  const driveTypeLabel = DRIVE_TYPE_OPTIONS.find(option => option.value === formData.value.type)?.label || '网盘';
+  const driveTypeLabel =
+    DRIVE_TYPE_OPTIONS.find((option) => option.value === formData.value.type)
+      ?.label || '网盘';
 
-  const successResults = shareResults.value.filter(r => r.status === 'success' && r.result);
+  const successResults = shareResults.value.filter(
+    (r) => r.status === 'success' && r.result,
+  );
 
   if (successResults.length === 0) {
     message.warning('没有成功的分享链接可复制');
     return;
   }
 
-  const shareTexts = successResults.map(item => {
+  const shareTexts = successResults.map((item) => {
     const result = item.result!;
     let shareText = `我用${driveTypeLabel}分享了「${result.title}」，点击链接即可保存。打开「${driveTypeLabel}APP」在线查看，支持多种文档格式转换。
 链接：${result.url}`;
@@ -892,16 +938,21 @@ function copyAllShareResults() {
 
   const allShareText = shareTexts.join('\n\n---\n\n');
 
-  navigator.clipboard.writeText(allShareText).then(() => {
-    message.success('所有分享链接已复制到剪贴板');
-  }).catch(() => {
-    message.error('复制失败，请手动复制分享链接');
-  });
+  navigator.clipboard
+    .writeText(allShareText)
+    .then(() => {
+      message.success('所有分享链接已复制到剪贴板');
+    })
+    .catch(() => {
+      message.error('复制失败，请手动复制分享链接');
+    });
 }
 
 // 复制单个分享链接
 function copySingleShareLink(shareInfo: CoulddriveShareInfo) {
-  const driveTypeLabel = DRIVE_TYPE_OPTIONS.find(option => option.value === formData.value.type)?.label || '网盘';
+  const driveTypeLabel =
+    DRIVE_TYPE_OPTIONS.find((option) => option.value === formData.value.type)
+      ?.label || '网盘';
 
   let shareText = `我用${driveTypeLabel}分享了「${shareInfo.title}」，点击链接即可保存。打开「${driveTypeLabel}APP」在线查看，支持多种文档格式转换。
 链接：${shareInfo.url}`;
@@ -911,13 +962,15 @@ function copySingleShareLink(shareInfo: CoulddriveShareInfo) {
     shareText += `\n提取码：${currentSharePassword.value}`;
   }
 
-  navigator.clipboard.writeText(shareText).then(() => {
-    message.success(`「${shareInfo.title}」分享链接已复制到剪贴板`);
-  }).catch(() => {
-    message.error('复制失败，请手动复制分享链接');
-  });
+  navigator.clipboard
+    .writeText(shareText)
+    .then(() => {
+      message.success(`「${shareInfo.title}」分享链接已复制到剪贴板`);
+    })
+    .catch(() => {
+      message.error('复制失败，请手动复制分享链接');
+    });
 }
-
 </script>
 
 <template>
@@ -928,20 +981,24 @@ function copySingleShareLink(shareInfo: CoulddriveShareInfo) {
     <!-- 路径导航 -->
     <div class="mb-4 flex items-center gap-2 text-sm">
       <span class="text-gray-600">当前路径:</span>
-      <div class="flex items-center bg-gray-100 px-2 py-1 rounded font-mono">
+      <div class="flex items-center rounded bg-gray-100 px-2 py-1 font-mono">
         <template v-for="(pathItem, index) in breadcrumbPaths" :key="index">
           <button
-            class="text-blue-600 hover:text-blue-800 hover:underline cursor-pointer"
+            class="cursor-pointer text-blue-600 hover:text-blue-800 hover:underline"
             @click="wrappedNavigateToPath(pathItem.path, pathItem.file_id)"
           >
             {{ pathItem.name }}
           </button>
-          <span v-if="index < breadcrumbPaths.length - 1" class="mx-1 text-gray-400">/</span>
+          <span
+            v-if="index < breadcrumbPaths.length - 1"
+            class="mx-1 text-gray-400"
+            >/</span
+          >
         </template>
       </div>
       <button
         v-if="canGoBack"
-        class="px-2 py-1 text-sm bg-blue-500 text-white rounded hover:bg-blue-600"
+        class="rounded bg-blue-500 px-2 py-1 text-sm text-white hover:bg-blue-600"
         @click="wrappedGoBack"
       >
         返回上级
@@ -953,30 +1010,29 @@ function copySingleShareLink(shareInfo: CoulddriveShareInfo) {
       <template #toolbar-actions>
         <div class="flex gap-2">
           <button
-            class="px-3 py-1 bg-green-500 text-white rounded hover:bg-green-600"
+            class="rounded bg-green-500 px-3 py-1 text-white hover:bg-green-600"
             @click="createFolderModalApi.open()"
           >
             新建文件夹
           </button>
           <button
-            class="px-3 py-1 bg-blue-500 text-white rounded hover:bg-blue-600"
+            class="rounded bg-blue-500 px-3 py-1 text-white hover:bg-blue-600"
             @click="openSaveShareModal"
           >
             保存
           </button>
           <button
-            class="px-3 py-1 bg-yellow-500 text-white rounded hover:bg-yellow-600"
+            class="rounded bg-yellow-500 px-3 py-1 text-white hover:bg-yellow-600"
             @click="openBatchShareModal"
           >
             批量分享
           </button>
           <button
-            class="px-3 py-1 bg-red-500 text-white rounded hover:bg-red-600"
+            class="rounded bg-red-500 px-3 py-1 text-white hover:bg-red-600"
             @click="deleteSelectedFiles"
           >
             批量删除
           </button>
-
         </div>
       </template>
     </Grid>
@@ -1001,21 +1057,29 @@ function copySingleShareLink(shareInfo: CoulddriveShareInfo) {
       <div v-if="shareProgress.total > 0" class="text-center">
         <!-- 进度条 -->
         <div class="mb-4">
-          <div class="w-full bg-gray-200 rounded-full h-2">
+          <div class="h-2 w-full rounded-full bg-gray-200">
             <div
-              class="bg-blue-600 h-2 rounded-full transition-all duration-300"
-              :style="{ width: `${(shareProgress.current / shareProgress.total) * 100}%` }"
+              class="h-2 rounded-full bg-blue-600 transition-all duration-300"
+              :style="{
+                width: `${(shareProgress.current / shareProgress.total) * 100}%`,
+              }"
             ></div>
           </div>
         </div>
 
         <!-- 进度文字 -->
-        <div class="text-sm text-gray-600 mb-2">
-          正在分享第 {{ shareProgress.current }} / {{ shareProgress.total }} 个文件
+        <div class="mb-2 text-sm text-gray-600">
+          正在分享第 {{ shareProgress.current }} /
+          {{ shareProgress.total }} 个文件
         </div>
 
         <!-- 当前分享的文件名 -->
-        <div v-if="shareProgress.current > 0 && shareResults[shareProgress.current - 1]" class="text-sm text-gray-800 mb-4">
+        <div
+          v-if="
+            shareProgress.current > 0 && shareResults[shareProgress.current - 1]
+          "
+          class="mb-4 text-sm text-gray-800"
+        >
           {{ shareResults[shareProgress.current - 1]?.file.file_name }}
         </div>
 
@@ -1029,25 +1093,42 @@ function copySingleShareLink(shareInfo: CoulddriveShareInfo) {
     <!-- 统一的分享结果弹窗 -->
     <component :is="shareResultModal">
       <!-- 单个分享结果 -->
-      <div v-if="shareResultInfo && shareResults.length <= 1" class="text-center">
+      <div
+        v-if="shareResultInfo && shareResults.length <= 1"
+        class="text-center"
+      >
         <!-- 成功图标 -->
         <div class="mb-4">
-          <div class="mx-auto w-16 h-16 bg-green-100 rounded-full flex items-center justify-center">
-            <svg class="w-8 h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+          <div
+            class="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-green-100"
+          >
+            <svg
+              class="h-8 w-8 text-green-600"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M5 13l4 4L19 7"
+              />
             </svg>
           </div>
         </div>
 
         <!-- 成功文本 -->
         <div class="mb-6">
-          <h3 class="text-lg font-medium text-gray-900 mb-2">成功创建分享链接</h3>
+          <h3 class="mb-2 text-lg font-medium text-gray-900">
+            成功创建分享链接
+          </h3>
         </div>
 
         <!-- 分享链接 -->
-        <div class="mb-6 p-3 bg-gray-50 rounded-lg border">
-          <div class="text-sm text-gray-600 mb-2">分享链接：</div>
-          <div class="font-mono text-sm text-gray-800 break-all">
+        <div class="mb-6 rounded-lg border bg-gray-50 p-3">
+          <div class="mb-2 text-sm text-gray-600">分享链接：</div>
+          <div class="break-all font-mono text-sm text-gray-800">
             {{ shareResultInfo.url }}
           </div>
         </div>
@@ -1055,7 +1136,7 @@ function copySingleShareLink(shareInfo: CoulddriveShareInfo) {
         <!-- 复制按钮 -->
         <div class="flex justify-center">
           <button
-            class="px-6 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
+            class="rounded-lg bg-blue-500 px-6 py-2 text-white transition-colors hover:bg-blue-600"
             @click="copyShareLink"
           >
             复制链接
@@ -1066,39 +1147,80 @@ function copySingleShareLink(shareInfo: CoulddriveShareInfo) {
       <!-- 批量分享结果 -->
       <div v-else-if="shareResults.length > 1">
         <!-- 统计信息 -->
-        <div class="text-center mb-6">
+        <div class="mb-6 text-center">
           <div class="mb-4">
-            <div class="mx-auto w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center">
-              <svg class="w-8 h-8 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.367 2.684 3 3 0 00-5.367-2.684z"></path>
+            <div
+              class="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-blue-100"
+            >
+              <svg
+                class="h-8 w-8 text-blue-600"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.367 2.684 3 3 0 00-5.367-2.684z"
+                />
               </svg>
             </div>
           </div>
 
-          <h3 class="text-lg font-medium text-gray-900 mb-2">批量分享完成</h3>
+          <h3 class="mb-2 text-lg font-medium text-gray-900">批量分享完成</h3>
 
           <div class="text-sm text-gray-600">
-            成功：{{ shareResults.filter((r: any) => r.status === 'success').length }}个，
-            失败：{{ shareResults.filter((r: any) => r.status === 'error').length }}个
+            成功：{{
+              shareResults.filter((r: any) => r.status === 'success').length
+            }}个， 失败：{{
+              shareResults.filter((r: any) => r.status === 'error').length
+            }}个
           </div>
         </div>
 
         <!-- 详细结果列表 -->
-        <div class="max-h-60 overflow-y-auto mb-6">
-          <div v-for="(item, index) in shareResults" :key="index" class="flex items-center justify-between py-2 px-3 border-b border-gray-100 last:border-b-0">
-            <div class="flex-1 text-sm text-gray-800 truncate">
+        <div class="mb-6 max-h-60 overflow-y-auto">
+          <div
+            v-for="(item, index) in shareResults"
+            :key="index"
+            class="flex items-center justify-between border-b border-gray-100 px-3 py-2 last:border-b-0"
+          >
+            <div class="flex-1 truncate text-sm text-gray-800">
               {{ item.file.file_name }}
             </div>
             <div class="ml-2">
-              <span v-if="item.status === 'success'" class="inline-flex items-center px-2 py-1 rounded-full text-xs bg-green-100 text-green-800">
-                <svg class="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20">
-                  <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"></path>
+              <span
+                v-if="item.status === 'success'"
+                class="inline-flex items-center rounded-full bg-green-100 px-2 py-1 text-xs text-green-800"
+              >
+                <svg
+                  class="mr-1 h-3 w-3"
+                  fill="currentColor"
+                  viewBox="0 0 20 20"
+                >
+                  <path
+                    fill-rule="evenodd"
+                    d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                    clip-rule="evenodd"
+                  />
                 </svg>
                 成功
               </span>
-              <span v-else-if="item.status === 'error'" class="inline-flex items-center px-2 py-1 rounded-full text-xs bg-red-100 text-red-800">
-                <svg class="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20">
-                  <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"></path>
+              <span
+                v-else-if="item.status === 'error'"
+                class="inline-flex items-center rounded-full bg-red-100 px-2 py-1 text-xs text-red-800"
+              >
+                <svg
+                  class="mr-1 h-3 w-3"
+                  fill="currentColor"
+                  viewBox="0 0 20 20"
+                >
+                  <path
+                    fill-rule="evenodd"
+                    d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z"
+                    clip-rule="evenodd"
+                  />
                 </svg>
                 失败
               </span>
@@ -1107,15 +1229,32 @@ function copySingleShareLink(shareInfo: CoulddriveShareInfo) {
         </div>
 
         <!-- 成功的分享链接 -->
-        <div v-if="shareResults.filter((r: any) => r.status === 'success' && r.result).length > 0" class="mb-6">
-          <h4 class="text-sm font-medium text-gray-900 mb-3">分享链接：</h4>
-          <div class="max-h-40 overflow-y-auto bg-gray-50 rounded-lg p-3 border">
-            <div v-for="(item, index) in shareResults.filter((r: any) => r.status === 'success' && r.result)" :key="index" class="mb-3 last:mb-0 p-2 bg-white rounded border">
-              <div class="text-xs text-gray-600 mb-1 font-medium">{{ item.result?.title }}</div>
+        <div
+          v-if="
+            shareResults.some((r: any) => r.status === 'success' && r.result)
+          "
+          class="mb-6"
+        >
+          <h4 class="mb-3 text-sm font-medium text-gray-900">分享链接：</h4>
+          <div
+            class="max-h-40 overflow-y-auto rounded-lg border bg-gray-50 p-3"
+          >
+            <div
+              v-for="(item, index) in shareResults.filter(
+                (r: any) => r.status === 'success' && r.result,
+              )"
+              :key="index"
+              class="mb-3 rounded border bg-white p-2 last:mb-0"
+            >
+              <div class="mb-1 text-xs font-medium text-gray-600">
+                {{ item.result?.title }}
+              </div>
               <div class="flex items-center gap-2">
-                <div class="font-mono text-xs text-gray-800 break-all flex-1">{{ item.result?.url }}</div>
+                <div class="flex-1 break-all font-mono text-xs text-gray-800">
+                  {{ item.result?.url }}
+                </div>
                 <button
-                  class="px-2 py-1 text-xs bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors whitespace-nowrap"
+                  class="whitespace-nowrap rounded bg-blue-500 px-2 py-1 text-xs text-white transition-colors hover:bg-blue-600"
                   @click="item.result && copySingleShareLink(item.result)"
                 >
                   复制
@@ -1128,8 +1267,10 @@ function copySingleShareLink(shareInfo: CoulddriveShareInfo) {
         <!-- 复制按钮 -->
         <div class="flex justify-center">
           <button
-            v-if="shareResults.filter((r: any) => r.status === 'success' && r.result).length > 0"
-            class="px-6 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
+            v-if="
+              shareResults.some((r: any) => r.status === 'success' && r.result)
+            "
+            class="rounded-lg bg-blue-500 px-6 py-2 text-white transition-colors hover:bg-blue-600"
             @click="copyShareLink"
           >
             复制所有链接
@@ -1146,13 +1287,11 @@ function copySingleShareLink(shareInfo: CoulddriveShareInfo) {
       mode="share"
       :share-params="{
         sourceType: 'link',
-        sourceId: shareLink
+        sourceId: shareLink,
       }"
       title="选择要保存的文件"
       @confirm="handleFileSelectConfirm"
       @cancel="handleFileSelectCancel"
     />
-
-
   </Page>
 </template>

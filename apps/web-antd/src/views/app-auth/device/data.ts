@@ -1,4 +1,5 @@
 import type { VbenFormSchema } from '@vben/common-ui';
+
 import type { VxeGridPropTypes } from '#/adapter/vxe-table';
 
 import { h } from 'vue';
@@ -73,7 +74,9 @@ export const schema: VbenFormSchema[] = [
   },
 ];
 
-export function useColumns(onActionClick: (params: any) => void): VxeGridPropTypes.Columns {
+export function useColumns(
+  onActionClick: (params: any) => void,
+): VxeGridPropTypes.Columns {
   return [
     {
       type: 'checkbox',
@@ -90,9 +93,13 @@ export function useColumns(onActionClick: (params: any) => void): VxeGridPropTyp
       minWidth: 200,
       slots: {
         default: ({ row }: any) => [
-          h('span', {
-            style: { fontFamily: 'monospace', fontSize: '14px' },
-          }, row.device_id),
+          h(
+            'span',
+            {
+              style: { fontFamily: 'monospace', fontSize: '14px' },
+            },
+            row.device_id,
+          ),
         ],
       },
     },
@@ -126,9 +133,13 @@ export function useColumns(onActionClick: (params: any) => void): VxeGridPropTyp
       width: 100,
       slots: {
         default: ({ row }: any) => {
-          return h(Tag, {
-            color: row.status === 1 ? 'green' : 'red',
-          }, () => row.status === 1 ? '在线' : '离线');
+          return h(
+            Tag,
+            {
+              color: row.status === 1 ? 'green' : 'red',
+            },
+            () => (row.status === 1 ? '在线' : '离线'),
+          );
         },
       },
     },
@@ -154,17 +165,29 @@ export function useColumns(onActionClick: (params: any) => void): VxeGridPropTyp
       fixed: 'right',
       slots: {
         default: ({ row }: any) => [
-          h('a', {
-            onClick: () => onActionClick({ code: 'view', row }),
-          }, '查看'),
-          h('a', {
-            style: { marginLeft: '8px' },
-            onClick: () => onActionClick({ code: 'edit', row }),
-          }, '编辑'),
-          h('a', {
-            style: { marginLeft: '8px', color: '#ff4d4f' },
-            onClick: () => onActionClick({ code: 'delete', row }),
-          }, '删除'),
+          h(
+            'a',
+            {
+              onClick: () => onActionClick({ code: 'view', row }),
+            },
+            '查看',
+          ),
+          h(
+            'a',
+            {
+              style: { marginLeft: '8px' },
+              onClick: () => onActionClick({ code: 'edit', row }),
+            },
+            '编辑',
+          ),
+          h(
+            'a',
+            {
+              style: { marginLeft: '8px', color: '#ff4d4f' },
+              onClick: () => onActionClick({ code: 'delete', row }),
+            },
+            '删除',
+          ),
         ],
       },
     },

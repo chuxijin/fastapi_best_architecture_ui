@@ -1,9 +1,13 @@
 <script lang="ts" setup>
 import type { VbenFormProps } from '@vben/common-ui';
-import type { OnActionClickParams, VxeTableGridOptions } from '#/adapter/vxe-table';
+
+import type {
+  OnActionClickParams,
+  VxeTableGridOptions,
+} from '#/adapter/vxe-table';
 import type { AppVersionResult, CreateAppVersionParams } from '#/api';
 
-import { computed, ref, onMounted } from 'vue';
+import { computed, onMounted, ref } from 'vue';
 
 import { Page, useVbenModal, VbenButton } from '@vben/common-ui';
 import { MaterialSymbolsAdd } from '@vben/icons';
@@ -16,9 +20,9 @@ import { useVbenVxeGrid } from '#/adapter/vxe-table';
 import {
   createAppVersionApi,
   deleteAppVersionApi,
+  getApplicationOptions,
   getAppVersionListApi,
   updateAppVersionApi,
-  getApplicationOptions,
 } from '#/api';
 
 import { querySchema, schema, useColumns } from './data';
@@ -32,17 +36,28 @@ const initApplicationOptions = async () => {
       value: item.id,
     }));
 
-    // 更新查询表单的应用选项
-    const queryAppField = querySchema.find(item => item.fieldName === 'application_id');
-    if (queryAppField && queryAppField.componentProps) {
-      queryAppField.componentProps.options = options;
-    }
+    // 安全设置 schema 字段的 options（兼容 object/function）
+    const setFieldOptions = (
+      fields: any[],
+      fieldName: string,
+      opts: Array<{ label: string; value: number }>,
+    ) => {
+      const field = fields.find((i: any) => i.fieldName === fieldName);
+      if (!field) return;
+      const cp = field.componentProps;
+      if (typeof cp === 'function') {
+        const original = cp;
+        field.componentProps = (value: any, actions: any) => {
+          const base = (original as any)(value, actions) || {};
+          return { ...base, options: opts } as any;
+        };
+      } else {
+        field.componentProps = { ...(cp as any), options: opts } as any;
+      }
+    };
 
-    // 更新编辑表单的应用选项
-    const schemaAppField = schema.find(item => item.fieldName === 'application_id');
-    if (schemaAppField && schemaAppField.componentProps) {
-      schemaAppField.componentProps.options = options;
-    }
+    setFieldOptions(querySchema as any[], 'application_id', options);
+    setFieldOptions(schema as any[], 'application_id', options);
   } catch (error) {
     console.error('加载应用选项失败:', error);
   }
@@ -52,7 +67,7 @@ const formOptions: VbenFormProps = {
   collapsed: true,
   showCollapseButton: true,
   submitButtonOptions: {
-    content: $t('page.form.query'),
+    content: $t('common.search'),
   },
   schema: querySchema,
 };
@@ -133,7 +148,6 @@ const modalTitle = computed(() => {
 
 const [Modal, modalApi] = useVbenModal({
   destroyOnClose: true,
-  width: 800,
   async onConfirm() {
     const { valid } = await formApi.validate();
     if (valid) {
