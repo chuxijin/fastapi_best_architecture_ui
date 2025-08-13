@@ -21,3 +21,12 @@ export const MaterialSymbolsDelete = createIconifyIcon(
 export const MingcuteProfileLine = createIconifyIcon('mingcute:profile-line');
 
 export const AddData = createIconifyIcon('material-symbols:add-circle-outline');
+export const MaterialIconThemePython = createIconifyIcon(
+  'material-icon-theme:python',
+);
+
+export const BxsFile = createIconifyIcon('bxs:file');
+
+export const FlatColorIconsFolder = createIconifyIcon(
+  'flat-color-icons:folder',
+);

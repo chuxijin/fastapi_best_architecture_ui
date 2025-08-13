@@ -531,9 +531,12 @@ export async function getAsyncTaskStatusApi(taskId: string) {
 export async function getCoulddriveSyncConfigListApi(
   params: CoulddriveSyncConfigListParams,
 ) {
-  return requestClient.get<PaginationResult>('/api/v1/couldsync/config', {
-    params,
-  });
+  return requestClient.get<PaginationResult<CoulddriveSyncConfigDetail>>(
+    '/api/v1/couldsync/config',
+    {
+      params,
+    },
+  );
 }
 
 /**
@@ -594,7 +597,7 @@ export async function getCoulddriveRelationshipListApi(
   params: CoulddriveRelationshipParams,
   token: string,
 ) {
-  return requestClient.get<PaginationResult>(
+  return requestClient.get<PaginationResult<CoulddriveRelationshipItem>>(
     '/api/v1/coulduser/relationshiplist',
     {
       params,
@@ -612,9 +615,12 @@ export async function getCoulddriveRelationshipListApi(
 export async function getCoulddriveUserListApi(
   params: CoulddriveUserListParams,
 ) {
-  return requestClient.get<PaginationResult>('/api/v1/coulduser/userlist', {
-    params,
-  });
+  return requestClient.get<PaginationResult<CoulddriveDriveAccountDetail>>(
+    '/api/v1/coulduser/userlist',
+    {
+      params,
+    },
+  );
 }
 
 /**
@@ -661,13 +667,16 @@ export async function getCoulddriveFileListApi(
   params: CoulddriveListFilesParams,
   token: string,
 ) {
-  return requestClient.get<PaginationResult>('/api/v1/couldfile/list', {
-    params,
-    headers: {
-      'X-Token': token,
+  return requestClient.get<PaginationResult<CoulddriveFileInfo>>(
+    '/api/v1/couldfile/list',
+    {
+      params,
+      headers: {
+        'X-Token': token,
+      },
+      timeout: 60_000,
     },
-    timeout: 60_000,
-  });
+  );
 }
 
 /**
@@ -677,13 +686,16 @@ export async function getCoulddriveShareFileListApi(
   params: CoulddriveListShareFilesParams,
   token: string,
 ) {
-  return requestClient.get<PaginationResult>('/api/v1/couldfile/listshare', {
-    params,
-    headers: {
-      'X-Token': token,
+  return requestClient.get<PaginationResult<CoulddriveFileInfo>>(
+    '/api/v1/couldfile/listshare',
+    {
+      params,
+      headers: {
+        'X-Token': token,
+      },
+      timeout: 60_000,
     },
-    timeout: 60_000,
-  });
+  );
 }
 
 /**
@@ -759,9 +771,12 @@ export async function createCoulddriveShareApi(
  * 获取规则模板列表
  */
 export async function getRuleTemplateListApi(params: RuleTemplateListParams) {
-  return requestClient.get<PaginationResult>('/api/v1/template/list', {
-    params,
-  });
+  return requestClient.get<PaginationResult<RuleTemplateDetail>>(
+    '/api/v1/template/list',
+    {
+      params,
+    },
+  );
 }
 
 /**
@@ -1116,9 +1131,12 @@ export async function getSubjectsByDomainApi(domain: string) {
  * 获取资源列表
  */
 export async function getResourceListApi(params: ResourceListParams) {
-  return requestClient.get<PaginationResult>('/api/v1/resources', {
-    params,
-  });
+  return requestClient.get<PaginationResult<ResourceListItem>>(
+    '/api/v1/resources',
+    {
+      params,
+    },
+  );
 }
 
 /**
@@ -1198,7 +1216,7 @@ export async function getResourceViewHistoryApi(
   resourceId: number,
   params: ResourceViewHistoryListParams,
 ) {
-  return requestClient.get<PaginationResult>(
+  return requestClient.get<PaginationResult<ResourceViewHistoryDetail>>(
     `/api/v1/resources/${resourceId}/view-history`,
     { params },
   );
@@ -1234,7 +1252,7 @@ export async function getSyncTaskListApi(
   configId: number,
   params: SyncTaskListParams,
 ) {
-  return requestClient.get<PaginationResult>(
+  return requestClient.get<PaginationResult<SyncTaskDetail>>(
     `/api/v1/couldsync/${configId}/tasks`,
     { params },
   );
@@ -1256,7 +1274,7 @@ export async function getSyncTaskItemListApi(
   taskId: number,
   params: SyncTaskItemListParams,
 ) {
-  return requestClient.get<PaginationResult>(
+  return requestClient.get<PaginationResult<SyncTaskItemDetail>>(
     `/api/v1/couldsync/task/${taskId}/items`,
     { params },
   );
@@ -1543,9 +1561,12 @@ ${subjectSection}
 // ==================== 分类管理 API ====================
 
 export async function getCategoryListApi(params: CategoryListParams) {
-  return requestClient.get<PaginationResult>('/api/v1/category/list', {
-    params,
-  });
+  return requestClient.get<PaginationResult<CategoryDetail>>(
+    '/api/v1/category/list',
+    {
+      params,
+    },
+  );
 }
 
 export async function getCategoryTreeApi(
