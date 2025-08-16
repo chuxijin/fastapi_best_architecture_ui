@@ -119,5 +119,8 @@
       "canvas",
       "node-gyp"
     ]
+  },
+  "dependencies": {
+    "vue-codemirror6": "^1.3.22"
   }
 }

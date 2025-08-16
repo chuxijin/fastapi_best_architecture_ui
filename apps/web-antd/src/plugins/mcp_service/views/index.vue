@@ -63,6 +63,7 @@ const form = reactive<{
   value: '',
 });
 const ui = reactive<any>({});
+const allAccounts = ref<CoulddriveDriveAccountDetail[]>([]); // 存储所有账户
 const accountOptions = ref<
   Array<{ cookies: string; label: string; value: number }>
 >([]);
@@ -73,6 +74,23 @@ const modalTitle = computed(() =>
   form.id ? $t('mcp_service.actions.edit') : $t('mcp_service.actions.create'),
 );
 
+const currentDriveType = computed(() => {
+  if (form.field === 'quark_config') return 'QuarkDrive';
+  if (form.field === 'baidu_config') return 'BaiduDrive';
+  return ''; // 默认值或者其他情况
+});
+
+const driveAccountLabel = computed(() => {
+  if (currentDriveType.value === 'QuarkDrive') return '夸克账户';
+  if (currentDriveType.value === 'BaiduDrive') return '百度账户';
+  return '网盘账户'; // 默认标签
+});
+
+const fieldOptions = computed(() => [
+  { label: '夸克网盘配置', value: 'quark_config' },
+  { label: '百度网盘配置', value: 'baidu_config' },
+]);
+
 function onRefresh() {
   gridApi.query();
 }
@@ -80,10 +98,11 @@ function onRefresh() {
 function openCreate() {
   form.id = undefined;
   form.mcp = 'resource';
-  form.field = 'quark_config';
+  form.field = 'quark_config'; // 默认选择夸克配置
   form.value = '';
   (ui as any).drive_account_id = undefined;
   (ui as any).target_folder_id = undefined;
+  selectedFolderPath.value = '';
   editorOpen.value = true;
 }
 
@@ -99,6 +118,9 @@ function openEdit(row: Row) {
     (ui as any).drive_account_id = parsed?.account_id;
     (ui as any).target_folder_id = parsed?.folder_id;
     form.value = JSON.stringify(parsed, null, 2);
+    // 确保selectedFolderPath在编辑时也能正确显示
+    // 这里可能需要额外逻辑来从folder_id反查path，暂时留空
+    selectedFolderPath.value = ''; // 清空，或者实现反查逻辑
   } catch {
     form.value = '';
   }
@@ -156,27 +178,45 @@ function onActionClick({ code, row }: { code: string; row: Row }) {
   if (code === 'delete') onDelete(row);
 }
 
-// 加载夸克账户列表（有效账号）
-async function loadQuarkAccounts() {
+// 初始加载所有账户
+async function loadAllAccounts() {
   try {
     const res = await getCoulddriveUserListApi({
-      type: 'QuarkDrive',
-      is_valid: true,
       page: 1,
       size: 100,
+      is_valid: true,
     } as any);
-    const items = (res?.items || []) as CoulddriveDriveAccountDetail[];
-    accountOptions.value = items.map((acc) => ({
-      label: `${acc.username || acc.user_id} (${acc.type})`,
-      value: acc.id,
-      cookies: acc.cookies || '',
-    }));
-  } catch {
-    accountOptions.value = [];
+    allAccounts.value = (res?.items || []) as CoulddriveDriveAccountDetail[];
+  } catch (error: any) {
+    message.error(`加载账户失败: ${error.message}`);
+    allAccounts.value = [];
   }
 }
 
-// 监听账户选择，设置认证 token（保留选择器功能）
+// 根据当前选中的网盘类型筛选账户
+watch(
+  currentDriveType,
+  (newType) => {
+    if (newType) {
+      accountOptions.value = allAccounts.value
+        .filter((acc) => acc.type === newType)
+        .map((acc) => ({
+          label: `${acc.username || acc.user_id} (${acc.type})`,
+          value: acc.id,
+          cookies: acc.cookies || '',
+        }));
+    } else {
+      accountOptions.value = [];
+    }
+    // 切换类型时清空已选账户和目录
+    (ui as any).drive_account_id = undefined;
+    (ui as any).target_folder_id = newType === 'BaiduDrive' ? '/' : undefined; // 百度网盘默认根路径为 '/'，夸克为空
+    selectedFolderPath.value = newType === 'BaiduDrive' ? '/' : ''; // 确保显示路径也同步更新
+  },
+  { immediate: true }, // 立即执行一次，初始化账户列表
+);
+
+// 监听账户选择，设置认证 token
 watch(
   () => (ui as any).drive_account_id,
   (val: number | undefined) => {
@@ -187,22 +227,26 @@ watch(
 
 // 选择目标目录回调
 function onFolderPicked(data: any) {
+  console.log('onFolderPicked called with:', data);
   const picked =
     Array.isArray(data?.selectedFiles) && data.selectedFiles.length > 0
       ? data.selectedFiles[0]
       : null;
-  if (picked?.file_id) {
-    (ui as any).target_folder_id = picked.file_id;
-  } else if (data?.fileId) {
-    (ui as any).target_folder_id = data.fileId;
+
+  if (currentDriveType.value === 'BaiduDrive') {
+    // 百度网盘使用路径
+    (ui as any).target_folder_id = picked?.file_path || data?.path || '';
+  } else if (currentDriveType.value === 'QuarkDrive') {
+    // 夸克网盘使用文件ID
+    (ui as any).target_folder_id = picked?.file_id || '';
   }
   selectedFolderPath.value = picked?.file_path || data?.path || '';
   fileSelectorVisible.value = false;
 }
 
-// 初始化加载账号
+// 初始化加载所有账户
 onMounted(() => {
-  loadQuarkAccounts();
+  loadAllAccounts();
 });
 </script>
 
@@ -243,9 +287,10 @@ onMounted(() => {
             <a-row :gutter="12">
               <a-col :span="12">
                 <a-form-item label="配置字段(field)">
-                  <a-input
+                  <a-select
                     v-model:value="form.field"
-                    placeholder="例如: quark_config / baidu_config"
+                    :options="fieldOptions"
+                    placeholder="请选择配置字段"
                   />
                 </a-form-item>
               </a-col>
@@ -264,11 +309,11 @@ onMounted(() => {
             <!-- 第三行：可选辅助（夸克选择器） -->
             <a-row :gutter="12">
               <a-col :span="12">
-                <a-form-item label="夸克账户">
+                <a-form-item :label="driveAccountLabel">
                   <a-select
                     v-model:value="(ui as any).drive_account_id"
                     :options="accountOptions"
-                    placeholder="请选择夸克账户"
+                    :placeholder="`请选择${driveAccountLabel}`"
                     show-search
                     :filter-option="
                       (input: string, option: any) =>
@@ -311,7 +356,7 @@ onMounted(() => {
     <!-- 目录选择器 -->
     <FileSelector
       v-model:visible="fileSelectorVisible"
-      drive-type="QuarkDrive"
+      :drive-type="currentDriveType"
       :auth-token="authToken"
       mode="disk"
       title="选择目标目录"

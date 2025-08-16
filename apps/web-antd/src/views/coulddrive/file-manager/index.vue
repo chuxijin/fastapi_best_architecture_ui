@@ -13,7 +13,7 @@ import type {
 
 import { ref } from 'vue';
 
-import { Page, useVbenModal } from '@vben/common-ui';
+import { Page, useVbenModal, VbenButton } from '@vben/common-ui';
 
 import { message, Modal } from 'ant-design-vue';
 
@@ -121,7 +121,7 @@ const handleFormChange = async (values: any) => {
     authToken.value = '';
     resetPath();
 
-    await queryFormApi.setValues({
+    await gridApi.formApi.setValues({
       type: values.type,
       user_id: null,
     });
@@ -148,18 +148,18 @@ const handleFormChange = async (values: any) => {
   }
 };
 
-// 创建查询表单
-const [QueryForm, queryFormApi] = useVbenForm(
-  getQueryFormConfig(accountOptions, handleFormChange),
-);
+// 查询表单配置（并入 Grid）
+const formOptions = getQueryFormConfig(accountOptions, handleFormChange);
 
-// 创建表格
+// 创建表格（合并查询表单）
 const [Grid, gridApi] = useVbenVxeGrid({
+  formOptions,
   gridOptions: {
     height: 'auto',
-    maxHeight: 600,
+    minHeight: 400,
     rowConfig: { keyField: 'file_id' },
     checkboxConfig: {},
+    columnConfig: { resizable: true },
     toolbarConfig: {
       refresh: { code: 'query' },
       export: true,
@@ -181,7 +181,10 @@ const [Grid, gridApi] = useVbenVxeGrid({
     columns: getTableColumns(),
     proxyConfig: {
       ajax: {
-        query: async ({ page }: { page: any }) => {
+        query: async (
+          { page }: { page: any },
+          _formValues: { type?: string; user_id?: null | number },
+        ) => {
           if (!authToken.value && !formData.value.user_id) {
             message.warning('请先选择关联账号');
             return { items: [], total: 0 };
@@ -974,68 +977,79 @@ function copySingleShareLink(shareInfo: CoulddriveShareInfo) {
 </script>
 
 <template>
-  <Page>
-    <!-- 查询表单 -->
-    <QueryForm class="mb-1" />
-
-    <!-- 路径导航 -->
-    <div class="mb-4 flex items-center gap-2 text-sm">
-      <span class="text-gray-600">当前路径:</span>
-      <div class="flex items-center rounded bg-gray-100 px-2 py-1 font-mono">
-        <template v-for="(pathItem, index) in breadcrumbPaths" :key="index">
-          <button
-            class="cursor-pointer text-blue-600 hover:text-blue-800 hover:underline"
-            @click="wrappedNavigateToPath(pathItem.path, pathItem.file_id)"
-          >
-            {{ pathItem.name }}
-          </button>
-          <span
-            v-if="index < breadcrumbPaths.length - 1"
-            class="mx-1 text-gray-400"
-            >/</span
-          >
-        </template>
-      </div>
-      <button
-        v-if="canGoBack"
-        class="rounded bg-blue-500 px-2 py-1 text-sm text-white hover:bg-blue-600"
-        @click="wrappedGoBack"
-      >
-        返回上级
-      </button>
-    </div>
-
-    <!-- 表格 -->
-    <Grid>
-      <template #toolbar-actions>
-        <div class="flex gap-2">
-          <button
-            class="rounded bg-green-500 px-3 py-1 text-white hover:bg-green-600"
-            @click="createFolderModalApi.open()"
-          >
-            新建文件夹
-          </button>
-          <button
-            class="rounded bg-blue-500 px-3 py-1 text-white hover:bg-blue-600"
-            @click="openSaveShareModal"
-          >
-            保存
-          </button>
-          <button
-            class="rounded bg-yellow-500 px-3 py-1 text-white hover:bg-yellow-600"
-            @click="openBatchShareModal"
-          >
-            批量分享
-          </button>
-          <button
-            class="rounded bg-red-500 px-3 py-1 text-white hover:bg-red-600"
-            @click="deleteSelectedFiles"
-          >
-            批量删除
-          </button>
+  <Page auto-content-height>
+    <div class="flex h-full flex-col">
+      <!-- 路径导航 -->
+      <div class="mb-4 flex items-center gap-2 text-sm">
+        <span class="text-gray-600">当前路径:</span>
+        <div class="flex items-center rounded bg-gray-100 px-2 py-1 font-mono">
+          <template v-for="(pathItem, index) in breadcrumbPaths" :key="index">
+            <button
+              class="cursor-pointer text-blue-600 hover:text-blue-800 hover:underline"
+              @click="wrappedNavigateToPath(pathItem.path, pathItem.file_id)"
+            >
+              {{ pathItem.name }}
+            </button>
+            <span
+              v-if="index < breadcrumbPaths.length - 1"
+              class="mx-1 text-gray-400"
+              >/</span
+            >
+          </template>
         </div>
-      </template>
-    </Grid>
+        <button
+          v-if="canGoBack"
+          class="rounded bg-blue-500 px-2 py-1 text-sm text-white hover:bg-blue-600"
+          @click="wrappedGoBack"
+        >
+          返回上级
+        </button>
+      </div>
+
+      <!-- 表格 -->
+      <div class="min-h-0 flex-1">
+        <Grid>
+          <template #toolbar-actions>
+            <VbenButton type="primary" @click="createFolderModalApi.open()">
+              新建文件夹
+            </VbenButton>
+            <VbenButton
+              type="default"
+              style="
+                color: #fff;
+                background-color: #10b981;
+                border-color: #10b981;
+              "
+              @click="openSaveShareModal"
+            >
+              保存
+            </VbenButton>
+            <VbenButton
+              type="default"
+              style="
+                color: #fff;
+                background-color: #f59e0b;
+                border-color: #f59e0b;
+              "
+              @click="openBatchShareModal"
+            >
+              批量分享
+            </VbenButton>
+            <VbenButton
+              type="default"
+              style="
+                color: #fff;
+                background-color: #ef4444;
+                border-color: #ef4444;
+              "
+              @click="deleteSelectedFiles"
+            >
+              批量删除
+            </VbenButton>
+          </template>
+        </Grid>
+      </div>
+    </div>
 
     <!-- 创建文件夹弹窗 -->
     <component :is="createFolderModal">
