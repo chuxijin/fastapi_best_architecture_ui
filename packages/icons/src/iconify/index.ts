@@ -12,7 +12,11 @@ export const MdiGoogle = createIconifyIcon('mdi:google');
 
 export const MdiQqchat = createIconifyIcon('mdi:qqchat');
 
+export const RiDingding = createIconifyIcon('ri:dingding-fill');
+
 export const MaterialSymbolsAdd = createIconifyIcon('material-symbols:add');
+
+export const MaterialSymbolsEdit = createIconifyIcon('material-symbols:edit');
 
 export const MaterialSymbolsDelete = createIconifyIcon(
   'material-symbols:delete',
