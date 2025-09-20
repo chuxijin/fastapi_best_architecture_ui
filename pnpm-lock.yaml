@@ -493,9 +493,12 @@ importers:
 
   .:
     dependencies:
+      vditor:
+        specifier: ^3.9.7
+        version: 3.11.1
       vue-codemirror6:
         specifier: ^1.3.22
-        version: 1.3.22(@codemirror/autocomplete@6.18.6)(@codemirror/commands@6.8.1)(@codemirror/language@6.11.2)(@codemirror/lint@6.8.5)(@codemirror/search@6.5.11)(@codemirror/state@6.5.2)(@codemirror/view@6.38.1)(codemirror@6.0.2)(style-mod@4.1.2)(vue@3.5.17(typescript@5.8.3))
+        version: 1.3.22(@codemirror/autocomplete@6.18.6)(@codemirror/commands@6.8.1)(@codemirror/language@6.11.3)(@codemirror/lint@6.8.5)(@codemirror/search@6.5.11)(@codemirror/state@6.5.2)(@codemirror/view@6.38.1)(codemirror@6.0.2)(style-mod@4.1.2)(vue@3.5.20(typescript@5.9.2))
     devDependencies:
       '@changesets/changelog-github':
         specifier: 'catalog:'
@@ -509,6 +512,12 @@ importers:
       '@types/node':
         specifier: 'catalog:'
         version: 22.18.0
+      '@typescript-eslint/eslint-plugin':
+        specifier: ^8.37.0
+        version: 8.41.0(@typescript-eslint/parser@8.41.0(eslint@9.34.0(jiti@2.5.1))(typescript@5.9.2))(eslint@9.34.0(jiti@2.5.1))(typescript@5.9.2)
+      '@typescript-eslint/parser':
+        specifier: ^8.37.0
+        version: 8.41.0(eslint@9.34.0(jiti@2.5.1))(typescript@5.9.2)
       '@vben/commitlint-config':
         specifier: workspace:*
         version: link:internal/lint-configs/commitlint-config
@@ -661,15 +670,11 @@ importers:
         version: 3.5.20(typescript@5.9.2)
       vue-router:
         specifier: 'catalog:'
-<<<<<<< HEAD
-        version: 4.5.1(vue@3.5.17(typescript@5.8.3))
+        version: 4.5.1(vue@3.5.20(typescript@5.9.2))
     devDependencies:
       '@stagewise/toolbar-vue':
         specifier: ^0.2.0
-        version: 0.2.0(vue@3.5.17(typescript@5.8.3))
-=======
-        version: 4.5.1(vue@3.5.18(typescript@5.9.2))
->>>>>>> a0e4819efd7d17db7c0173fd096076bb6cb1ebda
+        version: 0.2.1(vue@3.5.20(typescript@5.9.2))
 
   internal/lint-configs/commitlint-config:
     dependencies:
@@ -3890,13 +3895,14 @@ packages:
   '@speed-highlight/core@1.2.7':
     resolution: {integrity: sha512-0dxmVj4gxg3Jg879kvFS/msl4s9F3T9UXC1InxgOf7t5NvcPD97u/WTA5vL/IxWHMn7qSxBozqrnnE2wvl1m8g==}
 
-  '@stagewise/toolbar-vue@0.2.0':
-    resolution: {integrity: sha512-w+qZ+Ez3rtRybUxempvAUOZwrce8lG68aIUwi2zIx93duNuACqQLiATBaQ8PGAAWM9IW4TeRYLnP5e+P2ySNTA==}
+  '@stagewise/toolbar-vue@0.2.1':
+    resolution: {integrity: sha512-GTmiZuTbJ6NmC3xIiTEWsVr205UNQufVPyQNFffKCLEZLE7epPtsbFa9FzTLCA8qfR2e98VtIiWiM5lA8qoZNw==}
     peerDependencies:
       vue: ^3.5.17
 
-  '@stagewise/toolbar@0.3.0':
-    resolution: {integrity: sha512-NqbFwTAVukmxrJ6euGNZ9C/T9HTXx3/vkufsBqsjm1VC9XEo57JXrLMX4M62ZPdVJHFfe40B2nOVHAaOSKIAdw==}
+  '@stagewise/toolbar@0.3.1':
+    resolution: {integrity: sha512-D08oik8tAnUXsA/IJIYsmvHD4TJoHKDsMyqcBX+NjaunqLvY1NVru0oQmJc+9cfxN5enhSx7Aqp2XQYlpXAGIQ==}
+    deprecated: 'This package is deprecated and has been replaced by the stagewise CLI. Get started with the CLI here: https://stagewise.io/docs'
 
   '@stylistic/stylelint-plugin@3.1.3':
     resolution: {integrity: sha512-85fsmzgsIVmyG3/GFrjuYj6Cz8rAM7IZiPiXCMiSMfoDOC1lOrzrXPDk24WqviAghnPqGpx8b0caK2PuewWGFg==}
@@ -12900,6 +12906,13 @@ snapshots:
   '@socket.io/component-emitter@3.1.2': {}
 
   '@speed-highlight/core@1.2.7': {}
+
+  '@stagewise/toolbar-vue@0.2.1(vue@3.5.20(typescript@5.9.2))':
+    dependencies:
+      '@stagewise/toolbar': 0.3.1
+      vue: 3.5.20(typescript@5.9.2)
+
+  '@stagewise/toolbar@0.3.1': {}
 
   '@stylistic/stylelint-plugin@3.1.3(stylelint@16.23.1(typescript@5.9.2))':
     dependencies:

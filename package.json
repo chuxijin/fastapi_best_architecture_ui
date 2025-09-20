@@ -121,6 +121,7 @@
     ]
   },
   "dependencies": {
+    "vditor": "^3.9.7",
     "vue-codemirror6": "^1.3.22"
   }
 }

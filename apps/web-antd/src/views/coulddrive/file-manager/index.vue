@@ -1,17 +1,19 @@
 <script setup lang="ts">
 import type {
+  CoulddriveBatchRenameParams, // 导入批量重命名参数类型
   CoulddriveDriveAccountDetail,
   CoulddriveFileInfo,
   CoulddriveListFilesParams,
   CoulddriveMkdirParams,
   CoulddriveRemoveParams,
+  CoulddriveRenameParams, // 导入重命名参数类型
   CoulddriveShareInfo,
   CoulddriveShareParams,
   CoulddriveTransferParams,
   CoulddriveUserListParams,
 } from '#/api';
 
-import { ref } from 'vue';
+import { computed, h, ref } from 'vue'; // 导入 h 函数
 
 import { Page, useVbenModal, VbenButton } from '@vben/common-ui';
 
@@ -20,18 +22,22 @@ import { message, Modal } from 'ant-design-vue';
 import { useVbenForm } from '#/adapter/form';
 import { useVbenVxeGrid } from '#/adapter/vxe-table';
 import {
+  batchRenameCoulddriveFilesApi, // 导入批量重命名API
   createCoulddriveFolderApi,
   createCoulddriveShareApi,
   DRIVE_TYPE_OPTIONS,
   getCoulddriveFileListApi,
   getCoulddriveUserListApi,
+  getRuleTemplatesByTypeApi, // 导入获取规则模板API
   removeCoulddriveFilesApi,
+  renameCoulddriveFileApi, // 导入重命名API
   transferCoulddriveFilesApi,
 } from '#/api';
 import FileSelector from '#/components/FileSelector.vue';
 import { usePathNavigation } from '#/composables/usePathNavigation';
 
 import { getQueryFormConfig, getTableColumns } from './data';
+import BatchRenameFloatingWindow from './modules/BatchRenameFloatingWindow.vue';
 
 // 路径导航逻辑
 const pathNavigation = usePathNavigation({
@@ -239,6 +245,278 @@ const wrappedGoBack = () => {
   goBack();
 };
 
+// 当前正在重命名的文件信息
+const currentRenameFile = ref<CoulddriveFileInfo | null>(null);
+
+// 创建重命名表单
+const [RenameFileForm, renameFileFormApi] = useVbenForm({
+  showDefaultActions: false,
+  wrapperClass: 'grid-cols-1', // 添加此行以优化布局
+  schema: [
+    {
+      component: 'Input',
+      componentProps: { placeholder: '请输入新的文件或文件夹名称' },
+      fieldName: 'new_name',
+      label: '新名称',
+      rules: 'required',
+    },
+  ],
+});
+
+const [renameFileModal, renameFileModalApi] = useVbenModal({
+  title: '重命名',
+  destroyOnClose: true,
+  centered: true, // 添加此行以使模态框居中
+  async onConfirm() {
+    if (!currentRenameFile.value) {
+      message.error('未选择要重命名的文件');
+      return;
+    }
+    if (!formData.value.type || !formData.value.user_id) {
+      message.error('请先选择账号');
+      return;
+    }
+
+    const { valid } = await renameFileFormApi.validate();
+    if (valid) {
+      renameFileModalApi.lock();
+      const { new_name } = await renameFileFormApi.getValues<{
+        new_name: string;
+      }>();
+
+      const fileToRename = currentRenameFile.value;
+      const params: CoulddriveRenameParams = {
+        drive_type: formData.value.type,
+        file_id: fileToRename.file_id,
+        new_name,
+        file_name: fileToRename.file_name, // 原始文件名称
+        file_path: fileToRename.file_path, // 原始文件路径
+      };
+
+      try {
+        const success = await renameCoulddriveFileApi(params, authToken.value);
+        if (success) {
+          message.success(
+            `重命名 "${fileToRename.file_name}" 为 "${new_name}" 成功`,
+          );
+          await renameFileModalApi.close();
+          gridApi.query();
+        } else {
+          message.error(`重命名 "${fileToRename.file_name}" 失败`);
+        }
+      } catch (error) {
+        console.error('重命名文件失败:', error);
+        message.error(`重命名 "${fileToRename.file_name}" 失败`);
+      } finally {
+        renameFileModalApi.unlock();
+      }
+    }
+  },
+  onOpenChange(isOpen) {
+    if (isOpen) {
+      renameFileFormApi.resetForm();
+      if (currentRenameFile.value) {
+        renameFileFormApi.setValues({
+          new_name: currentRenameFile.value.file_name,
+        });
+      }
+    } else {
+      currentRenameFile.value = null; // 关闭时清空当前重命名的文件
+    }
+  },
+});
+
+// 打开重命名模态框
+function openRenameModal(file: CoulddriveFileInfo) {
+  if (!formData.value.type || !formData.value.user_id) {
+    message.warning('请先选择关联账号');
+    return;
+  }
+  currentRenameFile.value = file;
+  renameFileModalApi.open();
+}
+
+// 批量重命名相关状态
+const batchRenameSelectedFiles = ref<CoulddriveFileInfo[]>([]);
+const batchRenameTemplates = ref<any[]>([]); // 存储重命名模板
+const batchRenameSelectedTemplateId = ref<null | number>(null); // 选中的模板ID
+const batchRenameRecursive = ref<boolean>(false); // 是否递归
+const batchRenameTargetScope = ref<string>('all'); // 重命名目标
+
+// 悬浮窗状态
+const showFloatingWindow = ref(false);
+const floatingWindowTaskId = ref('');
+
+// 创建批量重命名表单
+const [BatchRenameForm, batchRenameFormApi] = useVbenForm({
+  showDefaultActions: false,
+  wrapperClass: 'grid-cols-1',
+  schema: [
+    {
+      component: 'RadioGroup',
+      fieldName: 'recursive',
+      label: '是否递归',
+      componentProps: {
+        options: [
+          { label: '是', value: true },
+          { label: '否', value: false },
+        ],
+        'v-model': batchRenameRecursive,
+        onChange: (e: any) => {
+          batchRenameRecursive.value = e.target.value;
+        },
+      },
+    },
+    {
+      component: 'RadioGroup',
+      fieldName: 'target_scope',
+      label: '重命名目标',
+      componentProps: {
+        options: [
+          { label: '文件', value: 'file' },
+          { label: '文件夹', value: 'folder' },
+          { label: '所有', value: 'all' },
+        ],
+        'v-model': batchRenameTargetScope,
+        onChange: (e: any) => {
+          batchRenameTargetScope.value = e.target.value;
+        },
+      },
+    },
+    {
+      component: 'Select',
+      fieldName: 'template_id',
+      label: '选择重命名模板',
+      componentProps: {
+        options: computed(() => batchRenameTemplates.value),
+        allowClear: true,
+        placeholder: '请选择重命名规则模板',
+        'v-model': batchRenameSelectedTemplateId,
+        onChange: (value: null | number) => {
+          batchRenameSelectedTemplateId.value = value;
+        },
+      },
+    },
+  ],
+});
+
+const [batchRenameModal, batchRenameModalApi] = useVbenModal({
+  title: '批量重命名',
+  destroyOnClose: true,
+  centered: true,
+  async onConfirm() {
+    if (batchRenameSelectedFiles.value.length === 0) {
+      message.error('请选择要重命名的文件');
+      return;
+    }
+    if (!formData.value.type || !formData.value.user_id) {
+      message.error('请先选择账号');
+      return;
+    }
+
+    // 先获取表单的当前值，不进行验证
+    // const currentValues = batchRenameFormApi.getFieldsValue(); // 该方法不存在，已移除
+
+    // 立即关闭模态框，让用户可以进行其他操作
+    await batchRenameModalApi.close();
+
+    // 生成任务ID并显示悬浮窗
+    const taskId = Date.now().toString();
+    floatingWindowTaskId.value = taskId;
+    showFloatingWindow.value = true;
+
+    batchRenameModalApi.lock();
+    try {
+      // 重新获取选中的文件，防止模态框关闭时被清空
+      const currentSelectedFiles = gridApi.grid.getCheckboxRecords(
+        true,
+      ) as CoulddriveFileInfo[];
+
+      if (currentSelectedFiles.length === 0) {
+        message.error('没有选中文件，请重新选择');
+        return;
+      }
+
+      const params: CoulddriveBatchRenameParams = {
+        drive_type: formData.value.type,
+        file_infos: currentSelectedFiles.map((file) => ({
+          file_id: file.file_id,
+          file_path: file.file_path,
+          is_folder: file.is_folder,
+          file_name: file.file_name,
+          parent_id: file.parent_id,
+        })),
+        recursive: batchRenameRecursive.value,
+        target_scope: batchRenameTargetScope.value as 'all' | 'file' | 'folder',
+        template_id: batchRenameSelectedTemplateId.value || undefined, // 直接使用选中的模板ID
+      };
+
+      // 调用批量重命名API，传递task_id用于SSE进度追踪
+      const result = await batchRenameCoulddriveFilesApi(
+        { ...params, task_id: taskId },
+        authToken.value,
+      );
+
+      // 关闭悬浮窗
+      showFloatingWindow.value = false;
+
+      if (result.renamed_success > 0) {
+        message.success(
+          `批量重命名完成！成功：${result.renamed_success} 个，失败：${result.renamed_failed} 个`,
+        );
+      } else {
+        message.warning('没有文件被成功重命名');
+      }
+      if (result.errors && result.errors.length > 0) {
+        Modal.error({
+          title: '批量重命名失败详情',
+          content: h('div', { class: 'max-h-60 overflow-y-auto' }, [
+            result.errors.map((error: string, index: number) =>
+              h('p', { key: index }, error),
+            ),
+          ]),
+          width: 600,
+        });
+      }
+
+      gridApi.query();
+    } catch (error) {
+      console.error('批量重命名失败:', error);
+      message.error('批量重命名失败，请重试');
+
+      // 关闭悬浮窗
+      showFloatingWindow.value = false;
+    } finally {
+      batchRenameModalApi.unlock();
+    }
+  },
+  onOpenChange(isOpen) {
+    if (isOpen) {
+      batchRenameFormApi.resetForm();
+      // 初始化表单值
+      batchRenameRecursive.value = false;
+      batchRenameTargetScope.value = 'all';
+      batchRenameSelectedTemplateId.value = null;
+
+      // 加载重命名模板
+      loadRenameTemplates();
+
+      // 获取选中的文件
+      batchRenameSelectedFiles.value = gridApi.grid.getCheckboxRecords(
+        true,
+      ) as CoulddriveFileInfo[];
+
+      if (batchRenameSelectedFiles.value.length === 0) {
+        message.warning('请选择要批量重命名的文件或文件夹');
+        batchRenameModalApi.close(); // 如果没有选中文件，则关闭模态框
+      }
+    } else {
+      batchRenameSelectedFiles.value = [];
+      batchRenameTemplates.value = [];
+    }
+  },
+});
+
 // 右键菜单处理
 function handleContextMenuClick(code: string, row: CoulddriveFileInfo) {
   switch (code) {
@@ -247,7 +525,7 @@ function handleContextMenuClick(code: string, row: CoulddriveFileInfo) {
       break;
     }
     case 'rename': {
-      message.info(`重命名功能开发中: ${row.file_name}`);
+      openRenameModal(row); // 调用新的打开重命名模态框函数
       break;
     }
     case 'share': {
@@ -974,6 +1252,46 @@ function copySingleShareLink(shareInfo: CoulddriveShareInfo) {
       message.error('复制失败，请手动复制分享链接');
     });
 }
+
+function openBatchRenameModal() {
+  batchRenameModalApi.open();
+}
+
+// 加载重命名模板
+async function loadRenameTemplates() {
+  if (!formData.value.type) {
+    // 只判断网盘类型，不判断用户ID
+    batchRenameTemplates.value = [];
+    return;
+  }
+
+  try {
+    const response = await getRuleTemplatesByTypeApi('rename'); // 获取重命名规则模板
+    // 假设后端返回的是 RuleTemplateDetail[] 类型
+    batchRenameTemplates.value = [
+      {
+        label: '无重命名规则',
+        value: null,
+        description: '不使用任何重命名规则',
+      },
+      ...response.map((template: any) => ({
+        label: template.template_name,
+        value: template.id,
+        description: template.description,
+      })),
+    ];
+  } catch (error) {
+    console.error('加载重命名模板失败:', error);
+    message.error('加载重命名模板失败');
+    batchRenameTemplates.value = [
+      {
+        label: '无重命名规则',
+        value: null,
+        description: '不使用任何重命名规则',
+      },
+    ];
+  }
+}
 </script>
 
 <template>
@@ -1039,6 +1357,17 @@ function copySingleShareLink(shareInfo: CoulddriveShareInfo) {
               type="default"
               style="
                 color: #fff;
+                background-color: #6366f1;
+                border-color: #6366f1;
+              "
+              @click="openBatchRenameModal"
+            >
+              批量重命名
+            </VbenButton>
+            <VbenButton
+              type="default"
+              style="
+                color: #fff;
                 background-color: #ef4444;
                 border-color: #ef4444;
               "
@@ -1064,6 +1393,16 @@ function copySingleShareLink(shareInfo: CoulddriveShareInfo) {
     <!-- 创建分享弹窗 -->
     <component :is="createShareModal">
       <CreateShareForm />
+    </component>
+
+    <!-- 重命名文件弹窗 -->
+    <component :is="renameFileModal">
+      <RenameFileForm />
+    </component>
+
+    <!-- 批量重命名弹窗 -->
+    <component :is="batchRenameModal">
+      <BatchRenameForm />
     </component>
 
     <!-- 分享进度弹窗（批量分享时显示） -->
@@ -1306,6 +1645,13 @@ function copySingleShareLink(shareInfo: CoulddriveShareInfo) {
       title="选择要保存的文件"
       @confirm="handleFileSelectConfirm"
       @cancel="handleFileSelectCancel"
+    />
+
+    <!-- 批量重命名悬浮窗 -->
+    <BatchRenameFloatingWindow
+      v-model:visible="showFloatingWindow"
+      :task-id="floatingWindowTaskId"
+      @close="showFloatingWindow = false"
     />
   </Page>
 </template>

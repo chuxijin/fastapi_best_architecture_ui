@@ -388,6 +388,43 @@ export interface CoulddriveShareInfo {
   path_info?: string;
 }
 
+// 重命名参数
+export interface CoulddriveRenameParams {
+  drive_type: string;
+  file_id?: string;
+  file_path?: string;
+  new_name: string;
+  parent_id?: string;
+  file_name?: string; // 原始文件名称
+  new_path?: string; // 新的完整路径
+}
+
+// 批量重命名单个文件项的接口
+export interface CoulddriveBatchRenameFileItem {
+  file_id: string;
+  file_path: string;
+  is_folder: boolean;
+  file_name: string;
+  parent_id?: string;
+}
+
+// 批量重命名参数
+export interface CoulddriveBatchRenameParams {
+  drive_type: string;
+  file_infos: CoulddriveBatchRenameFileItem[];
+  recursive: boolean;
+  target_scope: 'all' | 'file' | 'folder';
+  rename_rules?: Array<{
+    case_sensitive: boolean;
+    enable: boolean;
+    match_regex: string;
+    replace_string: string;
+    target_scope: 'name' | 'path';
+  }>;
+  template_id?: number;
+  task_id?: string;
+}
+
 export interface CoulddriveSyncConfigListParams {
   enable?: boolean;
   type?: string;
@@ -763,6 +800,50 @@ export async function createCoulddriveShareApi(
       },
     },
   );
+}
+
+/**
+ * 重命名 Coulddrive 文件或文件夹
+ */
+export async function renameCoulddriveFileApi(
+  params: CoulddriveRenameParams,
+  token: string,
+) {
+  return requestClient.post<boolean>('/api/v1/couldfile/rename', params, {
+    headers: {
+      'X-Token': token,
+    },
+  });
+}
+
+/**
+ * 批量重命名 Coulddrive 文件或文件夹
+ */
+export async function batchRenameCoulddriveFilesApi(
+  params: CoulddriveBatchRenameParams,
+  token: string,
+) {
+  return requestClient.post<{
+    errors: string[];
+    renamed_failed: number;
+    renamed_success: number;
+  }>('/api/v1/couldfile/batch_rename', params, {
+    headers: {
+      'X-Token': token,
+    },
+    timeout: 30 * 60 * 1000, // 批量操作可能需要更长时间，设置为5分钟超时
+  });
+}
+
+/**
+ * 获取批量重命名进度（SSE流）
+ */
+export function getBatchRenameProgressApi(taskId: string): EventSource {
+  // 在开发环境下，EventSource不会遵循Vite代理配置，需要使用完整URL
+  const isDev = import.meta.env.DEV;
+  const baseUrl = isDev ? 'http://127.0.0.1:8000' : '';
+  const url = `${baseUrl}/api/v1/couldfile/batch-rename-progress/${taskId}`;
+  return new EventSource(url);
 }
 
 // ==================== 规则模板 API ====================
