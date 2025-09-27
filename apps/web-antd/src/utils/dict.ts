@@ -4,6 +4,7 @@ import { getDictDataDetailApi } from '#/plugins/dict/api';
 import { useDictStore } from '#/store';
 
 export enum DictEnum {
+  JOB_APPLICATION_STATUS = 'job_application_status',
   NOTICE = 'notice',
   SYS_CHOOSE = 'sys_choose',
   SYS_DATA_RULE_EXPRESSION = 'sys_data_rule_expression',
@@ -31,6 +32,7 @@ export const DICT_CONFIG: Record<string, DictOptionsParams> = {
   [DictEnum.TASK_PERIOD_TYPE]: { asString: true },
   [DictEnum.TASK_STRATEGY_TYPE]: { asNumber: true },
   [DictEnum.USER_ONLINE_STATUS]: { asNumber: true },
+  [DictEnum.JOB_APPLICATION_STATUS]: { asNumber: true }, // 新增的投递状态枚举配置
 };
 
 export interface DictOptionsParams {

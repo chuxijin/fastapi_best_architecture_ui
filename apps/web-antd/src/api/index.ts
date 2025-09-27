@@ -3,6 +3,7 @@ export * from './core';
 export * from './coulddrive';
 export * from './data-permission';
 export * from './dept';
+export * from './job';
 export * from './log';
 export * from './monitor';
 export * from './plugin';

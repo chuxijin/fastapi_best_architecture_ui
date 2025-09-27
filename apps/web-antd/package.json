@@ -50,6 +50,5 @@
     "vue-router": "catalog:"
   },
   "devDependencies": {
-    "@stagewise/toolbar-vue": "^0.2.0"
   }
 }

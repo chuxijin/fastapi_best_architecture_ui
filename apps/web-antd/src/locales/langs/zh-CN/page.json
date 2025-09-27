@@ -33,7 +33,9 @@
     "sysMenu": "菜单管理",
     "sysRole": "角色管理",
     "sysUser": "用户管理",
-    "profile": "个人中心"
+    "profile": "个人中心",
+    "job": "岗位管理",
+    "jobPosting": "岗位管理"
   },
   "monitor": {
     "redis": {

@@ -33,7 +33,9 @@
     "sysMenu": "User",
     "sysRole": "Role",
     "sysUser": "User",
-    "profile": "Profile"
+    "profile": "Profile",
+    "job": "Job Management",
+    "jobPosting": "Job Posting"
   },
   "monitor": {
     "redis": {
