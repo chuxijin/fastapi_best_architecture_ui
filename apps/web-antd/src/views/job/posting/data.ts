@@ -9,13 +9,28 @@ import { DictEnum, getDictOptions } from '#/utils/dict';
 export const querySchema: VbenFormSchema[] = [
   {
     component: 'Input',
-    fieldName: 'position',
-    label: '岗位标题',
+    fieldName: 'company_name',
+    label: '公司名称',
   },
   {
     component: 'Input',
-    fieldName: 'company_name',
-    label: '公司名称',
+    fieldName: 'company_type',
+    label: '公司类型',
+  },
+  {
+    component: 'Input',
+    fieldName: 'work_location',
+    label: '工作地点',
+  },
+  {
+    component: 'Input',
+    fieldName: 'recruitment_object',
+    label: '招聘对象',
+  },
+  {
+    component: 'Input',
+    fieldName: 'position',
+    label: '岗位名称',
   },
   {
     component: 'Input',
@@ -26,10 +41,31 @@ export const querySchema: VbenFormSchema[] = [
     component: 'Select',
     componentProps: {
       allowClear: true,
-      options: getDictOptions(DictEnum.RECRUITMENT_TYPE),
+      options: getDictOptions(DictEnum.RECRUITMENT_TYPE) || [
+        { label: '秋招', value: '秋招' },
+        { label: '春招', value: '春招' },
+        { label: '社招', value: '社招' },
+        { label: '校招', value: '校招' },
+      ],
     },
     fieldName: 'recruitment_type',
     label: '招聘类型',
+  },
+  {
+    component: 'Select',
+    componentProps: {
+      allowClear: true,
+      options: [
+        { label: '已投递', value: '已投递' },
+        { label: '已笔试', value: '已笔试' },
+        { label: '已面试', value: '已面试' },
+        { label: '已挂', value: '已挂' },
+        { label: '面试通过', value: '面试通过' },
+        { label: '暂不投递', value: '暂不投递' },
+      ],
+    },
+    fieldName: 'application_status',
+    label: '投递状态',
   },
 ];
 
@@ -46,25 +82,14 @@ export function useColumns(): VxeGridProps['columns'] {
     {
       field: 'company_type',
       title: '公司类型',
-      width: 140,
-      minWidth: 120,
-      formatter: ({ cellValue }: { cellValue: null | string }) => {
-        return cellValue || '-';
-      },
+      width: 120,
+      minWidth: 100,
+      slots: { default: 'company_type_default' },
     },
     {
       field: 'industry',
       title: '所属行业',
       width: 140,
-      minWidth: 120,
-      formatter: ({ cellValue }: { cellValue: null | string }) => {
-        return cellValue || '-';
-      },
-    },
-    {
-      field: 'recruitment_type',
-      title: '招聘类型',
-      width: 130,
       minWidth: 120,
       formatter: ({ cellValue }: { cellValue: null | string }) => {
         return cellValue || '-';
@@ -80,64 +105,32 @@ export function useColumns(): VxeGridProps['columns'] {
       },
     },
     {
-      field: 'recruitment_object',
-      title: '招聘对象',
-      width: 140,
-      minWidth: 120,
-      formatter: ({ cellValue }: { cellValue: null | string }) => {
-        return cellValue || '-';
-      },
-    },
-    {
       field: 'position',
       title: '岗位',
       width: 150,
       minWidth: 120,
+      slots: { default: 'position_default' },
     },
     {
-      field: 'delivery_start',
-      title: '投递开始日期',
-      width: 180,
-      minWidth: 160,
-      formatter: ({ cellValue }: { cellValue: null | string }) => {
-        return cellValue ? new Date(cellValue).toLocaleString() : '-';
-      },
-    },
-    {
-      field: 'delivery_end',
-      title: '投递截止日期',
-      width: 180,
-      minWidth: 160,
-      formatter: ({ cellValue }: { cellValue: null | string }) => {
-        return cellValue ? new Date(cellValue).toLocaleString() : '-';
-      },
-    },
-    {
-      field: 'delivery_link',
-      title: '投递链接',
-      width: 150,
-      minWidth: 120,
-      slots: { default: 'delivery_link_default' },
-    },
-    {
-      field: 'recruitment_announcement',
-      title: '招聘公告',
+      field: 'recruitment_info',
+      title: '招聘信息',
       width: 160,
       minWidth: 150,
-      slots: { default: 'recruitment_announcement_default' },
+      slots: { default: 'recruitment_info_default' },
+    },
+    {
+      field: 'delivery_period',
+      title: '投递时间',
+      width: 200,
+      minWidth: 180,
+      slots: { default: 'delivery_period_default' },
     },
     {
       field: 'referral_code',
-      title: '内推码',
-      width: 120,
-      minWidth: 100,
-      slots: { default: 'referral_code_default' },
-    },
-    {
-      field: 'remark',
-      title: '备注',
+      title: '内推码/免笔试',
       width: 140,
       minWidth: 120,
+      slots: { default: 'referral_code_default' },
     },
     {
       field: 'salary_range',
@@ -146,28 +139,19 @@ export function useColumns(): VxeGridProps['columns'] {
       minWidth: 120,
     },
     {
-      field: 'is_exempt_from_written_test',
-      title: '是否免笔试',
-      width: 120,
-      minWidth: 100,
-      formatter: ({ cellValue }: { cellValue: boolean | null }) => {
-        return cellValue ? '是' : '否';
-      },
-    },
-    {
-      field: 'logo_url',
-      title: '公司Logo URL',
-      width: 150,
-      minWidth: 120,
-      slots: { default: 'logo_url_default' },
+      field: 'remark',
+      title: '备注',
+      width: 100,
+      minWidth: 80,
+      slots: { default: 'remark_default' },
     },
     {
       field: 'operation',
       title: $t('common.table.operation'),
       align: 'center',
       fixed: 'right',
-      width: 240,
-      minWidth: 200,
+      width: 260,
+      minWidth: 240,
       slots: { default: 'operation_default' },
     },
   ];

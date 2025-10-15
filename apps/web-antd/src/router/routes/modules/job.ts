@@ -13,7 +13,7 @@ const routes: RouteRecordRaw[] = [
       {
         name: 'JobPosting',
         path: '/job/posting',
-        component: () => import('#/views/job/index.vue'),
+        component: () => import('#/views/job/posting/index.vue'),
         meta: {
           title: '岗位管理',
           icon: 'material-symbols:work',

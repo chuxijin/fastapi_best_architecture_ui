@@ -1069,6 +1069,16 @@ onMounted(async () => {
         :on-copy-share="copyShareLinkWithExtractCode"
         :on-image-error="handleImageError"
       />
+      <template #footer>
+        <div class="flex items-center justify-end space-x-2">
+          <button
+            @click="viewModalApi.close()"
+            class="rounded bg-blue-600 px-4 py-1.5 text-sm text-white hover:bg-blue-700"
+          >
+            确定
+          </button>
+        </div>
+      </template>
     </ViewModal>
 
     <!-- 趋势模态框 -->
