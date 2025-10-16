@@ -1,10 +1,10 @@
 <script setup lang="ts">
 import type {
-  CoulddriveBatchRenameParams, // 导入批量重命名参数类型
+  CoulddriveBatchRenameParams, // 导入复制参数类型
   CoulddriveDriveAccountDetail,
   CoulddriveFileInfo,
   CoulddriveListFilesParams,
-  CoulddriveMkdirParams,
+  CoulddriveMkdirParams, // 导入移动参数类型
   CoulddriveRemoveParams,
   CoulddriveRenameParams, // 导入重命名参数类型
   CoulddriveShareInfo,
@@ -23,12 +23,14 @@ import { useVbenForm } from '#/adapter/form';
 import { useVbenVxeGrid } from '#/adapter/vxe-table';
 import {
   batchRenameCoulddriveFilesApi, // 导入批量重命名API
+  copyCoulddriveFilesApi, // 导入复制API
   createCoulddriveFolderApi,
   createCoulddriveShareApi,
   DRIVE_TYPE_OPTIONS,
   getCoulddriveFileListApi,
   getCoulddriveUserListApi,
   getRuleTemplatesByTypeApi, // 导入获取规则模板API
+  moveCoulddriveFilesApi, // 导入移动API
   removeCoulddriveFilesApi,
   renameCoulddriveFileApi, // 导入重命名API
   transferCoulddriveFilesApi,
@@ -177,9 +179,11 @@ const [Grid, gridApi] = useVbenVxeGrid({
       body: {
         options: [
           [
+            { code: 'copy', name: '复制', icon: 'mdi:content-copy' },
+            { code: 'move', name: '移动', icon: 'mdi:folder-move' },
+            { code: 'rename', name: '重命名', icon: 'mdi:rename-box' },
             { code: 'delete', name: '删除', icon: 'mdi:delete' },
             { code: 'share', name: '分享', icon: 'mdi:share' },
-            { code: 'rename', name: '重命名', icon: 'mdi:rename-box' },
           ],
         ],
       },
@@ -520,8 +524,16 @@ const [batchRenameModal, batchRenameModalApi] = useVbenModal({
 // 右键菜单处理
 function handleContextMenuClick(code: string, row: CoulddriveFileInfo) {
   switch (code) {
+    case 'copy': {
+      openCopyModal(row);
+      break;
+    }
     case 'delete': {
       deleteFile(row.file_id, row.file_name);
+      break;
+    }
+    case 'move': {
+      openMoveModal(row);
       break;
     }
     case 'rename': {
@@ -660,6 +672,12 @@ const [createFolderModal, createFolderModalApi] = useVbenModal({
 
 // 保存分享文件相关状态
 const fileSelectorVisible = ref(false);
+
+// 移动和复制相关状态
+const moveFileSelectorVisible = ref(false);
+const copyFileSelectorVisible = ref(false);
+const currentOperationFiles = ref<CoulddriveFileInfo[]>([]);
+const operationType = ref<'copy' | 'move'>('move');
 
 const shareLink = ref('');
 
@@ -1292,6 +1310,133 @@ async function loadRenameTemplates() {
     ];
   }
 }
+
+// 打开移动文件模态框
+function openMoveModal(file: CoulddriveFileInfo) {
+  if (!formData.value.type || !formData.value.user_id) {
+    message.warning('请先选择关联账号');
+    return;
+  }
+
+  // 检查是否有多个文件被选中
+  const selectedRows = gridApi.grid.getCheckboxRecords(
+    true,
+  ) as CoulddriveFileInfo[];
+  if (selectedRows.length > 1) {
+    // 如果选中了多个文件，使用选中的文件
+    currentOperationFiles.value = selectedRows;
+  } else {
+    // 否则使用右键点击的文件
+    currentOperationFiles.value = [file];
+  }
+
+  operationType.value = 'move';
+  moveFileSelectorVisible.value = true;
+}
+
+// 打开复制文件模态框
+function openCopyModal(file: CoulddriveFileInfo) {
+  if (!formData.value.type || !formData.value.user_id) {
+    message.warning('请先选择关联账号');
+    return;
+  }
+
+  // 检查是否有多个文件被选中
+  const selectedRows = gridApi.grid.getCheckboxRecords(
+    true,
+  ) as CoulddriveFileInfo[];
+  if (selectedRows.length > 1) {
+    // 如果选中了多个文件，使用选中的文件
+    currentOperationFiles.value = selectedRows;
+  } else {
+    // 否则使用右键点击的文件
+    currentOperationFiles.value = [file];
+  }
+
+  operationType.value = 'copy';
+  copyFileSelectorVisible.value = true;
+}
+
+// 通用的文件操作处理函数
+async function handleFileOperation(data: any, operation: 'copy' | 'move') {
+  if (
+    !currentOperationFiles.value ||
+    currentOperationFiles.value.length === 0
+  ) {
+    message.warning(
+      `没有选择要${operation === 'move' ? '移动' : '复制'}的文件`,
+    );
+    return;
+  }
+
+  try {
+    // 判断目标位置：如果用户选择了文件夹，使用该文件夹；否则使用当前路径
+    let targetId = data.fileId || '0';
+    let targetPath = data.path || '/';
+
+    // 如果用户选择了文件夹作为目标
+    if (data.selectedFiles && data.selectedFiles.length > 0) {
+      const selectedFolder = data.selectedFiles.find(
+        (file: CoulddriveFileInfo) => file.is_folder,
+      );
+      if (selectedFolder) {
+        targetId = selectedFolder.file_id;
+        targetPath = selectedFolder.file_path;
+        message.info(
+          `将${operation === 'move' ? '移动' : '复制'}到文件夹：${selectedFolder.file_name}`,
+        );
+      }
+    }
+
+    const params = {
+      drive_type: formData.value.type,
+      file_ids: currentOperationFiles.value.map((file) => file.file_id),
+      file_paths: currentOperationFiles.value.map((file) => file.file_path),
+      target_id: targetId,
+      target_path: targetPath,
+    };
+
+    const success =
+      operation === 'move'
+        ? await moveCoulddriveFilesApi(params, authToken.value)
+        : await copyCoulddriveFilesApi(params, authToken.value);
+
+    if (success) {
+      message.success(
+        `成功${operation === 'move' ? '移动' : '复制'} ${currentOperationFiles.value.length} 个文件`,
+      );
+      if (operation === 'move') {
+        moveFileSelectorVisible.value = false;
+      } else {
+        copyFileSelectorVisible.value = false;
+      }
+      currentOperationFiles.value = [];
+      gridApi.query(); // 刷新文件列表
+    } else {
+      message.error(`${operation === 'move' ? '移动' : '复制'}文件失败`);
+    }
+  } catch (error) {
+    console.error(`${operation === 'move' ? '移动' : '复制'}文件失败:`, error);
+    message.error(`${operation === 'move' ? '移动' : '复制'}文件失败，请重试`);
+  }
+}
+
+// 处理移动文件确认
+async function handleMoveFileConfirm(data: any) {
+  await handleFileOperation(data, 'move');
+}
+
+// 处理复制文件确认
+async function handleCopyFileConfirm(data: any) {
+  await handleFileOperation(data, 'copy');
+}
+
+// 处理移动/复制文件取消
+function handleMoveOrCopyCancel() {
+  moveFileSelectorVisible.value = false;
+  copyFileSelectorVisible.value = false;
+  currentOperationFiles.value = [];
+}
 </script>
 
 <template>
@@ -1645,6 +1790,28 @@ async function loadRenameTemplates() {
       title="选择要保存的文件"
       @confirm="handleFileSelectConfirm"
       @cancel="handleFileSelectCancel"
+    />
+
+    <!-- 移动文件选择器 -->
+    <FileSelector
+      v-model:visible="moveFileSelectorVisible"
+      :drive-type="formData.type"
+      :auth-token="authToken"
+      mode="disk"
+      :title="`选择移动目标位置 (${currentOperationFiles.length} 个文件)`"
+      @confirm="handleMoveFileConfirm"
+      @cancel="handleMoveOrCopyCancel"
+    />
+
+    <!-- 复制文件选择器 -->
+    <FileSelector
+      v-model:visible="copyFileSelectorVisible"
+      :drive-type="formData.type"
+      :auth-token="authToken"
+      mode="disk"
+      :title="`选择复制目标位置 (${currentOperationFiles.length} 个文件)`"
+      @confirm="handleCopyFileConfirm"
+      @cancel="handleMoveOrCopyCancel"
     />
 
     <!-- 批量重命名悬浮窗 -->

@@ -106,8 +106,9 @@ const categoryManagerRef = ref<InstanceType<
 
 // 查询表单配置（使用空选项的默认schema）
 const queryFormOptions: VbenFormProps = {
-  collapsed: true,
-  showCollapseButton: true,
+  collapsed: false,
+  showCollapseButton: false,
+  wrapperClass: 'grid-cols-1 md:grid-cols-4',
   submitButtonOptions: {
     content: $t('common.search'),
   },

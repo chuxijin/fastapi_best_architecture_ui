@@ -108,6 +108,47 @@ function formatDuration(seconds: number): string {
   }
 }
 
+function formatTaskSummary(taskNum: string): string {
+  if (!taskNum) return '-';
+
+  try {
+    const data = JSON.parse(taskNum);
+    const parts = [];
+
+    if (data.files_processed !== undefined) {
+      parts.push(`处理文件: ${data.files_processed}个`);
+    }
+    if (data.files_transferred !== undefined) {
+      parts.push(`传输: ${data.files_transferred}个`);
+    }
+    if (data.files_deleted !== undefined) {
+      parts.push(`删除: ${data.files_deleted}个`);
+    }
+    if (data.files_skipped !== undefined) {
+      parts.push(`跳过: ${data.files_skipped}个`);
+    }
+    if (data.folder_created !== undefined) {
+      parts.push(`创建文件夹: ${data.folder_created}个`);
+    }
+    if (data.sync_method) {
+      const methodMap: Record<string, string> = {
+        full: '完全同步',
+        incremental: '增量同步',
+        mirror: '镜像同步',
+      };
+      parts.push(`方式: ${methodMap[data.sync_method] || data.sync_method}`);
+    }
+    if (data.errors && Array.isArray(data.errors) && data.errors.length > 0) {
+      parts.push(`错误: ${data.errors.length}个`);
+    }
+
+    return parts.length > 0 ? parts.join(', ') : taskNum;
+  } catch {
+    // 如果不是JSON格式，直接返回原始字符串
+    return taskNum;
+  }
+}
+
 function selectTask(task: SyncTaskDetail) {
   selectedTask.value = task;
   selectedItemStatus.value = '';
@@ -151,9 +192,9 @@ const taskGridOptions: VxeTableGridOptions = {
     {
       field: 'task_num',
       title: '任务摘要',
-      minWidth: 200,
+      minWidth: 300,
       showOverflow: 'tooltip',
-      formatter: ({ row }) => row.task_num || '-',
+      formatter: ({ row }) => formatTaskSummary(row.task_num),
     },
     {
       field: 'err_msg',

@@ -399,6 +399,24 @@ export interface CoulddriveRenameParams {
   new_path?: string; // 新的完整路径
 }
 
+// 移动文件参数
+export interface CoulddriveMoveParams {
+  drive_type: string;
+  file_ids?: string[];
+  file_paths?: string[];
+  target_id?: string;
+  target_path?: string;
+}
+
+// 复制文件参数
+export interface CoulddriveCopyParams {
+  drive_type: string;
+  file_ids?: string[];
+  file_paths?: string[];
+  target_id?: string;
+  target_path?: string;
+}
+
 // 批量重命名单个文件项的接口
 export interface CoulddriveBatchRenameFileItem {
   file_id: string;
@@ -832,6 +850,34 @@ export async function batchRenameCoulddriveFilesApi(
       'X-Token': token,
     },
     timeout: 30 * 60 * 1000, // 批量操作可能需要更长时间，设置为5分钟超时
+  });
+}
+
+/**
+ * 移动 Coulddrive 文件或文件夹
+ */
+export async function moveCoulddriveFilesApi(
+  params: CoulddriveMoveParams,
+  token: string,
+) {
+  return requestClient.post<boolean>('/api/v1/couldfile/move', params, {
+    headers: {
+      'X-Token': token,
+    },
+  });
+}
+
+/**
+ * 复制 Coulddrive 文件或文件夹
+ */
+export async function copyCoulddriveFilesApi(
+  params: CoulddriveCopyParams,
+  token: string,
+) {
+  return requestClient.post<boolean>('/api/v1/couldfile/copy', params, {
+    headers: {
+      'X-Token': token,
+    },
   });
 }
 

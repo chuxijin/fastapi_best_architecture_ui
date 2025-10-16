@@ -65,10 +65,15 @@ const executingTasks = ref<
 
 // 查询表单配置
 const queryFormOptions: VbenFormProps = {
-  collapsed: true,
-  showCollapseButton: true,
+  collapsed: false,
+  showCollapseButton: false,
+  wrapperClass: 'grid-cols-1 md:grid-cols-5', // 3个搜索选项 + 搜索按钮 + 重置按钮
+  actionWrapperClass: 'md:col-span-2', // 按钮区域占2列
   submitButtonOptions: {
     content: $t('common.search'),
+  },
+  resetButtonOptions: {
+    content: $t('common.reset'),
   },
   schema: syncConfigQuerySchema,
 };
