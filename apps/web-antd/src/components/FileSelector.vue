@@ -12,7 +12,11 @@ import { createIconifyIcon } from '@vben/icons';
 
 import { message } from 'ant-design-vue';
 
-import { getCoulddriveFileListApi, getCoulddriveShareFileListApi } from '#/api';
+import {
+  createCoulddriveFolderApi,
+  getCoulddriveFileListApi,
+  getCoulddriveShareFileListApi,
+} from '#/api';
 import { usePathNavigation } from '#/composables/usePathNavigation';
 
 const props = withDefaults(defineProps<Props>(), {
@@ -33,6 +37,7 @@ const emit = defineEmits<{
 const FolderIcon = createIconifyIcon('mdi:folder');
 const FileIcon = createIconifyIcon('mdi:file-document-outline');
 const ArrowLeftIcon = createIconifyIcon('mdi:arrow-left');
+const FolderPlusIcon = createIconifyIcon('mdi:folder-plus');
 
 // Props
 interface Props {
@@ -53,6 +58,11 @@ const fileList = ref<CoulddriveFileInfo[]>([]);
 const loading = ref(false);
 const selectedFiles = ref<Set<string>>(new Set());
 const selectedFolder = ref<string>('');
+
+// 新建文件夹相关状态
+const showCreateFolderModal = ref(false);
+const newFolderName = ref('');
+const isCreatingFolder = ref(false);
 
 // 分页相关状态
 const pagination = ref({
@@ -338,6 +348,55 @@ function formatDateTime(dateTime: null | number | string): string {
     return '';
   }
 }
+
+// 打开新建文件夹模态框
+function openCreateFolderModal() {
+  showCreateFolderModal.value = true;
+  newFolderName.value = '';
+}
+
+// 关闭新建文件夹模态框
+function closeCreateFolderModal() {
+  showCreateFolderModal.value = false;
+  newFolderName.value = '';
+}
+
+// 创建文件夹
+async function createFolder() {
+  if (!newFolderName.value.trim()) {
+    message.error('请输入文件夹名称');
+    return;
+  }
+
+  isCreatingFolder.value = true;
+  try {
+    const folderPath =
+      currentPath.value === '/'
+        ? `/${newFolderName.value.trim()}`
+        : `${currentPath.value}/${newFolderName.value.trim()}`;
+
+    await createCoulddriveFolderApi(
+      {
+        drive_type: props.driveType,
+        file_path: folderPath,
+        parent_id: currentFileId.value || '0',
+        file_name: newFolderName.value.trim(),
+        return_if_exist: true,
+      },
+      props.authToken,
+    );
+
+    message.success('文件夹创建成功');
+    closeCreateFolderModal();
+    // 刷新文件列表
+    await loadFileList();
+  } catch (error: any) {
+    console.error('创建文件夹失败:', error);
+    message.error(`创建文件夹失败: ${error?.message || '未知错误'}`);
+  } finally {
+    isCreatingFolder.value = false;
+  }
+}
 </script>
 
 <template>
@@ -398,14 +457,24 @@ function formatDateTime(dateTime: null | number | string): string {
             </div>
           </div>
         </div>
-        <button
-          v-if="canGoBack"
-          class="flex flex-shrink-0 items-center gap-1 rounded bg-blue-500 px-2 py-1 text-sm text-white hover:bg-blue-600"
-          @click="goBackToParent"
-        >
-          <ArrowLeftIcon class="h-4 w-4" />
-          返回上级
-        </button>
+        <div class="flex flex-shrink-0 items-center gap-2">
+          <button
+            v-if="mode === 'disk'"
+            class="flex items-center gap-1 rounded bg-green-500 px-2 py-1 text-sm text-white hover:bg-green-600"
+            @click="openCreateFolderModal"
+          >
+            <FolderPlusIcon class="h-4 w-4" />
+            新建文件夹
+          </button>
+          <button
+            v-if="canGoBack"
+            class="flex items-center gap-1 rounded bg-blue-500 px-2 py-1 text-sm text-white hover:bg-blue-600"
+            @click="goBackToParent"
+          >
+            <ArrowLeftIcon class="h-4 w-4" />
+            返回上级
+          </button>
+        </div>
       </div>
 
       <!-- 文件列表 -->
@@ -583,6 +652,47 @@ function formatDateTime(dateTime: null | number | string): string {
             @click="confirmSelection"
           >
             确认选择
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 新建文件夹模态框 -->
+    <div
+      v-if="showCreateFolderModal && mode === 'disk'"
+      class="fixed inset-0 z-[10000] flex items-center justify-center bg-black bg-opacity-50"
+    >
+      <div class="w-96 rounded-lg bg-white p-6 shadow-xl">
+        <h3 class="mb-4 text-lg font-semibold">新建文件夹</h3>
+
+        <div class="mb-4">
+          <label class="mb-2 block text-sm font-medium text-gray-700">
+            文件夹名称
+          </label>
+          <input
+            v-model="newFolderName"
+            type="text"
+            class="w-full rounded border border-gray-300 px-3 py-2 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+            placeholder="请输入文件夹名称"
+            @keyup.enter="createFolder"
+            @keyup.escape="closeCreateFolderModal"
+          />
+        </div>
+
+        <div class="flex justify-end gap-2">
+          <button
+            class="rounded border border-gray-300 px-4 py-2 text-gray-600 hover:bg-gray-50"
+            @click="closeCreateFolderModal"
+            :disabled="isCreatingFolder"
+          >
+            取消
+          </button>
+          <button
+            class="rounded bg-green-500 px-4 py-2 text-white hover:bg-green-600 disabled:opacity-50"
+            @click="createFolder"
+            :disabled="isCreatingFolder || !newFolderName.trim()"
+          >
+            {{ isCreatingFolder ? '创建中...' : '创建' }}
           </button>
         </div>
       </div>

@@ -13,7 +13,7 @@ import type {
   CoulddriveUserListParams,
 } from '#/api';
 
-import { computed, h, ref } from 'vue'; // 导入 h 函数
+import { computed, h, onMounted, ref } from 'vue'; // 导入 h 函数
 
 import { Page, useVbenModal, VbenButton } from '@vben/common-ui';
 
@@ -35,10 +35,11 @@ import {
   renameCoulddriveFileApi, // 导入重命名API
   transferCoulddriveFilesApi,
 } from '#/api';
+import AccountSelector from '#/components/AccountSelector.vue';
 import FileSelector from '#/components/FileSelector.vue';
 import { usePathNavigation } from '#/composables/usePathNavigation';
 
-import { getQueryFormConfig, getTableColumns } from './data';
+import { getTableColumns } from './data';
 import BatchRenameFloatingWindow from './modules/BatchRenameFloatingWindow.vue';
 
 // 路径导航逻辑
@@ -70,21 +71,18 @@ const authToken = ref<string>('');
 const accountOptions = ref<
   Array<{ cookies: string; label: string; value: number }>
 >([]);
+const allAccounts = ref<CoulddriveDriveAccountDetail[]>([]);
+const accountsLoading = ref(false);
 const formData = ref({
   type: '',
   user_id: null as null | number,
 });
 
-// 获取账号列表
-async function loadAccountOptions(type?: string) {
-  if (!type) {
-    accountOptions.value = [];
-    return;
-  }
-
+// 获取所有账号列表
+async function loadAllAccounts() {
+  accountsLoading.value = true;
   try {
     const params: CoulddriveUserListParams = {
-      type,
       is_valid: true,
       page: 1,
       size: 100,
@@ -93,6 +91,10 @@ async function loadAccountOptions(type?: string) {
     const response = await getCoulddriveUserListApi(params);
     const accounts = response.items || [];
 
+    // 保存完整的账号信息用于卡片显示
+    allAccounts.value = accounts;
+
+    // 保持原有的选项格式用于兼容
     accountOptions.value = accounts.map(
       (account: CoulddriveDriveAccountDetail) => ({
         label: `${account.username || account.user_id} (${account.type})`,
@@ -104,12 +106,15 @@ async function loadAccountOptions(type?: string) {
     console.error('获取账号列表失败:', error);
     message.error('获取账号列表失败');
     accountOptions.value = [];
+    allAccounts.value = [];
+  } finally {
+    accountsLoading.value = false;
   }
 }
 
 // 设置认证Token
 async function setAuthTokenFromAccount(accountId: number) {
-  const account = accountOptions.value.find((acc) => acc.value === accountId);
+  const account = allAccounts.value.find((acc) => acc.id === accountId);
   if (account && account.cookies) {
     authToken.value = account.cookies;
   } else {
@@ -118,56 +123,46 @@ async function setAuthTokenFromAccount(accountId: number) {
   }
 }
 
-// 表单变化处理
-const handleFormChange = async (values: any) => {
-  if (values.type && values.type !== formData.value.type) {
-    formData.value.type = values.type;
-    accountOptions.value = [];
-    formData.value.user_id = null;
-
-    // 重置认证token和目录
-    authToken.value = '';
-    resetPath();
-
-    await gridApi.formApi.setValues({
-      type: values.type,
-      user_id: null,
-    });
-
-    await loadAccountOptions(values.type);
-    const driveTypeLabel =
-      DRIVE_TYPE_OPTIONS.find((option) => option.value === values.type)
-        ?.label || values.type;
-    message.info(`已切换到${driveTypeLabel}，请重新选择关联账号`);
+// 处理账号选择（新的卡片选择器）
+async function handleAccountSelect(accountId: number) {
+  const selectedAccount = allAccounts.value.find((acc) => acc.id === accountId);
+  if (!selectedAccount) {
+    message.error('账号信息不存在');
+    return;
   }
 
-  if (values.user_id !== formData.value.user_id) {
-    formData.value.user_id = values.user_id || null;
+  formData.value.user_id = accountId;
+  formData.value.type = selectedAccount.type; // 根据选择的账号设置网盘类型
 
-    if (values.user_id) {
-      await setAuthTokenFromAccount(values.user_id);
-      resetPath();
-      gridApi.reload();
-      message.success('已选择账号，正在加载文件列表...');
-    } else {
-      authToken.value = '';
-      resetPath();
-    }
-  }
-};
+  await setAuthTokenFromAccount(accountId);
+  resetPath();
+  gridApi.reload();
 
-// 查询表单配置（并入 Grid）
-const formOptions = getQueryFormConfig(accountOptions, handleFormChange);
+  const accountName =
+    selectedAccount.username || selectedAccount.user_id || '账号';
+  const driveTypeLabel =
+    DRIVE_TYPE_OPTIONS.find((opt) => opt.value === selectedAccount.type)
+      ?.label || selectedAccount.type;
+  message.success(
+    `已选择${driveTypeLabel}账号 ${accountName}，正在加载文件列表...`,
+  );
+}
 
-// 创建表格（合并查询表单）
+// 移除未使用的表单变化处理函数
+
+// 创建表格（不使用查询表单）
 const [Grid, gridApi] = useVbenVxeGrid({
-  formOptions,
   gridOptions: {
     height: 'auto',
     minHeight: 400,
     rowConfig: { keyField: 'file_id' },
     checkboxConfig: {},
     columnConfig: { resizable: true },
+    sortConfig: {
+      trigger: 'cell', // 整个单元格都可以触发排序
+      multiple: false, // 不支持多列排序
+      chronological: false, // 不按时间顺序排序
+    },
     toolbarConfig: {
       refresh: { code: 'query' },
       export: true,
@@ -1437,11 +1432,29 @@ function handleMoveOrCopyCancel() {
   copyFileSelectorVisible.value = false;
   currentOperationFiles.value = [];
 }
+
+// 页面初始化
+onMounted(() => {
+  loadAllAccounts();
+});
 </script>
 
 <template>
   <Page auto-content-height>
     <div class="flex h-full flex-col">
+      <!-- 账号选择器 -->
+      <div class="mb-4">
+        <div class="mb-2">
+          <h3 class="text-sm font-medium text-gray-700">选择账号</h3>
+        </div>
+        <AccountSelector
+          :accounts="allAccounts"
+          :selected-account-id="formData.user_id"
+          :loading="accountsLoading"
+          @select="handleAccountSelect"
+        />
+      </div>
+
       <!-- 路径导航 -->
       <div class="mb-4 flex items-center gap-2 text-sm">
         <span class="text-gray-600">当前路径:</span>

@@ -2,47 +2,9 @@ import type { VbenFormProps } from '@vben/common-ui';
 
 import type { VxeGridProps } from '#/adapter/vxe-table';
 
-import { computed } from 'vue';
-
-import { DRIVE_TYPE_OPTIONS } from '#/api';
-
-// 查询表单配置
-export function getQueryFormConfig(
-  accountOptions: any,
-  onFormChange: (values: any) => void,
-): VbenFormProps {
-  return {
-    collapsed: false,
-    showCollapseButton: false,
-    showDefaultActions: false,
-    wrapperClass: 'grid-cols-1 md:grid-cols-2 gap-3',
-    handleValuesChange: onFormChange,
-    schema: [
-      {
-        component: 'Select',
-        componentProps: {
-          placeholder: '请选择网盘类型',
-          options: DRIVE_TYPE_OPTIONS,
-        },
-        fieldName: 'type',
-        label: '网盘类型',
-      },
-      {
-        component: 'Select',
-        componentProps: {
-          placeholder: computed(() =>
-            accountOptions.value.length > 0
-              ? '请选择关联账号'
-              : '请先选择网盘类型',
-          ),
-          disabled: computed(() => accountOptions.value.length === 0),
-          options: computed(() => accountOptions.value),
-        },
-        fieldName: 'user_id',
-        label: '关联账号',
-      },
-    ],
-  };
+// 查询表单配置 - 完全禁用表单
+export function getQueryFormConfig(): null | VbenFormProps {
+  return null; // 返回 null 来完全禁用表单
 }
 
 // 表格列配置
@@ -57,6 +19,7 @@ export function getTableColumns(): VxeGridProps['columns'] {
       title: '文件名',
       minWidth: 200,
       align: 'left',
+      sortable: true,
       formatter: ({ row }: { row: any }) => {
         const icon = row.is_folder ? '📁' : '📄';
         return `${icon} ${row.file_name}`;
@@ -67,6 +30,7 @@ export function getTableColumns(): VxeGridProps['columns'] {
       title: '文件大小',
       width: 120,
       align: 'right',
+      sortable: true,
       formatter: ({ row }: { row: any }) => {
         return row.is_folder ? '-' : formatFileSize(row.file_size || 0);
       },
@@ -76,6 +40,7 @@ export function getTableColumns(): VxeGridProps['columns'] {
       title: '创建时间',
       width: 180,
       align: 'center',
+      sortable: true,
       formatter: ({ row }: { row: any }) => {
         return formatDateTime(row.created_at);
       },
@@ -85,6 +50,7 @@ export function getTableColumns(): VxeGridProps['columns'] {
       title: '修改时间',
       width: 180,
       align: 'center',
+      sortable: true,
       formatter: ({ row }: { row: any }) => {
         return formatDateTime(row.updated_at);
       },
