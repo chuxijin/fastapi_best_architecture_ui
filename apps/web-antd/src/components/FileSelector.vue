@@ -31,6 +31,7 @@ const emit = defineEmits<{
   confirm: [
     data: { fileId: string; path: string; selectedFiles: CoulddriveFileInfo[] },
   ];
+  shareFilesLoaded: [data: { firstFileName?: string; shareUrl: string }];
   'update:visible': [value: boolean];
 }>();
 // 图标
@@ -193,6 +194,15 @@ async function loadFileList(page = 1) {
         props.authToken,
       );
       fileList.value = response.items || [];
+
+      // 如果是根目录且有文件，发送第一个文件名用于更新常用链接标题
+      if (currentPath.value === '/' && fileList.value.length > 0) {
+        const firstFile = fileList.value[0];
+        emit('shareFilesLoaded', {
+          firstFileName: firstFile?.file_name,
+          shareUrl: props.shareParams.sourceId,
+        });
+      }
 
       // 更新分页信息
       pagination.value = {

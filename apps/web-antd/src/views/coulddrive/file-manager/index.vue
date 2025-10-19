@@ -44,6 +44,11 @@ import { recordDirectoryVisit } from '#/utils/frequentDirectories';
 import { getTableColumns } from './data';
 import BatchRenameFloatingWindow from './modules/BatchRenameFloatingWindow.vue';
 import BatchTransferModal from './modules/BatchTransferModal.vue';
+import FrequentShareLinks from './modules/FrequentShareLinks.vue';
+import {
+  recordShareLinkSave,
+  recordShareLinkVisit,
+} from './utils/frequentShareLinks';
 
 // 路径导航逻辑
 const pathNavigation = usePathNavigation({
@@ -785,6 +790,15 @@ const [saveShareModal, saveShareModalApi] = useVbenModal({
       }>();
       shareLink.value = share_link;
 
+      // 记录分享链接访问（使用链接作为临时名称，后续会在保存时更新为实际文件名）
+      if (formData.value.user_id && share_link) {
+        recordShareLinkVisit(
+          formData.value.user_id.toString(),
+          share_link,
+          '分享链接', // 临时名称，保存时会更新
+        );
+      }
+
       // 关闭当前模态框，打开文件选择器
       await saveShareModalApi.close();
       fileSelectorVisible.value = true;
@@ -818,6 +832,16 @@ function openSaveShareModal() {
     return;
   }
   saveShareModalApi.open();
+}
+
+// 处理常用链接选择
+function handleFrequentLinkSelect(data: { name: string; url: string }) {
+  // 直接设置分享链接并打开文件选择器
+  shareLink.value = data.url;
+
+  // 关闭保存模态框，直接打开文件选择器
+  saveShareModalApi.close();
+  fileSelectorVisible.value = true;
 }
 
 // 处理文件选择确认
@@ -871,6 +895,15 @@ async function handleFileSelectConfirm(data: any) {
     message.success(`成功保存 ${data.selectedFiles.length} 个文件到当前目录`);
     fileSelectorVisible.value = false;
 
+    // 记录分享链接保存成功（使用第一个文件名作为显示名称）
+    if (formData.value.user_id && shareLink.value && firstFile) {
+      recordShareLinkSave(
+        formData.value.user_id.toString(),
+        shareLink.value,
+        firstFile.file_name || '分享文件',
+      );
+    }
+
     // 延迟刷新，给服务器一些时间同步数据
     setTimeout(() => {
       gridApi.query();
@@ -884,6 +917,21 @@ async function handleFileSelectConfirm(data: any) {
 // 处理文件选择取消
 function handleFileSelectCancel() {
   fileSelectorVisible.value = false;
+}
+
+// 处理分享文件加载完成，更新常用链接标题
+function handleShareFilesLoaded(data: {
+  firstFileName?: string;
+  shareUrl: string;
+}) {
+  if (formData.value.user_id && data.firstFileName && data.shareUrl) {
+    // 更新常用链接的标题为实际文件名
+    recordShareLinkVisit(
+      formData.value.user_id.toString(),
+      data.shareUrl,
+      data.firstFileName,
+    );
+  }
 }
 
 // 分享结果相关状态
@@ -1731,7 +1779,17 @@ onUnmounted(() => {
 
     <!-- 保存分享文件弹窗 -->
     <component :is="saveShareModal">
-      <SaveShareForm />
+      <div class="space-y-4">
+        <!-- 分享链接输入表单 -->
+        <SaveShareForm />
+
+        <!-- 常用分享链接 -->
+        <FrequentShareLinks
+          :account-id="formData.user_id || undefined"
+          :visible="!!formData.user_id"
+          @select="handleFrequentLinkSelect"
+        />
+      </div>
     </component>
 
     <!-- 创建分享弹窗 -->
@@ -1989,6 +2047,7 @@ onUnmounted(() => {
       title="选择要保存的文件"
       @confirm="handleFileSelectConfirm"
       @cancel="handleFileSelectCancel"
+      @shareFilesLoaded="handleShareFilesLoaded"
     />
 
     <!-- 移动文件选择器 -->
