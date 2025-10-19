@@ -20,7 +20,7 @@ const props = withDefaults(defineProps<Props>(), {
 });
 
 // Emits
-const emit = defineEmits<{
+defineEmits<{
   close: [];
   'update:visible': [value: boolean];
 }>();

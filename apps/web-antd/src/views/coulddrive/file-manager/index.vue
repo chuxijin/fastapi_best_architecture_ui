@@ -37,7 +37,9 @@ import {
 } from '#/api';
 import AccountSelector from '#/components/AccountSelector.vue';
 import FileSelector from '#/components/FileSelector.vue';
+import FrequentDirectories from '#/components/FrequentDirectories.vue';
 import { usePathNavigation } from '#/composables/usePathNavigation';
+import { recordDirectoryVisit } from '#/utils/frequentDirectories';
 
 import { getTableColumns } from './data';
 import BatchRenameFloatingWindow from './modules/BatchRenameFloatingWindow.vue';
@@ -243,6 +245,22 @@ const wrappedNavigateToPath = (path: string, fileId: string = '0') => {
     message.warning('请先选择关联账号');
     return;
   }
+
+  // 记录目录访问（用于常用目录统计）
+  if (formData.value.user_id && path !== '/') {
+    const pathParts = path.split('/').filter(Boolean);
+    const dirName =
+      pathParts.length > 0
+        ? pathParts[pathParts.length - 1] || '根目录'
+        : '根目录';
+    recordDirectoryVisit(
+      formData.value.user_id.toString(),
+      path,
+      dirName,
+      fileId || '0',
+    );
+  }
+
   navigateToPath(path, fileId);
 };
 
@@ -251,6 +269,17 @@ const wrappedNavigateToFolder = (folder: CoulddriveFileInfo) => {
     message.warning('请先选择关联账号');
     return;
   }
+
+  // 记录目录访问（用于常用目录统计）
+  if (formData.value.user_id && folder.is_folder && folder.file_path !== '/') {
+    recordDirectoryVisit(
+      formData.value.user_id.toString(),
+      folder.file_path,
+      folder.file_name,
+      folder.file_id,
+    );
+  }
+
   navigateToFolder(folder);
 };
 
@@ -261,6 +290,31 @@ const wrappedGoBack = () => {
   }
   goBack();
 };
+
+// 处理常用目录导航
+function handleFrequentDirectoryNavigate(data: {
+  fileId: string;
+  name: string;
+  path: string;
+}) {
+  if (!authToken.value && !formData.value.user_id) {
+    message.warning('请先选择关联账号');
+    return;
+  }
+
+  // 直接导航到目标目录
+  navigateToPath(data.path, data.fileId);
+
+  // 再次记录访问（增加访问计数）
+  if (formData.value.user_id) {
+    recordDirectoryVisit(
+      formData.value.user_id.toString(),
+      data.path,
+      data.name,
+      data.fileId,
+    );
+  }
+}
 
 // 当前正在重命名的文件信息
 const currentRenameFile = ref<CoulddriveFileInfo | null>(null);
@@ -1521,6 +1575,13 @@ onUnmounted(() => {
           返回上级
         </button>
       </div>
+
+      <!-- 常用目录 -->
+      <FrequentDirectories
+        :account-id="formData.user_id?.toString()"
+        :visible="!!formData.user_id"
+        @navigate="handleFrequentDirectoryNavigate"
+      />
 
       <!-- 表格 -->
       <div class="min-h-0 flex-1">

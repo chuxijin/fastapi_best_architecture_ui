@@ -47,13 +47,32 @@ export function usePathNavigation(options: UsePathNavigationOptions = {}) {
       (item) => item.path === path,
     );
     if (targetIndex === -1) {
-      // 如果在历史记录中找不到，使用传入的参数
+      // 如果在历史记录中找不到，需要重新构建面包屑路径
       currentPath.value = path;
       currentFileId.value = fileId;
 
-      // 重置历史记录
       if (path === '/') {
+        // 根目录
         pathHistory.value = [{ path: '/', file_id: '0', name: '根目录' }];
+      } else {
+        // 构建完整的面包屑路径
+        const pathParts = path.split('/').filter(Boolean);
+        const newHistory: PathHistoryItem[] = [
+          { path: '/', file_id: '0', name: '根目录' },
+        ];
+
+        let currentBuildPath = '';
+        for (let i = 0; i < pathParts.length; i++) {
+          currentBuildPath += `/${pathParts[i]}`;
+          const isTarget = i === pathParts.length - 1;
+          newHistory.push({
+            path: currentBuildPath,
+            file_id: isTarget ? fileId : '0', // 只有目标路径使用传入的fileId
+            name: pathParts[i] || '',
+          });
+        }
+
+        pathHistory.value = newHistory;
       }
     } else {
       // 截取历史记录到目标位置

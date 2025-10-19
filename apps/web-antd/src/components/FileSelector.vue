@@ -57,7 +57,8 @@ interface Props {
 const fileList = ref<CoulddriveFileInfo[]>([]);
 const loading = ref(false);
 const selectedFiles = ref<Set<string>>(new Set());
-const selectedFolder = ref<string>('');
+const selectedFolders = ref<Set<string>>(new Set()); // 改为多选文件夹
+const selectedFolder = ref<string>(''); // 保留兼容性
 
 // 新建文件夹相关状态
 const showCreateFolderModal = ref(false);
@@ -237,6 +238,7 @@ function goBackToParent() {
 // 重置选择
 function resetSelection() {
   selectedFiles.value.clear();
+  selectedFolders.value.clear();
   selectedFolder.value = '';
 }
 
@@ -249,14 +251,31 @@ function toggleFileSelection(fileId: string) {
   }
 }
 
+// 切换文件夹选中状态
+function toggleFolderSelection(folderId: string) {
+  if (selectedFolders.value.has(folderId)) {
+    selectedFolders.value.delete(folderId);
+  } else {
+    selectedFolders.value.add(folderId);
+  }
+}
+
 // 检查文件是否被选中
 function isFileSelected(fileId: string): boolean {
   return selectedFiles.value.has(fileId);
 }
 
+// 检查文件夹是否被选中
+function isFolderSelected(folderId: string): boolean {
+  return selectedFolders.value.has(folderId);
+}
+
 // 处理文件点击
 function handleFileClick(file: CoulddriveFileInfo) {
   if (file.is_folder) {
+    // 文件夹现在也支持多选
+    toggleFolderSelection(file.file_id);
+    // 保持兼容性，设置最后选中的文件夹
     selectedFolder.value = file.file_id;
   } else {
     toggleFileSelection(file.file_id);
@@ -299,7 +318,7 @@ function confirmSelection() {
   const selectedFileList = fileList.value.filter(
     (file) =>
       selectedFiles.value.has(file.file_id) ||
-      file.file_id === selectedFolder.value,
+      selectedFolders.value.has(file.file_id),
   );
 
   emit('confirm', {
@@ -497,7 +516,7 @@ async function createFolder() {
               :class="{
                 'border-blue-200 bg-blue-50':
                   isFileSelected(file.file_id) ||
-                  selectedFolder === file.file_id,
+                  isFolderSelected(file.file_id),
               }"
               @click="handleFileClick(file)"
               @dblclick="file.is_folder ? enterFolder(file) : null"
@@ -529,7 +548,7 @@ async function createFolder() {
                 <div
                   v-if="
                     isFileSelected(file.file_id) ||
-                    selectedFolder === file.file_id
+                    isFolderSelected(file.file_id)
                   "
                   class="flex h-5 w-5 items-center justify-center rounded-full bg-blue-500"
                 >
@@ -637,7 +656,7 @@ async function createFolder() {
       <!-- 底部按钮 -->
       <div class="flex items-center justify-between border-t bg-gray-50 p-4">
         <div class="text-sm text-gray-600">
-          已选择 {{ selectedFiles.size + (selectedFolder ? 1 : 0) }} 项
+          已选择 {{ selectedFiles.size + selectedFolders.size }} 项
         </div>
         <div class="flex gap-2">
           <button
@@ -648,7 +667,7 @@ async function createFolder() {
           </button>
           <button
             class="rounded bg-blue-500 px-4 py-2 text-white hover:bg-blue-600 disabled:opacity-50"
-            :disabled="selectedFiles.size === 0 && !selectedFolder"
+            :disabled="selectedFiles.size === 0 && selectedFolders.size === 0"
             @click="confirmSelection"
           >
             确认选择

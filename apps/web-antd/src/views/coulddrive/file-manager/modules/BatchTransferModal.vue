@@ -7,9 +7,11 @@ import { message } from 'ant-design-vue';
 
 import {
   cancelCoulddriveShareApi,
+  copyCoulddriveFilesApi,
   createCoulddriveShareApi,
   getCoulddriveShareFileListApi,
   getDriveTypeLabel,
+  moveCoulddriveFilesApi,
   removeCoulddriveFilesApi,
   transferCoulddriveFilesApi,
 } from '#/api';
@@ -39,6 +41,7 @@ const sourcePath = ref('/');
 const targetPath = ref('/');
 const sourceFileId = ref('0');
 const targetFileId = ref('0');
+const targetSelectedFolders = ref<any[]>([]); // 存储选中的目标文件夹
 
 // 进度条相关
 const progressVisible = ref(false);
@@ -77,8 +80,27 @@ function selectTargetAccount(account: CoulddriveDriveAccountDetail) {
 
 // 处理目标路径确认
 function handleTargetPathConfirm(data: any) {
+  // 检查路径是否发生变化（导航到新目录）
+  const pathChanged = targetPath.value !== data.path;
+
   targetPath.value = data.path;
   targetFileId.value = data.fileId;
+
+  // 如果路径发生变化，清空之前选中的文件夹
+  if (pathChanged) {
+    targetSelectedFolders.value = [];
+  }
+
+  // 检查是否选中了文件夹
+  if (data.selectedFiles && data.selectedFiles.length > 0) {
+    // 过滤出选中的文件夹
+    targetSelectedFolders.value = data.selectedFiles.filter(
+      (file: any) => file.is_folder,
+    );
+  } else if (!pathChanged) {
+    // 如果路径没有变化但没有选中文件，清空选择
+    targetSelectedFolders.value = [];
+  }
 }
 
 // 处理源文件选择确认
@@ -128,6 +150,111 @@ async function handleBatchTransfer(operation: 'copy' | 'move') {
     return;
   }
 
+  // 判断是否为同一个账号
+  const isSameAccount = sourceAccount.value.id === targetAccount.value.id;
+
+  if (isSameAccount) {
+    // 同账号：直接调用move/copy接口
+    await handleSameAccountTransfer(operation);
+  } else {
+    // 不同账号：使用分享转存流程
+    await handleDifferentAccountTransfer(operation);
+  }
+}
+
+// 同账号传输：直接调用move/copy接口
+async function handleSameAccountTransfer(operation: 'copy' | 'move') {
+  // 初始化进度状态
+  progressData.value = {
+    operation,
+    currentStep: 0,
+    totalSteps: 1, // 同账号只需要一步
+    stepName: '准备中...',
+    progress: 0,
+    logs: [
+      `开始${operation === 'move' ? '移动' : '复制'}${sourceFiles.value.length}个文件`,
+    ],
+    shareInfo: null,
+  };
+
+  // 显示进度条，关闭模态框
+  progressVisible.value = true;
+  emit('update:visible', false);
+
+  try {
+    progressData.value.currentStep = 1;
+    progressData.value.stepName = `正在${operation === 'move' ? '移动' : '复制'}文件`;
+    progressData.value.progress = 50;
+    progressData.value.logs.push(
+      `正在${operation === 'move' ? '移动' : '复制'}中...`,
+    );
+
+    // 确定目标文件夹列表
+    const targetFolders =
+      targetSelectedFolders.value.length > 0
+        ? targetSelectedFolders.value
+        : [
+            {
+              file_id: targetFileId.value,
+              file_path: targetPath.value,
+              file_name: '当前目录',
+            },
+          ];
+
+    // 逐个文件夹进行操作
+    for (let i = 0; i < targetFolders.length; i++) {
+      const targetFolder = targetFolders[i];
+
+      progressData.value.logs.push(
+        `正在${operation === 'move' ? '移动' : '复制'}到: ${targetFolder.file_name} (${i + 1}/${targetFolders.length})`,
+      );
+
+      const params = {
+        drive_type: sourceAccount.value!.type,
+        file_ids: sourceFiles.value.map((f) => f.file_id),
+        file_paths: sourceFiles.value.map((f) => f.file_path),
+        target_id: targetFolder.file_id || '0',
+        target_path: targetFolder.file_path,
+      };
+
+      const success =
+        operation === 'move'
+          ? await moveCoulddriveFilesApi(
+              params,
+              sourceAccount.value!.cookies || '',
+            )
+          : await copyCoulddriveFilesApi(
+              params,
+              sourceAccount.value!.cookies || '',
+            );
+
+      if (!success) {
+        throw new Error(
+          `${operation === 'move' ? '移动' : '复制'}到 ${targetFolder.file_name} 失败`,
+        );
+      }
+    }
+
+    // 完成
+    progressData.value.stepName = '传输完成';
+    progressData.value.progress = 100;
+    progressData.value.logs.push(
+      `${operation === 'move' ? '移动' : '复制'}操作完成`,
+    );
+
+    message.success(`${operation === 'move' ? '移动' : '复制'}操作完成`);
+  } catch (error: any) {
+    console.error(`批量${operation === 'move' ? '移动' : '复制'}失败:`, error);
+    progressData.value.stepName = '传输失败';
+    progressData.value.logs.push(`传输失败: ${error?.message || '未知错误'}`);
+    message.error(
+      `${operation === 'move' ? '移动' : '复制'}失败: ${error?.message || '未知错误'}`,
+    );
+  }
+}
+
+// 不同账号传输：使用分享转存流程
+async function handleDifferentAccountTransfer(operation: 'copy' | 'move') {
   // 初始化进度状态
   progressData.value = {
     operation,
@@ -145,8 +272,6 @@ async function handleBatchTransfer(operation: 'copy' | 'move') {
   progressVisible.value = true;
   emit('update:visible', false);
 
-  let transferSuccess = false;
-
   try {
     // 步骤1：创建分享
     await executeTransferStep1_CreateShare();
@@ -158,8 +283,6 @@ async function handleBatchTransfer(operation: 'copy' | 'move') {
     if (operation === 'move') {
       await executeTransferStep3_DeleteSource();
     }
-
-    transferSuccess = true;
 
     // 完成
     progressData.value.stepName = '传输完成';
@@ -276,30 +399,51 @@ async function executeTransferStep2_Transfer() {
   const firstShareFile = shareFileList[0];
   const firstFileExt = firstShareFile?.file_ext || {};
 
-  const transferParams = {
-    drive_type: targetAccount.value!.type,
-    source_type: 'link',
-    source_id: progressData.value.shareInfo.url,
-    source_path: '/', // 分享链接的根路径
-    target_path: targetPath.value,
-    file_ids: sourceFiles.value.map((f) => f.file_id),
-    ext: {
-      // 展开第一个文件的扩展信息作为基础信息
-      ...firstFileExt,
-      // 添加目标目录和文件扩展信息
-      to_pdir_fid: targetFileId.value || '0', // 目标目录的file_id
-      target_id: targetFileId.value || '0', // 目标目录的file_id（放在ext中）
-      pdir_fid: firstShareFile?.parent_id || '0', // 分享文件的父目录ID
-      files_ext_info: filesExtInfo, // 所有文件的扩展信息
-      share_fid_tokens: shareFidTokens, // 所有文件的share_fid_token
-      password: progressData.value.shareInfo.password,
-    },
-  };
+  // 确定目标文件夹列表
+  const targetFolders =
+    targetSelectedFolders.value.length > 0
+      ? targetSelectedFolders.value
+      : [
+          {
+            file_id: targetFileId.value,
+            file_path: targetPath.value,
+            file_name: '当前目录',
+          },
+        ];
 
-  await transferCoulddriveFilesApi(
-    transferParams,
-    targetAccount.value!.cookies || '',
-  );
+  // 逐个文件夹进行转存
+  for (let i = 0; i < targetFolders.length; i++) {
+    const targetFolder = targetFolders[i];
+
+    progressData.value.logs.push(
+      `正在复制到: ${targetFolder.file_name} (${i + 1}/${targetFolders.length})`,
+    );
+
+    const transferParams = {
+      drive_type: targetAccount.value!.type,
+      source_type: 'link',
+      source_id: progressData.value.shareInfo.url,
+      source_path: '/', // 分享链接的根路径
+      target_path: targetFolder.file_path,
+      file_ids: sourceFiles.value.map((f) => f.file_id),
+      ext: {
+        // 展开第一个文件的扩展信息作为基础信息
+        ...firstFileExt,
+        // 添加目标目录和文件扩展信息
+        to_pdir_fid: targetFolder.file_id || '0', // 目标目录的file_id
+        target_id: targetFolder.file_id || '0', // 目标目录的file_id（放在ext中）
+        pdir_fid: firstShareFile?.parent_id || '0', // 分享文件的父目录ID
+        files_ext_info: filesExtInfo, // 所有文件的扩展信息
+        share_fid_tokens: shareFidTokens, // 所有文件的share_fid_token
+        password: progressData.value.shareInfo.password,
+      },
+    };
+
+    await transferCoulddriveFilesApi(
+      transferParams,
+      targetAccount.value!.cookies || '',
+    );
+  }
 }
 
 // 步骤3：删除源文件（仅移动操作）
@@ -571,12 +715,12 @@ watch(
             <div v-if="targetAccount" class="space-y-3">
               <div class="text-sm font-medium text-gray-600">目标路径</div>
 
-              <!-- 嵌入式文件选择器 - 仅用于导航，不选择文件 -->
+              <!-- 嵌入式文件选择器 - 支持选择文件夹 -->
               <EmbeddedFileSelector
                 :drive-type="targetAccount.type"
                 :auth-token="targetAccount.cookies || ''"
                 initial-path="/"
-                :navigation-only="true"
+                :navigation-only="false"
                 @confirm="handleTargetPathConfirm"
                 @cancel="() => {}"
               />
