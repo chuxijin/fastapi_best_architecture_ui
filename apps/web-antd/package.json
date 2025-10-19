@@ -49,6 +49,5 @@
     "vue": "catalog:",
     "vue-router": "catalog:"
   },
-  "devDependencies": {
-  }
+  "devDependencies": {}
 }

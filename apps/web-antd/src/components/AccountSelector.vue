@@ -191,6 +191,18 @@ const sortedAccounts = computed(() => {
 </template>
 
 <style scoped>
+/* 移动端适配 */
+@media (max-width: 768px) {
+  .account-card {
+    min-width: 160px;
+    padding: 8px;
+  }
+
+  .account-selector {
+    max-height: 120px;
+  }
+}
+
 .account-card {
   flex-shrink: 0;
   min-width: 200px;

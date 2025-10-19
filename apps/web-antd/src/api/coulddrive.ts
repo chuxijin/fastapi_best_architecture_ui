@@ -417,6 +417,12 @@ export interface CoulddriveCopyParams {
   target_path?: string;
 }
 
+// 取消分享参数
+export interface CoulddriveCancelShareParams {
+  drive_type: string;
+  shareid_list: (number | string)[];
+}
+
 // 批量重命名单个文件项的接口
 export interface CoulddriveBatchRenameFileItem {
   file_id: string;
@@ -818,6 +824,21 @@ export async function createCoulddriveShareApi(
       },
     },
   );
+}
+
+/**
+ * 取消 Coulddrive 分享链接
+ */
+export async function cancelCoulddriveShareApi(
+  params: CoulddriveCancelShareParams,
+  token: string,
+) {
+  return requestClient.delete<boolean>('/api/v1/couldfile/share/cancel', {
+    data: params,
+    headers: {
+      'X-Token': token,
+    },
+  });
 }
 
 /**

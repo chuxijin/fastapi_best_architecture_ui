@@ -7,55 +7,68 @@ export function getQueryFormConfig(): null | VbenFormProps {
   return null; // 返回 null 来完全禁用表单
 }
 
-// 表格列配置
+// 检查是否为移动端
+function isMobile(): boolean {
+  return window.innerWidth < 768; // 768px以下认为是移动端
+}
+
+// 表格列配置 - 支持响应式
 export function getTableColumns(): VxeGridProps['columns'] {
-  return [
+  const baseColumns: VxeGridProps['columns'] = [
     {
-      type: 'checkbox',
-      width: 60,
+      type: 'checkbox' as const,
+      width: isMobile() ? 40 : 60, // 移动端缩小复选框
     },
     {
       field: 'file_name',
       title: '文件名',
-      minWidth: 200,
-      align: 'left',
+      minWidth: isMobile() ? 150 : 200,
+      align: 'left' as const,
       sortable: true,
       formatter: ({ row }: { row: any }) => {
         const icon = row.is_folder ? '📁' : '📄';
         return `${icon} ${row.file_name}`;
       },
     },
-    {
-      field: 'file_size',
-      title: '文件大小',
-      width: 120,
-      align: 'right',
-      sortable: true,
-      formatter: ({ row }: { row: any }) => {
-        return row.is_folder ? '-' : formatFileSize(row.file_size || 0);
-      },
-    },
-    {
-      field: 'created_at',
-      title: '创建时间',
-      width: 180,
-      align: 'center',
-      sortable: true,
-      formatter: ({ row }: { row: any }) => {
-        return formatDateTime(row.created_at);
-      },
-    },
-    {
-      field: 'updated_at',
-      title: '修改时间',
-      width: 180,
-      align: 'center',
-      sortable: true,
-      formatter: ({ row }: { row: any }) => {
-        return formatDateTime(row.updated_at);
-      },
-    },
   ];
+
+  // 移动端只显示文件名，桌面端显示完整信息
+  if (!isMobile()) {
+    baseColumns.push(
+      {
+        field: 'file_size',
+        title: '文件大小',
+        minWidth: 120,
+        align: 'right' as const,
+        sortable: true,
+        formatter: ({ row }: { row: any }) => {
+          return row.is_folder ? '-' : formatFileSize(row.file_size || 0);
+        },
+      },
+      {
+        field: 'created_at',
+        title: '创建时间',
+        minWidth: 180,
+        align: 'center' as const,
+        sortable: true,
+        formatter: ({ row }: { row: any }) => {
+          return formatDateTime(row.created_at);
+        },
+      },
+      {
+        field: 'updated_at',
+        title: '修改时间',
+        minWidth: 180,
+        align: 'center' as const,
+        sortable: true,
+        formatter: ({ row }: { row: any }) => {
+          return formatDateTime(row.updated_at);
+        },
+      },
+    );
+  }
+
+  return baseColumns;
 }
 
 // 文件大小格式化函数

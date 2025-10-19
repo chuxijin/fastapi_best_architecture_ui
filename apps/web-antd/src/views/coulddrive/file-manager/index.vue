@@ -13,7 +13,7 @@ import type {
   CoulddriveUserListParams,
 } from '#/api';
 
-import { computed, h, onMounted, ref } from 'vue'; // 导入 h 函数
+import { computed, h, onMounted, onUnmounted, ref } from 'vue'; // 导入 h 函数
 
 import { Page, useVbenModal, VbenButton } from '@vben/common-ui';
 
@@ -41,6 +41,7 @@ import { usePathNavigation } from '#/composables/usePathNavigation';
 
 import { getTableColumns } from './data';
 import BatchRenameFloatingWindow from './modules/BatchRenameFloatingWindow.vue';
+import BatchTransferModal from './modules/BatchTransferModal.vue';
 
 // 路径导航逻辑
 const pathNavigation = usePathNavigation({
@@ -77,6 +78,23 @@ const formData = ref({
   type: '',
   user_id: null as null | number,
 });
+
+// 响应式状态
+const isMobile = ref(false);
+
+// 检查是否为移动端
+function checkMobile() {
+  isMobile.value = window.innerWidth < 768;
+}
+
+// 窗口大小改变监听
+function handleResize() {
+  checkMobile();
+  // 重新渲染表格以应用新的列配置
+  setTimeout(() => {
+    gridApi.reload();
+  }, 100);
+}
 
 // 获取所有账号列表
 async function loadAllAccounts() {
@@ -673,6 +691,11 @@ const moveFileSelectorVisible = ref(false);
 const copyFileSelectorVisible = ref(false);
 const currentOperationFiles = ref<CoulddriveFileInfo[]>([]);
 const operationType = ref<'copy' | 'move'>('move');
+
+// 批量传输相关状态
+const batchTransferModalVisible = ref(false);
+
+// 移除不需要的源文件选择器状态
 
 const shareLink = ref('');
 
@@ -1433,9 +1456,26 @@ function handleMoveOrCopyCancel() {
   currentOperationFiles.value = [];
 }
 
+// 打开批量传输模态框
+function openBatchTransferModal() {
+  batchTransferModalVisible.value = true;
+}
+
+// 关闭批量传输模态框
+function closeBatchTransferModal() {
+  batchTransferModalVisible.value = false;
+}
+
 // 页面初始化
 onMounted(() => {
+  checkMobile();
   loadAllAccounts();
+  window.addEventListener('resize', handleResize);
+});
+
+// 页面销毁时清理事件监听
+onUnmounted(() => {
+  window.removeEventListener('resize', handleResize);
 });
 </script>
 
@@ -1486,53 +1526,138 @@ onMounted(() => {
       <div class="min-h-0 flex-1">
         <Grid>
           <template #toolbar-actions>
-            <VbenButton type="primary" @click="createFolderModalApi.open()">
-              新建文件夹
-            </VbenButton>
-            <VbenButton
-              type="default"
-              style="
-                color: #fff;
-                background-color: #10b981;
-                border-color: #10b981;
-              "
-              @click="openSaveShareModal"
-            >
-              保存
-            </VbenButton>
-            <VbenButton
-              type="default"
-              style="
-                color: #fff;
-                background-color: #f59e0b;
-                border-color: #f59e0b;
-              "
-              @click="openBatchShareModal"
-            >
-              批量分享
-            </VbenButton>
-            <VbenButton
-              type="default"
-              style="
-                color: #fff;
-                background-color: #6366f1;
-                border-color: #6366f1;
-              "
-              @click="openBatchRenameModal"
-            >
-              批量重命名
-            </VbenButton>
-            <VbenButton
-              type="default"
-              style="
-                color: #fff;
-                background-color: #ef4444;
-                border-color: #ef4444;
-              "
-              @click="deleteSelectedFiles"
-            >
-              批量删除
-            </VbenButton>
+            <!-- 移动端显示紧凑按钮 -->
+            <div v-if="isMobile" class="flex flex-wrap gap-1">
+              <VbenButton
+                class="px-2 py-1 text-xs"
+                type="primary"
+                @click="createFolderModalApi.open()"
+              >
+                新建
+              </VbenButton>
+              <VbenButton
+                class="px-2 py-1 text-xs"
+                type="default"
+                style="
+                  color: #fff;
+                  background-color: #10b981;
+                  border-color: #10b981;
+                "
+                @click="openSaveShareModal"
+              >
+                保存
+              </VbenButton>
+              <VbenButton
+                class="px-2 py-1 text-xs"
+                type="default"
+                style="
+                  color: #fff;
+                  background-color: #f59e0b;
+                  border-color: #f59e0b;
+                "
+                @click="openBatchShareModal"
+              >
+                分享
+              </VbenButton>
+              <VbenButton
+                class="px-2 py-1 text-xs"
+                type="default"
+                style="
+                  color: #fff;
+                  background-color: #6366f1;
+                  border-color: #6366f1;
+                "
+                @click="openBatchRenameModal"
+              >
+                重命名
+              </VbenButton>
+              <VbenButton
+                class="px-2 py-1 text-xs"
+                type="default"
+                style="
+                  color: #fff;
+                  background-color: #ef4444;
+                  border-color: #ef4444;
+                "
+                @click="deleteSelectedFiles"
+              >
+                删除
+              </VbenButton>
+              <VbenButton
+                class="px-2 py-1 text-xs"
+                type="default"
+                style="
+                  color: #fff;
+                  background-color: #8b5cf6;
+                  border-color: #8b5cf6;
+                "
+                @click="openBatchTransferModal"
+              >
+                批量传输
+              </VbenButton>
+            </div>
+
+            <!-- 桌面端显示完整按钮 -->
+            <template v-else>
+              <VbenButton type="primary" @click="createFolderModalApi.open()">
+                新建文件夹
+              </VbenButton>
+              <VbenButton
+                type="default"
+                style="
+                  color: #fff;
+                  background-color: #10b981;
+                  border-color: #10b981;
+                "
+                @click="openSaveShareModal"
+              >
+                保存
+              </VbenButton>
+              <VbenButton
+                type="default"
+                style="
+                  color: #fff;
+                  background-color: #f59e0b;
+                  border-color: #f59e0b;
+                "
+                @click="openBatchShareModal"
+              >
+                批量分享
+              </VbenButton>
+              <VbenButton
+                type="default"
+                style="
+                  color: #fff;
+                  background-color: #6366f1;
+                  border-color: #6366f1;
+                "
+                @click="openBatchRenameModal"
+              >
+                批量重命名
+              </VbenButton>
+              <VbenButton
+                type="default"
+                style="
+                  color: #fff;
+                  background-color: #ef4444;
+                  border-color: #ef4444;
+                "
+                @click="deleteSelectedFiles"
+              >
+                批量删除
+              </VbenButton>
+              <VbenButton
+                type="default"
+                style="
+                  color: #fff;
+                  background-color: #8b5cf6;
+                  border-color: #8b5cf6;
+                "
+                @click="openBatchTransferModal"
+              >
+                批量复制/移动
+              </VbenButton>
+            </template>
           </template>
         </Grid>
       </div>
@@ -1825,6 +1950,14 @@ onMounted(() => {
       :title="`选择复制目标位置 (${currentOperationFiles.length} 个文件)`"
       @confirm="handleCopyFileConfirm"
       @cancel="handleMoveOrCopyCancel"
+    />
+
+    <!-- 批量传输模态框 -->
+    <BatchTransferModal
+      v-model:visible="batchTransferModalVisible"
+      :all-accounts="allAccounts"
+      :is-mobile="isMobile"
+      @cancel="closeBatchTransferModal"
     />
 
     <!-- 批量重命名悬浮窗 -->
