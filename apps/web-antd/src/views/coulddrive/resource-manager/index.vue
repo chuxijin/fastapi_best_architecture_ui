@@ -1107,8 +1107,6 @@ onMounted(async () => {
 </template>
 
 <style scoped>
-
-
 /* 移动端工具栏按钮间距 */
 @media (max-width: 640px) {
   :deep(.vxe-toolbar .vxe-toolbar--wrapper .vxe-toolbar--actions) {
