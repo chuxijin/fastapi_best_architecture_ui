@@ -25,7 +25,7 @@ interface Props {
 
 const props = withDefaults(defineProps<Props>(), {
   height: 'auto',
-  mode: 'wysiwyg',
+  mode: 'ir', // 改用 ir 模式，原生支持 Markdown
   // 编辑器唯一ID 缓存使用 可记录上次输入
   id: '',
   enableCache: false,
@@ -60,6 +60,7 @@ watch(content, (value) => {
     isInternalUpdate.value = false;
     return;
   }
+  // 纯 Markdown 模式，直接设置值
   vditorInstance.value?.setValue(value);
 });
 
@@ -95,7 +96,7 @@ onMounted(() => {
       id: props.id,
     },
     theme: isDark.value ? 'dark' : 'classic',
-    // 手动响应式
+    // ir 模式下，input 回调的 value 直接就是 Markdown
     input(value) {
       isInternalUpdate.value = true;
       content.value = value;

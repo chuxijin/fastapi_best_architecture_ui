@@ -485,7 +485,7 @@ export function useResourceColumns(
       field: 'operation',
       title: $t('common.table.operation'),
       align: 'center',
-      fixed: 'right',
+      // 移除 fixed: 'right'，让操作栏在移动端不固定
       width: 200,
       cellRender: {
         attrs: {

@@ -162,6 +162,7 @@ export const schema: VbenFormSchema[] = [
     modelPropName: 'value',
     componentProps: {
       class: 'w-full',
+      height: 300,
     },
     formItemClass: 'md:col-span-2',
     fieldName: 'content',

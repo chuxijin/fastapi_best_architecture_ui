@@ -36,7 +36,21 @@ const coreRoutes: RouteRecordRaw[] = [
     name: 'Root',
     path: '/',
     redirect: preferences.app.defaultHomePath,
-    children: [],
+    children: [
+      {
+        name: 'KnowledgeStoreQuestionBankEdit',
+        path: 'knowledge-store/resource/question-bank/edit',
+        component: () =>
+          import(
+            '#/views/knowledge-store/resource/question-bank/edit/index.vue'
+          ),
+        meta: {
+          title: '题库详情管理',
+          hideInMenu: true,
+          hideInTab: false,
+        },
+      },
+    ],
   },
   {
     component: AuthPageLayout,

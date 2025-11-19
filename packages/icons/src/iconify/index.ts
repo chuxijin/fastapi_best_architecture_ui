@@ -34,3 +34,47 @@ export const BxsFile = createIconifyIcon('bxs:file');
 export const FlatColorIconsFolder = createIconifyIcon(
   'flat-color-icons:folder',
 );
+
+export const MaterialSymbolsInfoOutline = createIconifyIcon(
+  'material-symbols:info-outline',
+);
+
+export const MaterialSymbolsMenuBookOutline = createIconifyIcon(
+  'material-symbols:menu-book-outline',
+);
+
+export const MaterialSymbolsQuizOutline = createIconifyIcon(
+  'material-symbols:quiz-outline',
+);
+
+export const MaterialSymbolsUploadFileOutline = createIconifyIcon(
+  'material-symbols:upload-file-outline',
+);
+
+export const MaterialSymbolsDescriptionOutline = createIconifyIcon(
+  'material-symbols:description-outline',
+);
+
+export const MaterialSymbolsModelTrainingOutline = createIconifyIcon(
+  'material-symbols:model-training-outline',
+);
+
+export const MaterialSymbolsCalendarMonthOutline = createIconifyIcon(
+  'material-symbols:calendar-month-outline',
+);
+
+export const MaterialSymbolsWorkspacePremiumOutline = createIconifyIcon(
+  'material-symbols:workspace-premium-outline',
+);
+
+export const MaterialSymbolsEditNoteOutline = createIconifyIcon(
+  'material-symbols:edit-note-outline',
+);
+
+export const MaterialSymbolsDeleteOutline = createIconifyIcon(
+  'material-symbols:delete-outline',
+);
+
+export const MaterialSymbolsArrowBack = createIconifyIcon(
+  'material-symbols:arrow-back',
+);

@@ -2047,7 +2047,7 @@ onUnmounted(() => {
       title="选择要保存的文件"
       @confirm="handleFileSelectConfirm"
       @cancel="handleFileSelectCancel"
-      @shareFilesLoaded="handleShareFilesLoaded"
+      @share-files-loaded="handleShareFilesLoaded"
     />
 
     <!-- 移动文件选择器 -->

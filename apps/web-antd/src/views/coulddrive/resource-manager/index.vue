@@ -106,8 +106,8 @@ const categoryManagerRef = ref<InstanceType<
 
 // 查询表单配置（使用空选项的默认schema）
 const queryFormOptions: VbenFormProps = {
-  collapsed: false,
-  showCollapseButton: false,
+  collapsed: true, // 默认折叠状态
+  showCollapseButton: true, // 显示折叠按钮
   wrapperClass: 'grid-cols-1 md:grid-cols-4',
   submitButtonOptions: {
     content: $t('common.search'),
@@ -1008,13 +1008,19 @@ onMounted(async () => {
     <!-- 表格 -->
     <Grid>
       <template #toolbar-actions>
-        <VbenButton @click="onCreate" type="primary">
+        <VbenButton @click="onCreate" type="primary" class="mobile-btn">
           <AddData class="mr-1" />
-          新增资源
+          <span class="hidden sm:inline">新增资源</span>
+          <span class="sm:hidden">新增</span>
         </VbenButton>
-        <VbenButton @click="openCategoryManager" type="default">
+        <VbenButton
+          @click="openCategoryManager"
+          type="default"
+          class="mobile-btn"
+        >
           <Category class="mr-1" />
-          分类管理
+          <span class="hidden sm:inline">分类管理</span>
+          <span class="sm:hidden">分类</span>
         </VbenButton>
       </template>
     </Grid>
@@ -1101,7 +1107,36 @@ onMounted(async () => {
 </template>
 
 <style scoped>
-/* 确保表格容器充分利用空间 */
+
+
+/* 移动端工具栏按钮间距 */
+@media (max-width: 640px) {
+  :deep(.vxe-toolbar .vxe-toolbar--wrapper .vxe-toolbar--actions) {
+    gap: 0.5rem;
+  }
+
+  .mobile-btn {
+    @apply min-w-0 px-2 py-1 text-xs;
+
+    height: 32px;
+  }
+
+  .mobile-btn .mr-1 {
+    @apply mr-0.5 h-3 w-3;
+  }
+}
+
+/* 移动端表格操作按钮适配 */
+@media (max-width: 640px) {
+  :deep(.vxe-cell--operation .ant-btn) {
+    @apply min-w-0 px-1 py-0 text-xs;
+
+    height: 24px;
+    margin: 0 1px;
+    line-height: 22px;
+  }
+}
+
 :deep(.vxe-grid) {
   width: 100%;
 }
@@ -1137,4 +1172,11 @@ onMounted(async () => {
   margin: 1px;
   border-radius: 4px;
 }
+
+/* 移动端按钮适配 */
+.mobile-btn {
+  @apply px-2 py-1 text-sm;
+}
+
+/* 确保表格容器充分利用空间 */
 </style>

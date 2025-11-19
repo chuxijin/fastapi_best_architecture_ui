@@ -16,7 +16,8 @@ export const overridesPreferences = defineOverridesPreferences({
     enable: false,
   },
   logo: {
-    source: 'https://wu-clan.github.io/picx-images-hosting/logo/fba.png',
+    source:
+      'https://d.yzxj.vip/uploads/20251112/c00cea2f9320fe1806ccab285b3c81d3.png',
   },
   theme: {
     mode: 'auto',
