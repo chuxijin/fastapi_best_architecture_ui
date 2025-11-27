@@ -1428,6 +1428,17 @@ export async function getSyncTaskItemListApi(
   );
 }
 
+/**
+ * 取消同步任务
+ */
+export async function cancelSyncTaskApi(taskId: number) {
+  return requestClient.post<{
+    message: string;
+    status: string;
+    task_id: number;
+  }>(`/api/v1/couldsync/task/${taskId}/cancel`);
+}
+
 // 教师映射接口和常量
 interface TeacherMapping {
   field: string;

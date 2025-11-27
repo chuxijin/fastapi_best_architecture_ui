@@ -284,16 +284,28 @@ setupVbenVxeTable({
               ...opt,
             },
             {
-              default: () => renderBtn({ ...opt, icon: 'tabler:dots' }, false),
+              default: () =>
+                renderBtn(
+                  {
+                    ...opt,
+                    icon: 'icon' in opt ? opt.icon : 'tabler:dots',
+                  },
+                  false,
+                ),
               overlay: () =>
                 h(
                   Menu,
                   {
-                    onClick: () =>
+                    onClick: (menuInfo: any) => {
+                      const clickedItem = opt.items?.find(
+                        (item: Recordable<any>) =>
+                          (item.code || item.text) === menuInfo.key,
+                      );
                       attrs?.onClick?.({
-                        code: opt.code,
+                        code: clickedItem?.code || menuInfo.key,
                         row,
-                      }),
+                      });
+                    },
                   },
                   {
                     default: () => menuItems,
@@ -306,7 +318,7 @@ setupVbenVxeTable({
         const btns = operations.map((opt) => {
           if (opt.code === 'delete') {
             return renderConfirm(opt);
-          } else if (opt.code === 'more') {
+          } else if (opt.code === 'more' || opt.items) {
             return renderDropdown(opt);
           } else {
             return renderBtn(opt);

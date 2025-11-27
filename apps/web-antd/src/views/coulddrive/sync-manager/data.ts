@@ -45,7 +45,7 @@ export const syncConfigQuerySchema: VbenFormSchema[] = [
 
 // 同步配置表格列配置
 export function useSyncConfigColumns(
-  onActionClick?: OnActionClickFn<any>,
+  _onActionClick?: OnActionClickFn<any>,
   _onStatusChange?: (row: any, newVal: boolean) => Promise<boolean>,
 ): VxeGridProps['columns'] {
   return [
@@ -124,35 +124,8 @@ export function useSyncConfigColumns(
       title: $t('common.table.operation'),
       align: 'center',
       fixed: 'right',
-      width: 280,
-      cellRender: {
-        attrs: {
-          nameField: 'remark',
-          onClick: onActionClick,
-        },
-        name: 'CellOperation',
-        options: [
-          {
-            code: 'execute',
-            text: '执行',
-            color: 'success',
-          },
-          'edit',
-          {
-            code: 'copy',
-            text: '复制',
-            color: 'primary',
-          },
-          {
-            code: 'logs',
-            text: '记录',
-          },
-          {
-            code: 'delete',
-            text: '删除',
-          },
-        ],
-      },
+      width: 380,
+      slots: { default: 'operation' },
     },
   ];
 }

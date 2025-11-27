@@ -211,7 +211,11 @@ const taskGridOptions: VxeTableGridOptions = {
       fixed: 'right',
       cellRender: {
         name: 'CellOperation',
-        attrs: { onClick: ({ row }: any) => selectTask(row) },
+        attrs: {
+          onClick: ({ row }: any) => {
+            selectTask(row);
+          },
+        },
         options: [{ code: 'view', text: '查看详情', color: 'primary' }],
       },
     },

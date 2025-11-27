@@ -17,6 +17,7 @@ import { message } from 'ant-design-vue';
 import { useVbenForm } from '#/adapter/form';
 import { useVbenVxeGrid } from '#/adapter/vxe-table';
 import {
+  cancelSyncTaskApi,
   createCoulddriveSyncConfigApi,
   deleteCoulddriveSyncConfigApi,
   executeCoulddriveSyncTaskApi,
@@ -59,6 +60,7 @@ const executingTasks = ref<
     {
       startTime?: Date;
       status: 'completed' | 'executing' | 'idle';
+      taskId?: number;
     }
   >
 >(new Map());
@@ -223,30 +225,10 @@ async function handleStatusChange(row: any, checked: boolean) {
   }
 }
 
-// 操作处理
+// 操作处理（保留用于未来可能的扩展）
 function onActionClick({ code, row }: OnActionClickParams) {
-  switch (code) {
-    case 'copy': {
-      copyConfig(row);
-      break;
-    }
-    case 'delete': {
-      deleteConfig(row);
-      break;
-    }
-    case 'edit': {
-      openEditDrawer(row);
-      break;
-    }
-    case 'execute': {
-      executeSync(row);
-      break;
-    }
-    case 'logs': {
-      showLogs(row);
-      break;
-    }
-  }
+  // 现在操作列使用插槽，这个函数暂时不使用
+  console.log('onActionClick', code, row);
 }
 
 // 执行同步
@@ -267,6 +249,12 @@ async function executeSync(config: any) {
     const submitResult = await executeCoulddriveSyncTaskApi(config.id);
 
     if (submitResult.task_id) {
+      // 保存任务ID
+      executingTasks.value.set(config.id, {
+        status: 'executing',
+        startTime: new Date(),
+        taskId: submitResult.task_id,
+      });
       // 设置已完成状态
       executingTasks.value.set(config.id, {
         status: 'completed',
@@ -341,6 +329,30 @@ async function executeSync(config: any) {
       content: '提交同步任务失败',
       key: `sync_task_${config.id}`,
     });
+  }
+}
+
+// 取消同步
+async function cancelSync(config: any) {
+  const taskInfo = executingTasks.value.get(config.id);
+
+  if (!taskInfo || !taskInfo.taskId) {
+    message.warning('没有正在执行的任务');
+    return;
+  }
+
+  try {
+    const result = await cancelSyncTaskApi(taskInfo.taskId);
+    message.success(result.message || '取消请求已发送');
+
+    // 重置为空闲状态
+    executingTasks.value.set(config.id, { status: 'idle' });
+
+    // 刷新表格
+    onRefresh();
+  } catch (error: any) {
+    console.error('取消任务失败:', error);
+    message.error(error?.message || '取消任务失败');
   }
 }
 
@@ -449,6 +461,47 @@ function onDrawerSuccess() {
           <template v-else>
             <span class="text-gray-500">空闲</span>
           </template>
+        </div>
+      </template>
+
+      <!-- 操作列 -->
+      <template #operation="{ row }">
+        <div class="flex items-center justify-center gap-2">
+          <!-- 执行/取消按钮 -->
+          <a-button
+            v-if="executingTasks.get(row.id)?.status === 'executing'"
+            type="primary"
+            danger
+            size="small"
+            @click="cancelSync(row)"
+          >
+            取消
+          </a-button>
+          <a-button
+            v-else
+            type="primary"
+            size="small"
+            @click="executeSync(row)"
+          >
+            执行
+          </a-button>
+
+          <!-- 其他操作按钮 -->
+          <a-button size="small" @click="openEditDrawer(row)"> 编辑 </a-button>
+          <a-button type="primary" size="small" @click="copyConfig(row)">
+            复制
+          </a-button>
+          <a-button size="small" @click="showLogs(row)"> 记录 </a-button>
+
+          <!-- 删除按钮带确认 -->
+          <a-popconfirm
+            title="确定要删除该配置吗？"
+            ok-text="确定"
+            cancel-text="取消"
+            @confirm="deleteConfig(row)"
+          >
+            <a-button danger size="small"> 删除 </a-button>
+          </a-popconfirm>
         </div>
       </template>
     </Grid>
