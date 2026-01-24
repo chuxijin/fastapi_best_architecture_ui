@@ -668,3 +668,61 @@ export async function getActcodeUsageListApi(params?: UsageQueryParams) {
 export async function redeemActcodeApi(data: RedeemCodeParams) {
   return requestClient.post<RedeemCodeResult>('/api/v1/actcode/redeem', data);
 }
+
+// ==================== 题目批量导入 API ====================
+
+/**
+ * 单条题目导入数据
+ */
+export interface QuestionImportRow {
+  题目: string;
+  题型: string;
+  分数: number;
+  难度: string;
+  选项A?: null | string;
+  选项B?: null | string;
+  选项C?: null | string;
+  选项D?: null | string;
+  答案: string;
+  解析: string;
+  一级目录?: null | string;
+  二级目录?: null | string;
+}
+
+/**
+ * 批量导入参数
+ */
+export interface BatchImportQuestionParams {
+  bank_id: number;
+  questions: QuestionImportRow[];
+}
+
+/**
+ * 单条导入结果
+ */
+export interface ImportResultItem {
+  row_number: number;
+  success: boolean;
+  question_id: null | number;
+  error_message: null | string;
+}
+
+/**
+ * 批量导入结果
+ */
+export interface BatchImportQuestionResult {
+  total: number;
+  success_count: number;
+  fail_count: number;
+  details: ImportResultItem[];
+}
+
+/**
+ * 批量导入题目
+ */
+export async function batchImportQuestionsApi(data: BatchImportQuestionParams) {
+  return requestClient.post<BatchImportQuestionResult>(
+    '/api/v1/qbank/questions/import',
+    data,
+  );
+}
