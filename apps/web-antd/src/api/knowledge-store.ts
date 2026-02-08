@@ -2,64 +2,6 @@ import type { PaginationResult } from '#/types/pagination';
 
 import { requestClient } from './request';
 
-export interface CategoryResult {
-  id: number;
-  name: string;
-  cat_type: number;
-  code: string;
-  parent_id: null | number;
-  level: number;
-  is_active: boolean;
-  sort_order: number;
-  created_time: string;
-  updated_time: null | string;
-}
-
-export interface CategoryTreeResult extends CategoryResult {
-  children?: CategoryTreeResult[];
-}
-
-export interface CategoryParams {
-  name: string;
-  cat_type: number;
-  code: string;
-  parent_id?: null | number;
-  level?: number;
-  is_active?: boolean;
-  sort_order?: number;
-}
-
-export interface CategoryQueryParams {
-  cat_type?: number;
-  is_active?: boolean;
-}
-
-export interface DeleteCategoryParams {
-  ids: number[];
-}
-
-export async function getQbankCategoryTreeApi(params?: CategoryQueryParams) {
-  return requestClient.get<CategoryTreeResult[]>('/api/v1/qbank/categories', {
-    params,
-  });
-}
-
-export async function getQbankCategoryDetailApi(pk: number) {
-  return requestClient.get<CategoryResult>(`/api/v1/qbank/categories/${pk}`);
-}
-
-export async function createQbankCategoryApi(data: CategoryParams) {
-  return requestClient.post('/api/v1/qbank/categories', data);
-}
-
-export async function updateQbankCategoryApi(pk: number, data: CategoryParams) {
-  return requestClient.put(`/api/v1/qbank/categories/${pk}`, data);
-}
-
-export async function deleteQbankCategoryApi(data: DeleteCategoryParams) {
-  return requestClient.delete('/api/v1/qbank/categories', { data });
-}
-
 // ==================== 题库管理 API ====================
 
 export interface BankResult {
@@ -75,6 +17,7 @@ export interface BankResult {
   parent_id: null | number;
   status: number;
   scope: number;
+  type: number; // 10=题库, 20=合集
   q_count: number;
   total_score: number;
   buy_count: number;
@@ -92,6 +35,7 @@ export interface BankParams {
   parent_id?: null | number;
   status?: number;
   scope?: number;
+  type?: number;
 }
 
 export interface BankQueryParams {
@@ -234,6 +178,8 @@ export interface QuestionListItem {
   created_time: string;
 }
 
+export type QuestionResult = QuestionListItem;
+
 /**
  * 题目详情（不含答案）
  */
@@ -256,6 +202,10 @@ export interface QuestionDetail {
   updated_by: null | number;
   created_time: string;
   updated_time: null | string;
+  analysis?: QuestionAnalysisDetail;
+  analyses?: QuestionAnalysisDetail[];
+  materials?: any[];
+  material_ids?: number[];
 }
 
 /**
@@ -274,6 +224,7 @@ export interface QuestionParams {
   year?: null | number;
   usage?: UsageType;
   is_active?: boolean;
+  analyses?: QuestionAnalysisParams[];
 }
 
 /**
@@ -344,6 +295,7 @@ export async function deleteQuestionApi(data: DeleteQuestionParams) {
 export interface AnswerData {
   correct: string | string[];
   keywords?: string[];
+  versions?: any[];
 }
 
 /**
@@ -359,6 +311,8 @@ export interface QuestionAnalysisDetail {
   unhelpful_count: number;
   created_time: string;
   updated_time: null | string;
+  type?: string;
+  is_default?: boolean;
 }
 
 /**
@@ -368,6 +322,8 @@ export interface QuestionAnalysisParams {
   question_id?: number;
   answer_data: AnswerData;
   content: string;
+  type?: string;
+  is_default?: boolean;
 }
 
 /**

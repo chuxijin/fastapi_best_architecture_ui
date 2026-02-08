@@ -11,7 +11,6 @@ import type {
   CreateResourceParams,
   ResourceListParams,
   ResourceStatistics,
-  SmartRecognitionResponse,
   UpdateResourceParams,
 } from '#/api';
 
@@ -27,14 +26,13 @@ import { useVbenVxeGrid } from '#/adapter/vxe-table';
 import {
   createResourceApi,
   deleteResourceApi,
-  DRIVE_TYPE_OPTIONS,
+  DictEnum,
   getCoulddriveUserListApi,
+  getDictOptions,
+  getDriveTypeLabel,
   getResourceListApi,
   getResourceStatisticsApi,
-  getSubjectsByDomainApi,
   refreshResourceShareInfoApi,
-  smartRecognitionApi,
-  TEACHER_MAPPINGS,
   updateResourceApi,
 } from '#/api';
 
@@ -43,14 +41,12 @@ import {
   getCategoryOptions,
   useResourceColumns,
 } from './data';
-import CategoryManagerModal from './modules/CategoryManagerModal.vue';
 import ResourceEditViewModal from './modules/ResourceEditViewModal.vue';
 import ResourceTrendModal from './modules/ResourceTrendModal.vue';
 
 // 创建图标组件
 const Eye = createIconifyIcon('mdi:eye');
 const Database = createIconifyIcon('mdi:database');
-const Category = createIconifyIcon('mdi:folder-multiple');
 
 // 临时处理模式
 const TEMP_MODES = [
@@ -77,32 +73,17 @@ const trendResourceData = ref<any>(null);
 // 统计信息
 const statsData = ref<null | ResourceStatistics>(null);
 
-// 智能识别相关状态
-const recognitionUrl = ref('');
-const isRecognizing = ref(false);
-
 // 更新分享信息状态
 const isRefreshing = ref(false);
 
 // 账号选项
 const accountOptions = ref<
-  Array<{ cookies: string; label: string; value: number }>
+  Array<{ cookies: string; label: string; type: string; value: number }>
 >([]);
 
-// 动态选项
-const domainOptions = ref<Array<{ label: string; value: string }>>([]);
-const subjectOptions = ref<Array<{ label: string; value: string }>>([]);
-// 全量科目选项
-const allSubjectOptions = ref<Array<{ label: string; value: string }>>([]);
+// 全量分类数据
+const categoryTree = ref<any[]>([]);
 const resourceTypeOptions = ref<Array<{ label: string; value: string }>>([]);
-
-// 完整的分类数据
-const allCategories = ref<any[]>([]);
-
-// 分类管理组件引用
-const categoryManagerRef = ref<InstanceType<
-  typeof CategoryManagerModal
-> | null>(null);
 
 // 查询表单配置（使用空选项的默认schema）
 const queryFormOptions: VbenFormProps = {
@@ -174,8 +155,7 @@ const [Grid, gridApi] = useVbenVxeGrid({
 // 表单默认值生成器
 function getDefaultFormData() {
   return {
-    domain: '',
-    subject: '',
+    category_id: undefined as number | undefined,
     main_name: '',
     resource_type: '',
     url: '',
@@ -189,44 +169,11 @@ function getDefaultFormData() {
     price: undefined as number | undefined,
     suggested_price: undefined as number | undefined,
     sort: 0,
-    remark: '',
-  };
-}
 
-// 解析领域对应的科目选项（优先接口，失败回退本地）
-async function resolveSubjectOptionsByDomain(value: string) {
-  let next = allSubjectOptions.value;
-  if (value) {
-    try {
-      const resp = await getSubjectsByDomainApi(value);
-      const arr = Array.isArray(resp) ? resp : (resp as any)?.data || [];
-      if (Array.isArray(arr) && arr.length > 0) {
-        next = arr as Array<{ label: string; value: string }>;
-      } else {
-        const d = (value || '').trim();
-        const domainCategory = allCategories.value.find((cat: any) => {
-          if (cat.category_type !== 'domain') return false;
-          const nameEqual =
-            typeof cat.name === 'string' && cat.name.trim() === d;
-          const codeEqual =
-            typeof cat.code === 'string' &&
-            cat.code.trim().toLowerCase() === d.toLowerCase();
-          return nameEqual || codeEqual;
-        });
-        if (domainCategory) {
-          next = allCategories.value
-            .filter(
-              (cat: any) =>
-                cat.category_type === 'subject' &&
-                cat.parent_id === domainCategory.id &&
-                cat.status === 1,
-            )
-            .map((cat: any) => ({ label: cat.name, value: cat.name }));
-        }
-      }
-    } catch {}
-  }
-  return next;
+    remark: '',
+    local_file_path: '',
+    file_type: '',
+  };
 }
 
 // 初始化表单的函数
@@ -235,46 +182,16 @@ async function initializeForms() {
   const categoryOptions = await getCategoryOptions();
 
   // 更新本地选项状态
-  domainOptions.value = categoryOptions.domainOptions;
   resourceTypeOptions.value = categoryOptions.resourceTypeOptions;
-  allCategories.value = categoryOptions.allCategories;
+  categoryTree.value = categoryOptions.categoryTree || [];
 
-  // 计算所有科目选项（不联动领域）
-  allSubjectOptions.value = allCategories.value
-    .filter((cat: any) => cat.category_type === 'subject' && cat.status === 1)
-    .map((cat: any) => ({ label: cat.name, value: cat.name }));
-  subjectOptions.value = allSubjectOptions.value;
-
-  // 动态更新查询表单的下拉选项（领域/科目/资源类型）
+  // 动态更新查询表单的分类选项
   gridApi.formApi.updateSchema([
     {
-      fieldName: 'domain',
+      fieldName: 'category_id',
       componentProps: {
-        options: domainOptions.value,
-        placeholder: '请选择领域',
-        allowClear: true,
-        onChange: async (value: string, formApi: any) => {
-          const next = await resolveSubjectOptionsByDomain(value);
-          formApi.updateSchema([
-            {
-              fieldName: 'subject',
-              componentProps: {
-                options: next,
-                placeholder: next.length > 0 ? '请选择科目' : '暂无科目选项',
-                allowClear: true,
-              },
-            },
-          ]);
-          formApi.setFieldValue('subject', undefined);
-        },
-      },
-    },
-    {
-      fieldName: 'subject',
-      componentProps: {
-        options: allSubjectOptions.value,
-        placeholder:
-          allSubjectOptions.value.length > 0 ? '请选择科目' : '暂无科目选项',
+        treeData: categoryTree.value,
+        placeholder: '请选择分类',
         allowClear: true,
       },
     },
@@ -289,70 +206,6 @@ async function initializeForms() {
   ]);
 }
 
-// 刷新分类选项数据的函数
-async function refreshCategoryOptions() {
-  try {
-    // 获取最新的分类数据
-    const categoryOptions = await getCategoryOptions();
-
-    // 更新本地选项状态
-    domainOptions.value = categoryOptions.domainOptions;
-    resourceTypeOptions.value = categoryOptions.resourceTypeOptions;
-    allCategories.value = categoryOptions.allCategories;
-
-    // 重新计算所有科目选项
-    allSubjectOptions.value = allCategories.value
-      .filter((cat: any) => cat.category_type === 'subject' && cat.status === 1)
-      .map((cat: any) => ({ label: cat.name, value: cat.name }));
-    subjectOptions.value = allSubjectOptions.value;
-
-    // 同步更新查询表单的下拉（领域/科目/资源类型），支持按领域筛选科目
-    gridApi.formApi.updateSchema([
-      {
-        fieldName: 'domain',
-        componentProps: {
-          options: domainOptions.value,
-          placeholder: '请选择领域',
-          allowClear: true,
-          onChange: async (value: string, formApi: any) => {
-            const next = await resolveSubjectOptionsByDomain(value);
-            formApi.updateSchema([
-              {
-                fieldName: 'subject',
-                componentProps: {
-                  options: next,
-                  placeholder: next.length > 0 ? '请选择科目' : '暂无科目选项',
-                  allowClear: true,
-                },
-              },
-            ]);
-            formApi.setFieldValue('subject', undefined);
-          },
-        },
-      },
-      {
-        fieldName: 'subject',
-        componentProps: {
-          options: allSubjectOptions.value,
-          placeholder:
-            subjectOptions.value.length > 0 ? '请选择科目' : '暂无科目选项',
-          allowClear: true,
-        },
-      },
-      {
-        fieldName: 'resource_type',
-        componentProps: {
-          options: resourceTypeOptions.value,
-          placeholder: '请选择资源类型',
-          allowClear: true,
-        },
-      },
-    ]);
-  } catch (error) {
-    console.error('刷新分类选项失败:', error);
-  }
-}
-
 // 表单数据
 const formData = ref(getDefaultFormData());
 
@@ -362,12 +215,8 @@ const [EditModal, editModalApi] = useVbenModal({
   destroyOnClose: true,
   async onConfirm() {
     // 简单验证
-    if (!formData.value.domain.trim()) {
-      message.error('请选择领域');
-      return;
-    }
-    if (!formData.value.subject.trim()) {
-      message.error('请选择科目');
+    if (!formData.value.category_id) {
+      message.error('请选择分类');
       return;
     }
     if (!formData.value.main_name.trim()) {
@@ -391,8 +240,7 @@ const [EditModal, editModalApi] = useVbenModal({
     try {
       // 构造API需要的数据格式，过滤掉空字符串和 null 值
       const rawData = {
-        domain: formData.value.domain,
-        subject: formData.value.subject,
+        category_id: formData.value.category_id,
         main_name: formData.value.main_name,
         resource_type: formData.value.resource_type,
         url: formData.value.url,
@@ -406,7 +254,10 @@ const [EditModal, editModalApi] = useVbenModal({
         price: formData.value.price,
         suggested_price: formData.value.suggested_price,
         sort: formData.value.sort,
+
         remark: formData.value.remark,
+        local_file_path: formData.value.local_file_path,
+        file_type: formData.value.file_type,
       };
 
       // 过滤掉空字符串、null 和 undefined 值
@@ -454,17 +305,17 @@ const [EditModal, editModalApi] = useVbenModal({
       editModalApi.unlock();
     }
   },
-  onOpenChange(isOpen: boolean) {
+  async onOpenChange(isOpen: boolean) {
     if (isOpen) {
+      // 打开弹窗前确保分类数据已加载
+      if (categoryTree.value.length === 0) {
+        await initializeForms();
+      }
+
       const data = editModalApi.getData();
       if (data) {
         editingResourceId.value = data.id;
         Object.assign(formData.value, data);
-
-        // 如果有领域数据，需要更新科目选项
-        if (data.domain) {
-          updateSubjectOptions(data.domain);
-        }
       } else {
         editingResourceId.value = null;
         // 重置表单数据
@@ -477,65 +328,6 @@ const [EditModal, editModalApi] = useVbenModal({
     }
   },
 });
-
-// 更新科目选项的函数
-async function updateSubjectOptions(domain: string) {
-  if (!domain) {
-    subjectOptions.value = [];
-    return;
-  }
-
-  // 优先请求后端获取科目选项，失败时再回退到本地分类树
-  let nextOptions: Array<{ label: string; value: string }> = [];
-  try {
-    const resp = await getSubjectsByDomainApi(domain);
-    const arr = Array.isArray(resp) ? resp : (resp as any)?.data || [];
-    if (Array.isArray(arr) && arr.length > 0) {
-      nextOptions = arr as Array<{ label: string; value: string }>;
-    }
-  } catch {
-    // 忽略，进入本地回退
-  }
-
-  if (nextOptions.length === 0) {
-    const d = (domain || '').trim();
-    const domainCategory = allCategories.value.find((cat) => {
-      if (cat.category_type !== 'domain') return false;
-      const nameEqual = typeof cat.name === 'string' && cat.name.trim() === d;
-      const codeEqual =
-        typeof cat.code === 'string' &&
-        cat.code.trim().toLowerCase() === d.toLowerCase();
-      return nameEqual || codeEqual;
-    });
-    if (domainCategory) {
-      const subjects = allCategories.value.filter(
-        (cat) =>
-          cat.category_type === 'subject' &&
-          cat.parent_id === domainCategory.id &&
-          cat.status === 1,
-      );
-      nextOptions = subjects.map((subject) => ({
-        label: subject.name,
-        value: subject.name,
-      }));
-    }
-  }
-
-  subjectOptions.value = nextOptions;
-
-  // 若当前已选科目不在新选项中，则清空，避免保留无效值
-  if (
-    !subjectOptions.value.some((opt) => opt.value === formData.value.subject)
-  ) {
-    formData.value.subject = '';
-  }
-}
-
-// 监听领域变化
-function onDomainChange(domain: string) {
-  formData.value.subject = ''; // 清空科目
-  updateSubjectOptions(domain);
-}
 
 // 创建查看详情模态框
 const [ViewModal, viewModalApi] = useVbenModal({
@@ -557,21 +349,6 @@ const [TrendModal, trendModalApi] = useVbenModal({
   class: 'w-[1000px]',
   destroyOnClose: true,
   closable: false, // 隐藏关闭按钮
-});
-
-// 创建分类管理模态框
-const [CategoryModal, categoryModalApi] = useVbenModal({
-  class: 'w-[1200px]',
-  destroyOnClose: true,
-  onOpenChange(isOpen: boolean) {
-    // 关闭时刷新主页面的分类数据，因为可能有变更
-    if (!isOpen) {
-      // 延迟刷新，确保分类管理组件的操作已完成
-      setTimeout(async () => {
-        await refreshCategoryOptions(); // 只刷新分类数据，不重新创建表单
-      }, 300);
-    }
-  },
 });
 
 // 操作处理
@@ -625,10 +402,8 @@ function onRefresh() {
 // 新增资源
 function onCreate() {
   editingResourceId.value = null;
-  recognitionUrl.value = ''; // 重置智能识别输入框
   Object.assign(formData.value, {
-    domain: '',
-    subject: '',
+    category_id: undefined,
     main_name: '',
     resource_type: '',
     url: '',
@@ -642,7 +417,10 @@ function onCreate() {
     price: undefined,
     suggested_price: undefined,
     sort: 0,
+
     remark: '',
+    local_file_path: '',
+    file_type: '',
   });
   // 确保新增态没有残留的 id，便于显示智能识别区域
 
@@ -665,11 +443,6 @@ async function fetchStats() {
 
 // 根据领域获取科目选项：由 updateSubjectOptions 统一处理
 
-// 打开分类管理
-function openCategoryManager() {
-  categoryModalApi.open();
-}
-
 // 复制到剪贴板
 async function copyToClipboard(text: string) {
   try {
@@ -684,7 +457,7 @@ async function copyToClipboard(text: string) {
 async function copyShareLinkWithExtractCode(resourceData: any) {
   try {
     const driveTypeLabel =
-      DRIVE_TYPE_OPTIONS.find(
+      getDictOptions(DictEnum.DRIVE_TYPE).find(
         (option) => option.value === resourceData.url_type,
       )?.label || '网盘';
 
@@ -722,15 +495,9 @@ function handleImageError(event: Event) {
 // 已移除未使用的时间格式化函数
 
 // 获取账号列表
-async function loadAccountOptions(type?: string) {
-  if (!type) {
-    accountOptions.value = [];
-    return;
-  }
-
+async function loadAccountOptions() {
   try {
     const params: CoulddriveUserListParams = {
-      type,
       is_valid: true,
       page: 1,
       size: 100,
@@ -741,9 +508,10 @@ async function loadAccountOptions(type?: string) {
 
     accountOptions.value = accounts.map(
       (account: CoulddriveDriveAccountDetail) => ({
-        label: `${account.username || account.user_id} (${account.type})`,
+        label: `${account.username || account.user_id} (${getDriveTypeLabel(account.type)})`,
         value: account.id,
         cookies: account.cookies || '',
+        type: account.type,
       }),
     );
   } catch (error) {
@@ -753,143 +521,11 @@ async function loadAccountOptions(type?: string) {
   }
 }
 
-// 处理网盘类型变化
-function onUrlTypeChange(urlType: string) {
-  formData.value.user_id = null; // 重置用户ID
-  loadAccountOptions(urlType);
-}
-
-// 智能识别功能
-async function handleSmartRecognition() {
-  const urlToRecognize =
-    recognitionUrl.value.trim() || formData.value.url.trim();
-
-  if (!urlToRecognize) {
-    message.error('请输入要识别的资源链接');
-    return;
-  }
-
-  isRecognizing.value = true;
-  try {
-    const response: SmartRecognitionResponse =
-      await smartRecognitionApi(urlToRecognize);
-
-    if (response.success) {
-      // 根据识别结果自动填充表单
-      if (response.domain) {
-        // 尝试匹配领域：先按代码匹配，再按名称匹配
-        const domainOption = domainOptions.value.find(
-          (opt) =>
-            opt.value === response.domain || opt.label === response.domain,
-        );
-        if (domainOption) {
-          formData.value.domain = domainOption.value;
-          // 当领域改变时，更新科目选项
-          updateSubjectOptions(domainOption.value);
-        }
-      }
-
-      if (response.subject) {
-        // 尝试匹配科目：先按代码匹配，再按名称匹配
-        const subjectOption = subjectOptions.value.find(
-          (opt) =>
-            opt.value === response.subject || opt.label === response.subject,
-        );
-        if (subjectOption) {
-          formData.value.subject = subjectOption.value;
-        }
-      }
-
-      if (response.main_name) {
-        formData.value.main_name = response.main_name;
-      }
-
-      if (response.resource_type) {
-        // 尝试匹配资源类型：先按代码匹配，再按名称匹配
-        const resourceTypeOption = resourceTypeOptions.value.find(
-          (opt) =>
-            opt.value === response.resource_type ||
-            opt.label === response.resource_type,
-        );
-        if (resourceTypeOption) {
-          formData.value.resource_type = resourceTypeOption.value;
-        }
-      }
-
-      if (response.url) {
-        formData.value.url = response.url;
-      }
-
-      if (response.url_type) {
-        formData.value.url_type = response.url_type;
-        // 当网盘类型改变时，加载对应的账号选项
-        onUrlTypeChange(response.url_type);
-      }
-
-      if (response.extract_code) {
-        formData.value.extract_code = response.extract_code;
-      }
-
-      if (response.description) {
-        formData.value.description = response.description;
-      }
-
-      if (response.resource_intro) {
-        formData.value.resource_intro = response.resource_intro;
-      }
-
-      // 设置排序值
-      if (response.sort !== undefined) {
-        formData.value.sort = response.sort;
-      }
-
-      // 清空识别输入框
-      recognitionUrl.value = '';
-
-      // 显示识别结果信息
-      const confidencePercent = Math.round(response.confidence * 100);
-      let successMessage = `智能识别完成！置信度: ${confidencePercent}%`;
-
-      // 如果识别到了教师，显示额外信息
-      if (response.sort && response.sort > 0) {
-        const teacherName = Object.keys(TEACHER_MAPPINGS).find((name) => {
-          const mapping = TEACHER_MAPPINGS[name];
-          if (!mapping) return false;
-
-          const subjectMatch = response.subject?.includes('数学')
-            ? '数学'
-            : response.subject?.includes('英语')
-              ? '英语'
-              : response.subject?.includes('政治')
-                ? '政治'
-                : '';
-
-          return (
-            mapping.sort === response.sort && mapping.subject === subjectMatch
-          );
-        });
-
-        if (teacherName) {
-          successMessage += ` - 识别到教师: ${teacherName}`;
-        }
-      }
-
-      message.success(`${successMessage} - ${response.message || '识别成功'}`);
-
-      // 如果置信度较低，给出提示
-      if (response.confidence < 0.7) {
-        message.warning('识别置信度较低，请检查并修正填充的信息');
-      }
-    } else {
-      message.error(`智能识别失败: ${response.message || '未知错误'}`);
-    }
-  } catch (error: any) {
-    console.error('智能识别失败:', error);
-    message.error(`智能识别失败: ${error?.message || '网络错误，请稍后重试'}`);
-  } finally {
-    isRecognizing.value = false;
-  }
-}
+// 处理网盘类型变化 - 已废弃，合并账号选择，加载所有账号
+// function onUrlTypeChange(urlType: string) {
+//   formData.value.user_id = null; // 重置用户ID
+//   loadAccountOptions(urlType);
+// }
 
 // 更新分享信息功能
 async function handleRefreshShareInfo() {
@@ -932,7 +568,7 @@ async function handleRefreshShareInfo() {
 // 初始化数据
 onMounted(async () => {
   await fetchStats();
-  await initializeForms(); // 只调用一次，内部会获取分类数据
+  await loadAccountOptions(); // 加载所有账号
 });
 </script>
 
@@ -1013,15 +649,6 @@ onMounted(async () => {
           <span class="hidden sm:inline">新增资源</span>
           <span class="sm:hidden">新增</span>
         </VbenButton>
-        <VbenButton
-          @click="openCategoryManager"
-          type="default"
-          class="mobile-btn"
-        >
-          <Category class="mr-1" />
-          <span class="hidden sm:inline">分类管理</span>
-          <span class="sm:hidden">分类</span>
-        </VbenButton>
       </template>
     </Grid>
 
@@ -1030,19 +657,11 @@ onMounted(async () => {
       <ResourceEditViewModal
         mode="edit"
         :form-data="formData"
-        :show-recognition="!editingResourceId"
-        :domain-options="domainOptions"
-        :subject-options="subjectOptions"
         :resource-type-options="resourceTypeOptions"
         :account-options="accountOptions"
         :temp-modes="TEMP_MODES"
-        :drive-type-options="DRIVE_TYPE_OPTIONS"
-        :recognition-url="recognitionUrl"
-        :is-recognizing="isRecognizing"
-        :on-domain-change="onDomainChange"
-        :on-url-type-change="onUrlTypeChange"
-        :on-smart-recognition="handleSmartRecognition"
-        @update:recognition-url="(v: string) => (recognitionUrl = v)"
+        :drive-type-options="getDictOptions(DictEnum.DRIVE_TYPE)"
+        :category-tree="categoryTree"
       />
     </EditModal>
 
@@ -1098,11 +717,6 @@ onMounted(async () => {
     >
       <ResourceTrendModal :resource="trendResourceData" />
     </TrendModal>
-
-    <!-- 分类管理模态框 -->
-    <CategoryModal title="分类管理">
-      <CategoryManagerModal ref="categoryManagerRef" />
-    </CategoryModal>
   </Page>
 </template>
 
@@ -1114,23 +728,28 @@ onMounted(async () => {
   }
 
   .mobile-btn {
-    @apply min-w-0 px-2 py-1 text-xs;
-
+    min-width: 0;
     height: 32px;
+    padding: 0.25rem 0.5rem;
+    font-size: 0.75rem;
+    line-height: 1rem;
   }
 
   .mobile-btn .mr-1 {
-    @apply mr-0.5 h-3 w-3;
+    width: 0.75rem;
+    height: 0.75rem;
+    margin-right: 0.125rem;
   }
 }
 
 /* 移动端表格操作按钮适配 */
 @media (max-width: 640px) {
   :deep(.vxe-cell--operation .ant-btn) {
-    @apply min-w-0 px-1 py-0 text-xs;
-
+    min-width: 0;
     height: 24px;
+    padding: 0 0.25rem;
     margin: 0 1px;
+    font-size: 0.75rem;
     line-height: 22px;
   }
 }
@@ -1173,7 +792,9 @@ onMounted(async () => {
 
 /* 移动端按钮适配 */
 .mobile-btn {
-  @apply px-2 py-1 text-sm;
+  padding: 0.25rem 0.5rem;
+  font-size: 0.875rem;
+  line-height: 1.25rem;
 }
 
 /* 确保表格容器充分利用空间 */

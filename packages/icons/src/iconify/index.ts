@@ -78,3 +78,7 @@ export const MaterialSymbolsDeleteOutline = createIconifyIcon(
 export const MaterialSymbolsArrowBack = createIconifyIcon(
   'material-symbols:arrow-back',
 );
+
+export const MaterialSymbolsArticleOutline = createIconifyIcon(
+  'material-symbols:article-outline',
+);

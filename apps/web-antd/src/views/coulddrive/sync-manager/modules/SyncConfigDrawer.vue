@@ -13,9 +13,10 @@ import { message } from 'ant-design-vue';
 
 import {
   createCoulddriveSyncConfigApi,
-  DRIVE_TYPE_OPTIONS,
+  DictEnum,
   getCoulddriveRelationshipListApi,
   getCoulddriveUserListApi,
+  getDictOptions,
   getRuleTemplatesByTypeApi,
   RECURSION_SPEED_OPTIONS,
   SYNC_METHOD_OPTIONS,
@@ -603,7 +604,7 @@ onMounted(() => {
               class="w-full"
             >
               <a-select-option
-                v-for="option in DRIVE_TYPE_OPTIONS"
+                v-for="option in getDictOptions(DictEnum.DRIVE_TYPE)"
                 :key="option.value"
                 :value="option.value"
               >

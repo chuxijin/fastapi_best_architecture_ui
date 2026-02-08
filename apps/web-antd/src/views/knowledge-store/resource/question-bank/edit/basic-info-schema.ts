@@ -33,8 +33,11 @@ export const basicInfoSchema: VbenFormSchema[] = [
     componentProps: {
       allowClear: true,
       api: async () => {
-        const { getQbankCategoryTreeApi } = await import('#/api');
-        return getQbankCategoryTreeApi({ cat_type: 1 });
+        const { getSysCategoryTreeApi } = await import('#/api');
+        return getSysCategoryTreeApi({
+          app_code: 'question_bank',
+          type: '题库',
+        });
       },
       class: 'w-full',
       labelField: 'name',
@@ -44,6 +47,19 @@ export const basicInfoSchema: VbenFormSchema[] = [
     },
     fieldName: 'cat_id',
     label: '所属分类',
+    rules: 'required',
+  },
+  {
+    component: 'RadioGroup',
+    componentProps: {
+      options: [
+        { label: '普通题库(含题目)', value: 10 },
+        { label: '合集目录(仅含子题库)', value: 20 },
+      ],
+    },
+    fieldName: 'type',
+    label: '题库类型',
+    defaultValue: 10,
     rules: 'required',
   },
   {

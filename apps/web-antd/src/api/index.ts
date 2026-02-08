@@ -1,4 +1,5 @@
 export * from './app-auth';
+export * from './category';
 export * from './core';
 export * from './coulddrive';
 export * from './data-permission';

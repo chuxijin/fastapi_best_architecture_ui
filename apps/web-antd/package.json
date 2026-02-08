@@ -26,6 +26,7 @@
     "#/*": "./src/*"
   },
   "dependencies": {
+    "@tinymce/tinymce-vue": "^6.3.0",
     "@vben/access": "workspace:*",
     "@vben/common-ui": "workspace:*",
     "@vben/constants": "workspace:*",
@@ -41,6 +42,8 @@
     "@vben/types": "workspace:*",
     "@vben/utils": "workspace:*",
     "@vueuse/core": "catalog:",
+    "@wangeditor/editor": "^5.1.23",
+    "@wangeditor/editor-for-vue": "^5.1.12",
     "ant-design-vue": "catalog:",
     "dayjs": "catalog:",
     "mitt": "^3.0.1",
@@ -48,6 +51,5 @@
     "socket.io-client": "^4.8.1",
     "vue": "catalog:",
     "vue-router": "catalog:"
-  },
-  "devDependencies": {}
+  }
 }

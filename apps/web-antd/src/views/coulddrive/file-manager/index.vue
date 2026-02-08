@@ -26,9 +26,10 @@ import {
   copyCoulddriveFilesApi, // 导入复制API
   createCoulddriveFolderApi,
   createCoulddriveShareApi,
-  DRIVE_TYPE_OPTIONS,
+  DictEnum,
   getCoulddriveFileListApi,
   getCoulddriveUserListApi,
+  getDictOptions,
   getRuleTemplatesByTypeApi, // 导入获取规则模板API
   moveCoulddriveFilesApi, // 导入移动API
   removeCoulddriveFilesApi,
@@ -166,8 +167,9 @@ async function handleAccountSelect(accountId: number) {
   const accountName =
     selectedAccount.username || selectedAccount.user_id || '账号';
   const driveTypeLabel =
-    DRIVE_TYPE_OPTIONS.find((opt) => opt.value === selectedAccount.type)
-      ?.label || selectedAccount.type;
+    getDictOptions(DictEnum.DRIVE_TYPE).find(
+      (opt) => opt.value === selectedAccount.type,
+    )?.label || selectedAccount.type;
   message.success(
     `已选择${driveTypeLabel}账号 ${accountName}，正在加载文件列表...`,
   );
@@ -809,7 +811,7 @@ const [saveShareModal, saveShareModalApi] = useVbenModal({
       saveShareFormApi.resetForm();
       // 根据选择的网盘类型更新占位符
       const driveTypeLabel =
-        DRIVE_TYPE_OPTIONS.find(
+        getDictOptions(DictEnum.DRIVE_TYPE).find(
           (option) => option.value === formData.value.type,
         )?.label || '网盘';
       saveShareFormApi.updateSchema([
@@ -1306,8 +1308,9 @@ function copySingleShareResult() {
   if (!shareResultInfo.value) return;
 
   const driveTypeLabel =
-    DRIVE_TYPE_OPTIONS.find((option) => option.value === formData.value.type)
-      ?.label || '网盘';
+    getDictOptions(DictEnum.DRIVE_TYPE).find(
+      (option) => option.value === formData.value.type,
+    )?.label || '网盘';
 
   let shareText = `我用${driveTypeLabel}分享了「${shareResultInfo.value.title}」，点击链接即可保存。打开「${driveTypeLabel}APP」在线查看，支持多种文档格式转换。
 链接：${shareResultInfo.value.url}`;
@@ -1330,8 +1333,9 @@ function copySingleShareResult() {
 // 复制所有分享结果
 function copyAllShareResults() {
   const driveTypeLabel =
-    DRIVE_TYPE_OPTIONS.find((option) => option.value === formData.value.type)
-      ?.label || '网盘';
+    getDictOptions(DictEnum.DRIVE_TYPE).find(
+      (option) => option.value === formData.value.type,
+    )?.label || '网盘';
 
   const successResults = shareResults.value.filter(
     (r) => r.status === 'success' && r.result,
@@ -1370,8 +1374,9 @@ function copyAllShareResults() {
 // 复制单个分享链接
 function copySingleShareLink(shareInfo: CoulddriveShareInfo) {
   const driveTypeLabel =
-    DRIVE_TYPE_OPTIONS.find((option) => option.value === formData.value.type)
-      ?.label || '网盘';
+    getDictOptions(DictEnum.DRIVE_TYPE).find(
+      (option) => option.value === formData.value.type,
+    )?.label || '网盘';
 
   let shareText = `我用${driveTypeLabel}分享了「${shareInfo.title}」，点击链接即可保存。打开「${driveTypeLabel}APP」在线查看，支持多种文档格式转换。
 链接：${shareInfo.url}`;

@@ -6,6 +6,7 @@ import { useRoute, useRouter } from 'vue-router';
 
 import { ColPage, Page } from '@vben/common-ui';
 import {
+  MaterialSymbolsArticleOutline,
   MaterialSymbolsCalendarMonthOutline,
   MaterialSymbolsDeleteOutline,
   MaterialSymbolsDescriptionOutline,
@@ -24,6 +25,7 @@ import { getBankDetailApi } from '#/api';
 
 import BasicInfo from './components/BasicInfo.vue';
 import ChapterManage from './components/ChapterManage.vue';
+import MaterialManage from './components/MaterialManage.vue';
 import QuestionImport from './components/QuestionImport.vue';
 import QuestionManage from './components/QuestionManage.vue';
 
@@ -137,6 +139,14 @@ function handleBankInfoUpdate(updatedInfo: BankResult) {
                 </span>
               </template>
             </TabPane>
+            <TabPane key="material">
+              <template #tab>
+                <span class="flex items-center gap-1">
+                  <MaterialSymbolsArticleOutline class="size-4" />
+                  材料管理
+                </span>
+              </template>
+            </TabPane>
             <TabPane key="paper">
               <template #tab>
                 <span class="flex items-center gap-1">
@@ -208,6 +218,11 @@ function handleBankInfoUpdate(updatedInfo: BankResult) {
         />
         <QuestionImport
           v-else-if="activeTab === 'import'"
+          :bank-id="bankId"
+          :bank-info="bankInfo"
+        />
+        <MaterialManage
+          v-else-if="activeTab === 'material'"
           :bank-id="bankId"
           :bank-info="bankInfo"
         />

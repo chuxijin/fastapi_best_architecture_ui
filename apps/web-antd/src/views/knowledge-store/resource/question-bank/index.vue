@@ -294,7 +294,7 @@ const [Modal, modalApi] = useVbenModal({
               <span
                 :class="row.status === 1 ? 'text-green-600' : 'text-red-600'"
               >
-                {{ statusMap[row.status].label }}
+                {{ statusMap[row.status]?.label || '未知' }}
               </span>
             </div>
           </div>

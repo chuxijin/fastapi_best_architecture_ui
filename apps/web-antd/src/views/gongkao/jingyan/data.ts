@@ -4,7 +4,7 @@ import type { GkJingyanResult } from '#/api';
 
 import { $t } from '@vben/locales';
 
-import { getGkCategoryListApi } from '#/api/gongkao';
+import { getGkCategoryTreeApi } from '#/api/gongkao';
 
 export const querySchema: VbenFormSchema[] = [
   {
@@ -13,19 +13,19 @@ export const querySchema: VbenFormSchema[] = [
     label: '标题',
   },
   {
-    component: 'ApiSelect',
+    component: 'ApiTreeSelect',
     fieldName: 'type',
     label: '分类',
     componentProps: {
       allowClear: true,
       placeholder: '请选择分类',
-      api: async () => {
-        const data = await getGkCategoryListApi({ size: 100 });
-        return data.items.map((item) => ({
-          label: item.name,
-          value: item.name,
-        }));
-      },
+      api: getGkCategoryTreeApi,
+      class: 'w-[200px]',
+      labelField: 'name',
+      valueField: 'name',
+      childrenField: 'children',
+      showSearch: true,
+      treeNodeFilterProp: 'name',
     },
   },
   {
@@ -88,20 +88,20 @@ export const schema: VbenFormSchema[] = [
     rules: 'required',
   },
   {
-    component: 'ApiSelect',
+    component: 'ApiTreeSelect',
     fieldName: 'type',
     label: '分类',
     rules: 'required',
     componentProps: {
       allowClear: true,
       placeholder: '请选择分类',
-      api: async () => {
-        const data = await getGkCategoryListApi({ size: 100 });
-        return data.items.map((item) => ({
-          label: item.name,
-          value: item.name,
-        }));
-      },
+      api: getGkCategoryTreeApi,
+      class: 'w-full',
+      labelField: 'name',
+      valueField: 'name',
+      childrenField: 'children',
+      showSearch: true,
+      treeNodeFilterProp: 'name',
     },
   },
   {

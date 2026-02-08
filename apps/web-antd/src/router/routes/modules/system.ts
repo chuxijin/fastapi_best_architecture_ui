@@ -22,6 +22,15 @@ const routes: RouteRecordRaw[] = [
         },
       },
       {
+        name: 'SysCategory',
+        path: '/system/category',
+        component: () => import('#/views/system/category/index.vue'),
+        meta: {
+          title: '分类管理',
+          icon: 'material-symbols:category',
+        },
+      },
+      {
         name: 'SysUser',
         path: '/system/user',
         component: () => import('#/views/system/user/index.vue'),

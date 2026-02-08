@@ -56,6 +56,15 @@ const routes: RouteRecordRaw[] = [
         },
       },
       {
+        name: 'GongkaoGuanmei',
+        path: '/gongkao/guanmei',
+        component: () => import('#/views/gongkao/guanmei/index.vue'),
+        meta: {
+          title: '官媒学言语',
+          icon: 'mdi:text-box-check-outline',
+        },
+      },
+      {
         name: 'GongkaoZhenti',
         path: '/gongkao/zhenti',
         component: () => import('#/views/gongkao/zhenti/index.vue'),

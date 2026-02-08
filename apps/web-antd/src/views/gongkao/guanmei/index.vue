@@ -5,15 +5,12 @@ import type {
   OnActionClickParams,
   VxeTableGridOptions,
 } from '#/adapter/vxe-table';
-import type { CreateGkGangweiParams, GkGangweiResult } from '#/api';
+import type { CreateGkGuanmeiParams, GkGuanmeiResult } from '#/api';
 
 import { computed, ref } from 'vue';
 
 import { Page, useVbenModal, VbenButton } from '@vben/common-ui';
-import {
-  MaterialSymbolsAdd,
-  MaterialSymbolsUploadFileOutline,
-} from '@vben/icons';
+import { MaterialSymbolsAdd } from '@vben/icons';
 import { $t } from '@vben/locales';
 
 import { message } from 'ant-design-vue';
@@ -21,19 +18,13 @@ import { message } from 'ant-design-vue';
 import { useVbenForm } from '#/adapter/form';
 import { useVbenVxeGrid } from '#/adapter/vxe-table';
 import {
-  createGkGangweiApi,
-  deleteGkGangweiApi,
-  getGkGangweiListApi,
-  updateGkGangweiApi,
+  createGkGuanmeiApi,
+  deleteGkGuanmeiApi,
+  getGkGuanmeiListApi,
+  updateGkGuanmeiApi,
 } from '#/api/gongkao';
 
 import { querySchema, schema, useColumns } from './data';
-import ImportModal from './ImportModal.vue';
-import ImportScoreModal from './ImportScoreModal.vue';
-
-// 导入弹窗
-const importModalRef = ref<InstanceType<typeof ImportModal>>();
-const importScoreModalRef = ref<InstanceType<typeof ImportScoreModal>>();
 
 const formOptions: VbenFormProps = {
   collapsed: true,
@@ -44,7 +35,7 @@ const formOptions: VbenFormProps = {
   schema: querySchema,
 };
 
-const gridOptions: VxeTableGridOptions<GkGangweiResult> = {
+const gridOptions: VxeTableGridOptions<GkGuanmeiResult> = {
   rowConfig: {
     keyField: 'id',
   },
@@ -68,7 +59,7 @@ const gridOptions: VxeTableGridOptions<GkGangweiResult> = {
   proxyConfig: {
     ajax: {
       query: async ({ page }, formValues) => {
-        return await getGkGangweiListApi({
+        return await getGkGuanmeiListApi({
           page: page.currentPage,
           size: page.pageSize,
           ...formValues,
@@ -84,13 +75,11 @@ function onRefresh() {
   gridApi.query();
 }
 
-function onActionClick({ code, row }: OnActionClickParams<GkGangweiResult>) {
+function onActionClick({ code, row }: OnActionClickParams<GkGuanmeiResult>) {
   switch (code) {
     case 'delete': {
-      deleteGkGangweiApi([row.id]).then(() => {
-        message.success(
-          $t('ui.actionMessage.deleteSuccess', [row.position_name]),
-        );
+      deleteGkGuanmeiApi([row.id]).then(() => {
+        message.success($t('ui.actionMessage.deleteSuccess', [row.daily_date]));
         onRefresh();
       });
       break;
@@ -106,18 +95,19 @@ const [Form, formApi] = useVbenForm({
   layout: 'vertical',
   showDefaultActions: false,
   schema,
+  wrapperClass: 'grid grid-cols-2 gap-4',
 });
 
-interface FormGangweiParams extends CreateGkGangweiParams {
+interface FormGuanmeiParams extends CreateGkGuanmeiParams {
   id?: number;
 }
 
-const formData = ref<FormGangweiParams>();
+const formData = ref<FormGuanmeiParams>();
 
 const modalTitle = computed(() => {
   return formData.value?.id
-    ? $t('ui.actionTitle.edit', ['岗位'])
-    : $t('ui.actionTitle.create', ['岗位']);
+    ? $t('ui.actionTitle.edit', ['官媒学言语'])
+    : $t('ui.actionTitle.create', ['官媒学言语']);
 });
 
 const [Modal, modalApi] = useVbenModal({
@@ -126,11 +116,11 @@ const [Modal, modalApi] = useVbenModal({
     const { valid } = await formApi.validate();
     if (valid) {
       modalApi.lock();
-      const data = await formApi.getValues<CreateGkGangweiParams>();
+      const data = await formApi.getValues<CreateGkGuanmeiParams>();
       try {
         await (formData.value?.id
-          ? updateGkGangweiApi(formData.value?.id, data)
-          : createGkGangweiApi(data));
+          ? updateGkGuanmeiApi(formData.value?.id, data)
+          : createGkGuanmeiApi(data));
         message.success($t('ui.actionMessage.operationSuccess'));
         await modalApi.close();
         onRefresh();
@@ -141,7 +131,7 @@ const [Modal, modalApi] = useVbenModal({
   },
   onOpenChange(isOpen) {
     if (isOpen) {
-      const data = modalApi.getData<FormGangweiParams>();
+      const data = modalApi.getData<FormGuanmeiParams>();
       formApi.resetForm();
       if (data) {
         formData.value = data;
@@ -160,22 +150,12 @@ const [Modal, modalApi] = useVbenModal({
       <template #toolbar-actions>
         <VbenButton @click="() => modalApi.setData(null).open()">
           <MaterialSymbolsAdd class="size-5" />
-          新增岗位
-        </VbenButton>
-        <VbenButton @click="() => importModalRef?.open()">
-          <MaterialSymbolsUploadFileOutline class="size-5" />
-          导入岗位
-        </VbenButton>
-        <VbenButton @click="() => importScoreModalRef?.open()">
-          <MaterialSymbolsUploadFileOutline class="size-5" />
-          导入分数
+          新增官媒学言语
         </VbenButton>
       </template>
     </Grid>
-    <Modal :title="modalTitle">
+    <Modal :title="modalTitle" class="w-[1400px]">
       <Form />
     </Modal>
-    <ImportModal ref="importModalRef" @success="onRefresh" />
-    <ImportScoreModal ref="importScoreModalRef" @success="onRefresh" />
   </Page>
 </template>

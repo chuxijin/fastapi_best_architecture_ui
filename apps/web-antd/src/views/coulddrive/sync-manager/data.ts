@@ -3,11 +3,7 @@ import type { OnActionClickFn, VxeGridProps } from '#/adapter/vxe-table';
 
 import { $t } from '@vben/locales';
 
-import {
-  DRIVE_TYPE_OPTIONS,
-  DRIVE_TYPE_TAG_OPTIONS,
-  SYNC_METHOD_OPTIONS,
-} from '#/api';
+import { DictEnum, getDictOptions, SYNC_METHOD_OPTIONS } from '#/api';
 
 // 同步配置查询表单配置
 export const syncConfigQuerySchema: VbenFormSchema[] = [
@@ -22,7 +18,10 @@ export const syncConfigQuerySchema: VbenFormSchema[] = [
   {
     component: 'Select',
     componentProps: {
-      options: [{ label: '全部', value: '' }, ...DRIVE_TYPE_OPTIONS],
+      options: [
+        { label: '全部', value: '' },
+        ...getDictOptions(DictEnum.DRIVE_TYPE),
+      ],
       placeholder: '请选择网盘类型',
     },
     fieldName: 'type',
@@ -66,7 +65,7 @@ export function useSyncConfigColumns(
       width: 120,
       cellRender: {
         name: 'CellTag',
-        options: [...DRIVE_TYPE_TAG_OPTIONS],
+        options: getDictOptions(DictEnum.DRIVE_TYPE),
       },
     },
     {
@@ -150,7 +149,7 @@ export const syncConfigFormSchema: VbenFormSchema[] = [
   {
     component: 'Select',
     componentProps: {
-      options: DRIVE_TYPE_OPTIONS,
+      options: getDictOptions(DictEnum.DRIVE_TYPE),
       placeholder: '请选择网盘类型',
     },
     fieldName: 'type',

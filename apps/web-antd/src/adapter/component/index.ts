@@ -61,6 +61,10 @@ const TreeSelect = defineAsyncComponent(
 );
 const Upload = defineAsyncComponent(() => import('ant-design-vue/es/upload'));
 
+const WangEditor = defineAsyncComponent(
+  () => import('#/components/WangEditor/index.vue'),
+);
+
 const withDefaultPlaceholder = <T extends Component>(
   component: T,
   type: 'input' | 'select',
@@ -122,6 +126,7 @@ export type ComponentType =
   | 'TimePicker'
   | 'TreeSelect'
   | 'Upload'
+  | 'WangEditor'
   | BaseFormComponentType;
 
 async function initComponentAdapter() {
@@ -190,6 +195,7 @@ async function initComponentAdapter() {
     TimePicker,
     TreeSelect: withDefaultPlaceholder(TreeSelect, 'select'),
     Upload,
+    WangEditor,
   };
 
   // 将组件注册到全局共享状态中

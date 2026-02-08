@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import type { EchartsUIType } from '@vben/plugins/echarts';
 
-import { computed, defineExpose, defineProps, ref, watch } from 'vue';
+import { computed, ref, watch } from 'vue';
 
 import { EchartsUI, useEcharts } from '@vben/plugins/echarts';
 
@@ -245,12 +245,8 @@ watch(
           </h3>
           <div class="grid grid-cols-2 gap-4 text-sm text-gray-600">
             <div>
-              <span class="font-medium">领域：</span>
-              {{ resource.domain }}
-            </div>
-            <div>
-              <span class="font-medium">科目：</span>
-              {{ resource.subject }}
+              <span class="font-medium">分类：</span>
+              {{ resource.category_name || resource.category_id || '无' }}
             </div>
             <div>
               <span class="font-medium">资源类型：</span>

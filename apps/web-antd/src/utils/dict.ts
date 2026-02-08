@@ -4,6 +4,7 @@ import { getDictDataDetailApi } from '#/plugins/dict/api';
 import { useDictStore } from '#/store';
 
 export enum DictEnum {
+  DRIVE_TYPE = 'drive_type',
   JOB_APPLICATION_STATUS = 'job_application_status',
   NOTICE = 'notice',
   SYS_CHOOSE = 'sys_choose',
@@ -20,6 +21,7 @@ export enum DictEnum {
 }
 
 export const DICT_CONFIG: Record<string, DictOptionsParams> = {
+  [DictEnum.DRIVE_TYPE]: { asString: true },
   [DictEnum.SYS_STATUS]: { asNumber: true },
   [DictEnum.NOTICE]: { asNumber: true },
   [DictEnum.SYS_CHOOSE]: { asBoolean: true },
@@ -32,7 +34,7 @@ export const DICT_CONFIG: Record<string, DictOptionsParams> = {
   [DictEnum.TASK_PERIOD_TYPE]: { asString: true },
   [DictEnum.TASK_STRATEGY_TYPE]: { asNumber: true },
   [DictEnum.USER_ONLINE_STATUS]: { asNumber: true },
-  [DictEnum.JOB_APPLICATION_STATUS]: { asNumber: true }, // 新增的投递状态枚举配置
+  [DictEnum.JOB_APPLICATION_STATUS]: { asNumber: true },
 };
 
 export interface DictOptionsParams {

@@ -190,8 +190,9 @@ export async function incrementGkJingyanViewApi(id: number) {
 // ==================== 公考岗位管理 ====================
 export interface GkGangweiParams {
   year?: number;
-  org_name?: string;
-  org_region?: string;
+  exam_type?: string;
+  region?: string;
+  dept_name?: string;
   position_name?: string;
   position_code?: string;
   page?: number;
@@ -200,42 +201,62 @@ export interface GkGangweiParams {
 
 export interface GkGangweiResult {
   id: number;
+  // 基础标识
   year: number;
+  position_code?: string;
   serial_no?: string;
-  org_code?: string;
-  org_name?: string;
-  position_code: string;
-  position_name?: string;
-  org_system?: string;
-  org_region: string;
+  // 部门信息
+  dept_code?: string;
+  dept_name?: string;
+  bureau?: string;
+  org_nature?: string;
   org_level?: string;
-  work_location?: string;
-  job_rank?: string;
-  exam_type?: string;
+  dept_website?: string;
+  // 职位信息
+  position_name?: string;
+  position_attr?: string;
+  position_intro?: string;
   recruit_num?: number;
   recruit_scope?: string;
+  exam_category?: string;
+  job_rank?: string;
+  // 报考条件
+  major?: string;
+  education?: string;
+  degree?: string;
+  edu_type?: string;
+  politics?: string;
   age_requirement?: string;
   gender_requirement?: string;
   ethnicity_requirement?: string;
-  politics_requirement?: string;
-  education_requirement?: string;
-  degree_requirement?: string;
-  edu_type_requirement?: string;
-  work_exp_requirement?: string;
+  grassroots_years?: string;
+  grassroots_project?: string;
   special_position?: string;
-  major_requirement?: string;
   other_requirement?: string;
-  position_intro?: string;
-  contact?: string;
+  // 地点信息
+  region?: string;
+  work_location?: string;
+  settlement_location?: string;
+  // 面试相关
+  interview_ratio?: string;
+  has_professional_test?: string;
+  // 联系方式
+  phone1?: string;
+  phone2?: string;
+  phone3?: string;
   remark?: string;
+  // 统计字段
+  exam_type?: string;
   apply_count?: number;
   pass_count?: number;
+  competition_ratio?: string;
   written_min_score?: number;
   written_avg_score?: number;
   written_max_score?: number;
   interview_min_score?: number;
   interview_avg_score?: number;
   interview_max_score?: number;
+  // 系统字段
   created_time: string;
   updated_time?: string;
   created_by: number;
@@ -243,65 +264,119 @@ export interface GkGangweiResult {
 }
 
 export interface CreateGkGangweiParams {
+  // 基础标识
   year: number;
-  position_code: string;
-  org_region: string;
+  position_code?: string;
   serial_no?: string;
-  org_code?: string;
-  org_name?: string;
-  position_name?: string;
-  org_system?: string;
+  // 部门信息
+  dept_code?: string;
+  dept_name?: string;
+  bureau?: string;
+  org_nature?: string;
   org_level?: string;
-  work_location?: string;
-  job_rank?: string;
-  exam_type?: string;
+  dept_website?: string;
+  // 职位信息
+  position_name?: string;
+  position_attr?: string;
+  position_intro?: string;
   recruit_num?: number;
   recruit_scope?: string;
+  exam_category?: string;
+  job_rank?: string;
+  // 报考条件
+  major?: string;
+  education?: string;
+  degree?: string;
+  edu_type?: string;
+  politics?: string;
   age_requirement?: string;
   gender_requirement?: string;
   ethnicity_requirement?: string;
-  politics_requirement?: string;
-  education_requirement?: string;
-  degree_requirement?: string;
-  edu_type_requirement?: string;
-  work_exp_requirement?: string;
+  grassroots_years?: string;
+  grassroots_project?: string;
   special_position?: string;
-  major_requirement?: string;
   other_requirement?: string;
-  position_intro?: string;
-  contact?: string;
+  // 地点信息
+  region?: string;
+  work_location?: string;
+  settlement_location?: string;
+  // 面试相关
+  interview_ratio?: string;
+  has_professional_test?: string;
+  // 联系方式
+  phone1?: string;
+  phone2?: string;
+  phone3?: string;
   remark?: string;
+  // 统计字段
+  exam_type?: string;
+  apply_count?: number;
+  pass_count?: number;
+  competition_ratio?: string;
+  written_min_score?: number;
+  written_avg_score?: number;
+  written_max_score?: number;
+  interview_min_score?: number;
+  interview_avg_score?: number;
+  interview_max_score?: number;
 }
 
 export interface UpdateGkGangweiParams {
+  // 基础标识
   year?: number;
-  serial_no?: string;
-  org_code?: string;
-  org_name?: string;
   position_code?: string;
-  position_name?: string;
-  org_system?: string;
-  org_region?: string;
+  serial_no?: string;
+  // 部门信息
+  dept_code?: string;
+  dept_name?: string;
+  bureau?: string;
+  org_nature?: string;
   org_level?: string;
-  work_location?: string;
-  job_rank?: string;
-  exam_type?: string;
+  dept_website?: string;
+  // 职位信息
+  position_name?: string;
+  position_attr?: string;
+  position_intro?: string;
   recruit_num?: number;
   recruit_scope?: string;
+  exam_category?: string;
+  job_rank?: string;
+  // 报考条件
+  major?: string;
+  education?: string;
+  degree?: string;
+  edu_type?: string;
+  politics?: string;
   age_requirement?: string;
   gender_requirement?: string;
   ethnicity_requirement?: string;
-  politics_requirement?: string;
-  education_requirement?: string;
-  degree_requirement?: string;
-  edu_type_requirement?: string;
-  work_exp_requirement?: string;
+  grassroots_years?: string;
+  grassroots_project?: string;
   special_position?: string;
-  major_requirement?: string;
   other_requirement?: string;
-  position_intro?: string;
-  contact?: string;
+  // 地点信息
+  region?: string;
+  work_location?: string;
+  settlement_location?: string;
+  // 面试相关
+  interview_ratio?: string;
+  has_professional_test?: string;
+  // 联系方式
+  phone1?: string;
+  phone2?: string;
+  phone3?: string;
   remark?: string;
+  // 统计字段
+  exam_type?: string;
+  apply_count?: number;
+  pass_count?: number;
+  competition_ratio?: string;
+  written_min_score?: number;
+  written_avg_score?: number;
+  written_max_score?: number;
+  interview_min_score?: number;
+  interview_avg_score?: number;
+  interview_max_score?: number;
 }
 
 export interface GkGangweiPaginationResponse {
@@ -339,6 +414,134 @@ export async function updateGkGangweiApi(
 // 删除岗位
 export async function deleteGkGangweiApi(ids: number[]) {
   return requestClient.delete('/api/v1/gk/gangwei', { data: { ids } });
+}
+
+// ==================== 公考岗位导入 ====================
+export interface ParseFileHeaderResult {
+  file_key: string;
+  raw_rows: string[][]; // 原始行（供选择表头）
+  header_row: number; // 当前表头行
+  headers: string[];
+  preview_data: Record<string, any>[];
+  total_rows: number;
+  db_fields: {
+    field: string;
+    label: string;
+    options?: string[];
+    required: boolean;
+  }[];
+  suggested_mappings: { db_field: string; file_column: string }[];
+}
+
+export interface FieldMappingItem {
+  db_field: string;
+  file_column?: string;
+  file_columns?: string[]; // 多选（备注字段用）
+  fixed_value?: string;
+}
+
+export interface ImportWithMappingParams {
+  file_key: string;
+  header_row: number; // 表头所在行
+  mappings: FieldMappingItem[];
+  preview?: boolean; // 预览模式
+}
+
+export interface ImportGangweiResult {
+  total: number;
+  success: number;
+  skipped: number;
+  failed: number;
+  errors: string[];
+}
+
+// 导入超时时间：10 分钟
+const IMPORT_TIMEOUT = 10 * 60 * 1000;
+
+// 解析导入文件表头
+export async function parseGkGangweiImportFileApi(file: File) {
+  const formData = new FormData();
+  formData.append('file', file);
+  return requestClient.post<ParseFileHeaderResult>(
+    '/api/v1/gk/gangwei/import/parse',
+    formData,
+    {
+      headers: { 'Content-Type': 'multipart/form-data' },
+      timeout: IMPORT_TIMEOUT,
+    },
+  );
+}
+
+// 重新解析表头（切换表头行）
+export async function reparseGkGangweiImportFileApi(
+  fileKey: string,
+  headerRow: number,
+) {
+  return requestClient.post<ParseFileHeaderResult>(
+    '/api/v1/gk/gangwei/import/reparse',
+    null,
+    {
+      params: { file_key: fileKey, header_row: headerRow },
+      timeout: IMPORT_TIMEOUT,
+    },
+  );
+}
+
+// 执行带映射的导入
+export async function executeGkGangweiImportApi(data: ImportWithMappingParams) {
+  return requestClient.post<ImportGangweiResult>(
+    '/api/v1/gk/gangwei/import/execute',
+    data,
+    { timeout: IMPORT_TIMEOUT },
+  );
+}
+
+// ==================== 公考岗位分数导入 ====================
+export interface ImportScoreResult {
+  total: number; // 原始行数
+  positions: number; // 聚合后岗位数
+  updated: number;
+  not_found: number;
+  failed: number;
+  errors: string[];
+}
+
+// 解析分数导入文件表头
+export async function parseGkScoreImportFileApi(file: File) {
+  const formData = new FormData();
+  formData.append('file', file);
+  return requestClient.post<ParseFileHeaderResult>(
+    '/api/v1/gk/gangwei/score/import/parse',
+    formData,
+    {
+      headers: { 'Content-Type': 'multipart/form-data' },
+      timeout: IMPORT_TIMEOUT,
+    },
+  );
+}
+
+// 重新解析分数导入表头（切换表头行）
+export async function reparseGkScoreImportFileApi(
+  fileKey: string,
+  headerRow: number,
+) {
+  return requestClient.post<ParseFileHeaderResult>(
+    '/api/v1/gk/gangwei/score/import/reparse',
+    null,
+    {
+      params: { file_key: fileKey, header_row: headerRow },
+      timeout: IMPORT_TIMEOUT,
+    },
+  );
+}
+
+// 执行分数导入
+export async function executeGkScoreImportApi(data: ImportWithMappingParams) {
+  return requestClient.post<ImportScoreResult>(
+    '/api/v1/gk/gangwei/score/import/execute',
+    data,
+    { timeout: IMPORT_TIMEOUT },
+  );
 }
 
 // ==================== 公考时评管理 ====================
@@ -520,7 +723,7 @@ export interface GkZhentiQuestionResult {
   title: string;
   type: string;
   category_id: number;
-  material_id?: number;
+  material_ids?: number[];
   difficulty?: number;
   year?: number;
   source?: string;
@@ -547,7 +750,7 @@ export interface CreateGkZhentiQuestionParams {
   title: string;
   type: string;
   category_id: number;
-  material_id?: number;
+  material_ids?: number[];
   difficulty?: number;
   year?: number;
   source?: string;
@@ -561,7 +764,7 @@ export interface UpdateGkZhentiQuestionParams {
   title?: string;
   type?: string;
   category_id?: number;
-  material_id?: number;
+  material_ids?: number[];
   difficulty?: number;
   year?: number;
   source?: string;
@@ -703,6 +906,72 @@ export async function deleteGkZhentiMaterialApi(ids: number[]) {
   return requestClient.delete('/api/v1/gk/zhenti/material', { data: { ids } });
 }
 
+// ==================== 公考真题答案管理 ====================
+export interface GkZhentiAnswerResult {
+  id: number;
+  question_id: number;
+  source: string;
+  answer_keys?: string;
+  answer?: string;
+  analysis?: string;
+  analysis_video_url?: string;
+  knowledge_points?: string[];
+  reference_materials?: string;
+  is_official: boolean;
+  created_time: string;
+  updated_time?: string;
+}
+
+export interface CreateGkZhentiAnswerParams {
+  question_id: number;
+  source: string;
+  answer_keys?: string;
+  answer?: string;
+  analysis?: string;
+  analysis_video_url?: string;
+  knowledge_points?: string[];
+  reference_materials?: string;
+  is_official?: boolean;
+}
+
+export interface UpdateGkZhentiAnswerParams {
+  source?: string;
+  answer_keys?: string;
+  answer?: string;
+  analysis?: string;
+  analysis_video_url?: string;
+  knowledge_points?: string[];
+  reference_materials?: string;
+  is_official?: boolean;
+}
+
+// 获取题目的所有答案
+export async function getGkZhentiAnswersByQuestionApi(questionId: number) {
+  return requestClient.get<GkZhentiAnswerResult[]>(
+    `/api/v1/gk/zhenti/answer/question/${questionId}`,
+  );
+}
+
+// 创建答案
+export async function createGkZhentiAnswerApi(
+  data: CreateGkZhentiAnswerParams,
+) {
+  return requestClient.post('/api/v1/gk/zhenti/answer', data);
+}
+
+// 更新答案
+export async function updateGkZhentiAnswerApi(
+  id: number,
+  data: UpdateGkZhentiAnswerParams,
+) {
+  return requestClient.put(`/api/v1/gk/zhenti/answer/${id}`, data);
+}
+
+// 删除答案
+export async function deleteGkZhentiAnswerApi(ids: number[]) {
+  return requestClient.delete('/api/v1/gk/zhenti/answer', { data: { ids } });
+}
+
 // ==================== 公考分类管理 ====================
 export interface GkCategoryParams {
   name?: string;
@@ -779,4 +1048,95 @@ export async function updateGkCategoryApi(
 // 删除分类
 export async function deleteGkCategoryApi(ids: number[]) {
   return requestClient.delete('/api/v1/gk/category', { data: { ids } });
+}
+
+// ==================== 官媒学言语管理 ====================
+export interface GkGuanmeiParams {
+  daily_date?: string;
+  page?: number;
+  size?: number;
+}
+
+export interface GkGuanmeiResult {
+  id: number;
+  daily_date?: string;
+  left_content?: string;
+  right_content?: string;
+  view_count: number;
+  created_time: string;
+  updated_time?: string;
+  created_by: number;
+  updated_by?: number;
+}
+
+export interface GkGuanmeiPaginationResponse {
+  items: GkGuanmeiResult[];
+  total: number;
+  page: number;
+  size: number;
+  total_pages: number;
+}
+
+export interface CreateGkGuanmeiParams {
+  daily_date?: string;
+  left_content?: string;
+  right_content?: string;
+}
+
+export interface UpdateGkGuanmeiParams {
+  daily_date?: string;
+  left_content?: string;
+  right_content?: string;
+}
+
+// 获取官媒学言语列表
+export async function getGkGuanmeiListApi(params?: GkGuanmeiParams) {
+  return requestClient.get<GkGuanmeiPaginationResponse>('/api/v1/gk/guanmei', {
+    params,
+  });
+}
+
+// 获取官媒学言语详情
+export async function getGkGuanmeiDetailApi(id: number) {
+  return requestClient.get<GkGuanmeiResult>(`/api/v1/gk/guanmei/${id}`);
+}
+
+// 创建官媒学言语
+export async function createGkGuanmeiApi(data: CreateGkGuanmeiParams) {
+  return requestClient.post('/api/v1/gk/guanmei', data);
+}
+
+// 更新官媒学言语
+export async function updateGkGuanmeiApi(
+  id: number,
+  data: UpdateGkGuanmeiParams,
+) {
+  return requestClient.put(`/api/v1/gk/guanmei/${id}`, data);
+}
+
+// 删除官媒学言语
+export async function deleteGkGuanmeiApi(ids: number[]) {
+  return requestClient.delete('/api/v1/gk/guanmei', { data: { ids } });
+}
+
+// 增加官媒学言语阅读量
+export async function incrementGkGuanmeiViewApi(id: number) {
+  return requestClient.post(`/api/v1/gk/guanmei/${id}/view`);
+}
+
+// ==================== 公考资料管理 ====================
+
+export async function uploadGkResourceFileApi(file: File, categoryId: number) {
+  const formData = new FormData();
+  formData.append('file', file);
+  return requestClient.post<{
+    file_type: string;
+    filename: string;
+    path: string;
+    size: number;
+    url: string;
+  }>('/api/v1/gk/resource/upload', formData, {
+    params: { category_id: categoryId },
+    headers: { 'Content-Type': 'multipart/form-data' },
+  });
 }

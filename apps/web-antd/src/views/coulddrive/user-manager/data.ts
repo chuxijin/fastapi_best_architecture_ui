@@ -4,7 +4,7 @@ import type { CoulddriveDriveAccountDetail } from '#/api';
 
 import { $t } from '@vben/locales';
 
-import { DRIVE_TYPE_OPTIONS, DRIVE_TYPE_TAG_OPTIONS } from '#/api';
+import { DictEnum, getDictOptions } from '#/api';
 
 // 用户信息查询表单配置
 export function getUserInfoFormSchema(
@@ -14,7 +14,7 @@ export function getUserInfoFormSchema(
     {
       component: 'Select',
       componentProps: {
-        options: DRIVE_TYPE_OPTIONS,
+        options: getDictOptions(DictEnum.DRIVE_TYPE),
         placeholder: '请选择网盘类型',
         disabled: isEditMode, // 编辑模式下禁用网盘类型选择
       },
@@ -56,7 +56,10 @@ export const userListQuerySchema: VbenFormSchema[] = [
   {
     component: 'Select',
     componentProps: {
-      options: [{ label: '全部', value: '' }, ...DRIVE_TYPE_OPTIONS],
+      options: [
+        { label: '全部', value: '' },
+        ...getDictOptions(DictEnum.DRIVE_TYPE),
+      ],
       placeholder: '请选择网盘类型',
     },
     fieldName: 'type',
@@ -170,7 +173,7 @@ export function useUserListColumns(
       width: 120,
       cellRender: {
         name: 'CellTag',
-        options: [...DRIVE_TYPE_TAG_OPTIONS],
+        options: getDictOptions(DictEnum.DRIVE_TYPE),
       },
     },
     {

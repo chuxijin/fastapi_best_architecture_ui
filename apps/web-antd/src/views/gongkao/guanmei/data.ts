@@ -1,6 +1,6 @@
 import type { VbenFormSchema } from '#/adapter/form';
 import type { OnActionClickFn, VxeGridProps } from '#/adapter/vxe-table';
-import type { GkShizhenResult } from '#/api';
+import type { GkGuanmeiResult } from '#/api';
 
 import { $t } from '@vben/locales';
 
@@ -16,7 +16,7 @@ export const querySchema: VbenFormSchema[] = [
 ];
 
 export function useColumns(
-  onActionClick?: OnActionClickFn<GkShizhenResult>,
+  onActionClick?: OnActionClickFn<GkGuanmeiResult>,
 ): VxeGridProps['columns'] {
   return [
     {
@@ -26,8 +26,30 @@ export function useColumns(
       width: 50,
     },
     { field: 'daily_date', title: '日期', width: 120 },
-    { field: 'original', title: '原文', minWidth: 300 },
-    { field: 'summary', title: '主要内容', minWidth: 300 },
+    {
+      field: 'left_content',
+      title: '左栏内容',
+      minWidth: 200,
+      formatter: ({ cellValue }) => {
+        // 显示前50个字符
+        if (cellValue && cellValue.length > 50) {
+          return `${cellValue.replaceAll(/<[^>]+>/g, '').slice(0, 50)}...`;
+        }
+        return cellValue?.replace(/<[^>]+>/g, '') || '';
+      },
+    },
+    {
+      field: 'right_content',
+      title: '右栏内容',
+      minWidth: 200,
+      formatter: ({ cellValue }) => {
+        if (cellValue && cellValue.length > 50) {
+          return `${cellValue.replaceAll(/<[^>]+>/g, '').slice(0, 50)}...`;
+        }
+        return cellValue?.replace(/<[^>]+>/g, '') || '';
+      },
+    },
+    { field: 'view_count', title: '阅读量', width: 100 },
     {
       field: 'created_time',
       title: $t('common.table.created_time'),
@@ -56,22 +78,25 @@ export const schema: VbenFormSchema[] = [
     component: 'DatePicker',
     fieldName: 'daily_date',
     label: '日期',
+    formItemClass: 'col-span-2',
     componentProps: {
       valueFormat: 'YYYY-MM-DD',
     },
   },
   {
     component: 'WangEditor',
-    fieldName: 'original',
-    label: '原文',
+    fieldName: 'left_content',
+    label: '左栏内容（文段）',
+    formItemClass: 'col-span-1',
     componentProps: {
       height: 400,
     },
   },
   {
     component: 'WangEditor',
-    fieldName: 'summary',
-    label: '主要内容',
+    fieldName: 'right_content',
+    label: '右栏内容（解析）',
+    formItemClass: 'col-span-1',
     componentProps: {
       height: 400,
     },

@@ -199,7 +199,7 @@ const [Modal, modalApi] = useVbenModal({
 const [PreviewModal, previewModalApi] = useVbenModal({
   class: 'w-10/12',
   title: '题目预览',
-  footer: null,
+  footer: false,
   destroyOnClose: true,
   closable: false,
   onOpenChange(isOpen: boolean) {
@@ -266,7 +266,7 @@ async function onActionClick({
     }
     case 'preview': {
       try {
-        const detail = await getQuestionDetailApi(row.id);
+        const detail = (await getQuestionDetailApi(row.id)) as any;
 
         // 转换 options_data 对象为数组（方便前端显示）
         if (detail.options_data) {
@@ -359,7 +359,6 @@ function handleAddQuestion(type: QuestionType) {
               <MenuItem key="judgement">判断题</MenuItem>
               <MenuItem key="fill">填空题</MenuItem>
               <MenuItem key="shortAnswer">简答题</MenuItem>
-              <MenuItem key="material">材料题</MenuItem>
             </Menu>
           </template>
         </Dropdown>
@@ -539,7 +538,7 @@ function handleAddQuestion(type: QuestionType) {
                   v-for="(ans, idx) in previewData.analysis.answer_data.correct"
                   :key="idx"
                 >
-                  填空 {{ idx + 1 }}：{{ ans }}
+                  填空 {{ Number(idx) + 1 }}：{{ ans }}
                 </p>
               </div>
               <!-- 简答 -->

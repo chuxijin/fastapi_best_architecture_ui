@@ -1,5 +1,8 @@
 import type { PaginationResult } from '#/types';
 
+// 网盘类型 - 使用字典系统
+import { DictEnum, getDictOptions } from '#/utils/dict';
+
 import { requestClient } from './request';
 
 // ==================== 枚举定义 ====================
@@ -57,47 +60,22 @@ export const SYNC_METHOD_OPTIONS = [
   },
 ] as const;
 
-// 网盘类型选项
-export const DRIVE_TYPE_OPTIONS = [
-  { label: '百度网盘', value: 'BaiduDrive' },
-  { label: '夸克网盘', value: 'QuarkDrive' },
-  { label: 'Alist网盘', value: 'AlistDrive' },
-] as const;
-
-// 网盘类型标签映射
-export const DRIVE_TYPE_LABEL_MAP = {
-  BaiduDrive: '百度网盘',
-  QuarkDrive: '夸克网盘',
-  AlistDrive: 'Alist网盘',
-} as const;
-
-// 网盘类型颜色映射
-export const DRIVE_TYPE_COLOR_MAP = {
-  BaiduDrive: 'blue',
-  QuarkDrive: 'green',
-  AlistDrive: 'orange',
-} as const;
+// 导出字典枚举，方便组件直接使用
+export { DictEnum, getDictOptions };
 
 // 获取网盘类型标签
 export const getDriveTypeLabel = (type: string) => {
-  return (
-    DRIVE_TYPE_LABEL_MAP[type as keyof typeof DRIVE_TYPE_LABEL_MAP] || type
-  );
+  const options = getDictOptions(DictEnum.DRIVE_TYPE);
+  const found = options.find((opt) => String(opt.value) === type);
+  return found ? found.label : type;
 };
 
 // 获取网盘类型颜色
 export const getDriveTypeColor = (type: string) => {
-  return (
-    DRIVE_TYPE_COLOR_MAP[type as keyof typeof DRIVE_TYPE_COLOR_MAP] || 'default'
-  );
+  const options = getDictOptions(DictEnum.DRIVE_TYPE);
+  const found = options.find((opt) => String(opt.value) === type);
+  return found?.color || 'default';
 };
-
-// 网盘类型标签选项（用于表格渲染）
-export const DRIVE_TYPE_TAG_OPTIONS = [
-  { color: 'blue', label: '百度网盘', value: 'BaiduDrive' },
-  { color: 'green', label: '夸克网盘', value: 'QuarkDrive' },
-  { color: 'orange', label: 'Alist网盘', value: 'AlistDrive' },
-] as const;
 
 // 模板类型选项（用于前端显示）
 export const TEMPLATE_TYPE_OPTIONS = [
@@ -118,19 +96,24 @@ export const TEMPLATE_CATEGORY_OPTIONS = [
 
 // ==================== 类型定义 ====================
 
-// 分类管理相关
+// 分类管理相关（使用 admin 的分类模型）
 export interface CategoryDetail {
   id: number;
+  app_code: string;
   name: string;
-  code: string;
+  code?: string;
   description?: string;
-  category_type: 'domain' | 'resource_type' | 'subject';
+  type: string; // 分类类型：domain, subject, resource_type
   parent_id?: number;
   level: number;
-  path: string;
-  sort: number;
-  status: number;
+  path?: string;
+  icon?: string;
+  color?: string;
+  sort_order: number;
+  status: boolean;
   is_system: boolean;
+  remark?: string;
+  extra_data?: Record<string, any>;
   created_time: string;
   updated_time?: string;
   children?: CategoryDetail[];
@@ -138,35 +121,37 @@ export interface CategoryDetail {
 
 export interface CategoryTreeNode {
   id: number;
+  app_code: string;
   name: string;
-  code: string;
+  code?: string;
   description?: string;
-  category_type: 'domain' | 'resource_type' | 'subject';
+  type: string; // 分类类型：domain, subject, resource_type
   parent_id?: number;
   level: number;
-  sort: number;
-  status: number;
+  sort_order: number;
+  status: boolean;
   is_system: boolean;
   children?: CategoryTreeNode[];
 }
 
 export interface CategoryListParams {
-  category_type?: 'domain' | 'resource_type' | 'subject';
-  parent_id?: number;
-  status?: number;
-  keyword?: string;
+  app_code?: string;
+  type?: string;
+  name?: string;
+  status?: boolean;
   page?: number;
   size?: number;
 }
 
 export interface CreateCategoryParams {
+  app_code: string;
   name: string;
-  code: string;
+  type: string;
+  code?: string;
   description?: string;
-  category_type: 'domain' | 'resource_type' | 'subject';
   parent_id?: number;
-  sort?: number;
-  status?: number;
+  sort_order?: number;
+  status?: boolean;
 }
 
 export interface UpdateCategoryParams {
@@ -174,8 +159,8 @@ export interface UpdateCategoryParams {
   code?: string;
   description?: string;
   parent_id?: number;
-  sort?: number;
-  status?: number;
+  sort_order?: number;
+  status?: boolean;
 }
 
 export interface CategoryOption {
@@ -547,16 +532,6 @@ export interface RuleTemplateStatsDetail {
   user_count: number;
   category_stats: Record<string, number>;
   type_stats: Record<string, number>;
-}
-
-// 领域科目映射相关类型
-export interface DomainSubjectMapping {
-  domains: Array<{ label: string; value: string }>;
-  subjects: Record<string, string[]>;
-  domain_subject_options: Record<
-    string,
-    Array<{ label: string; value: string }>
-  >;
 }
 
 // ==================== 同步任务 API ====================
@@ -1019,8 +994,7 @@ export async function getRuleTemplateStatsApi() {
 // 资源管理相关类型定义
 export interface ResourceDetail {
   id: number;
-  domain: string;
-  subject: string;
+  category_id: number;
   main_name: string;
   title?: string;
   resource_type: string;
@@ -1055,12 +1029,13 @@ export interface ResourceDetail {
   updated_by?: number;
   created_time: string;
   updated_time?: string;
+  local_file_path?: string;
+  file_type?: string;
 }
 
 export interface ResourceListItem {
   id: number;
-  domain: string;
-  subject: string;
+  category_id: number;
   main_name: string;
   title?: string;
   resource_type: string;
@@ -1077,6 +1052,8 @@ export interface ResourceListItem {
   remark?: string;
   created_time: string;
   updated_time?: string;
+  local_file_path?: string;
+  file_type?: string;
 }
 
 export interface ResourceStatistics {
@@ -1117,8 +1094,7 @@ export interface OverallStatisticsTrendResponse {
 }
 
 export interface ResourceListParams {
-  domain?: string;
-  subject?: string;
+  category_id?: number;
   resource_type?: string;
   url_type?: string;
   status?: number;
@@ -1131,8 +1107,7 @@ export interface ResourceListParams {
 }
 
 export interface CreateResourceParams {
-  domain: string;
-  subject: string;
+  category_id: number;
   main_name: string;
   resource_type: string;
   url: string;
@@ -1147,11 +1122,12 @@ export interface CreateResourceParams {
   suggested_price?: number;
   sort?: number;
   remark?: string;
+  local_file_path?: string;
+  file_type?: string;
 }
 
 export interface UpdateResourceParams {
-  domain?: string;
-  subject?: string;
+  category_id?: number;
   main_name?: string;
   resource_type?: string;
   description?: string;
@@ -1165,6 +1141,8 @@ export interface UpdateResourceParams {
   suggested_price?: number;
   sort?: number;
   remark?: string;
+  local_file_path?: string;
+  file_type?: string;
 }
 
 // 资源浏览量历史相关
@@ -1258,24 +1236,6 @@ export interface SyncTaskItemListParams {
 // 资源管理 API 接口
 
 /**
- * 获取领域和科目映射关系
- */
-export async function getDomainSubjectMappingApi() {
-  return requestClient.get<DomainSubjectMapping>(
-    '/api/v1/resources/domain-subjects',
-  );
-}
-
-/**
- * 根据领域获取科目列表
- */
-export async function getSubjectsByDomainApi(domain: string) {
-  return requestClient.get<Array<{ label: string; value: string }>>(
-    `/api/v1/resources/subjects/${domain}`,
-  );
-}
-
-/**
  * 获取资源列表
  */
 export async function getResourceListApi(params: ResourceListParams) {
@@ -1331,6 +1291,24 @@ export async function deleteResourceApi(resourceId: number) {
   return requestClient.delete<{ message: string }>(
     `/api/v1/resources/${resourceId}`,
   );
+}
+
+/**
+ * 上传资源文件
+ */
+export async function uploadResourceFileApi(file: File) {
+  const formData = new FormData();
+  formData.append('file', file);
+  return requestClient.post<{
+    file_type: string;
+    filename: string;
+    local_path: string;
+    url: string;
+  }>('/api/v1/resources/upload', formData, {
+    headers: {
+      'Content-Type': 'multipart/form-data',
+    },
+  });
 }
 
 /**
@@ -1440,680 +1418,3 @@ export async function cancelSyncTaskApi(taskId: number) {
 }
 
 // 教师映射接口和常量
-interface TeacherMapping {
-  field: string;
-  subject: string;
-  sort: number;
-}
-
-export const TEACHER_MAPPINGS: Record<string, TeacherMapping> = {
-  武忠祥: {
-    field: '26考研',
-    subject: '数学',
-    sort: 1,
-  },
-  张宇: {
-    field: '26考研',
-    subject: '数学',
-    sort: 2,
-  },
-  姜晓千: {
-    field: '26考研',
-    subject: '数学',
-    sort: 3,
-  },
-  李永乐: {
-    field: '26考研',
-    subject: '数学',
-    sort: 5,
-  },
-  汤家凤: {
-    field: '26考研',
-    subject: '数学',
-    sort: 6,
-  },
-  杨超: {
-    field: '26考研',
-    subject: '数学',
-    sort: 7,
-  },
-  周洋鑫: {
-    field: '26考研',
-    subject: '数学',
-    sort: 8,
-  },
-  田静: {
-    field: '26考研',
-    subject: '英语',
-    sort: 1,
-  },
-  唐迟: {
-    field: '26考研',
-    subject: '英语',
-    sort: 2,
-  },
-  刘晓燕: {
-    field: '26考研',
-    subject: '英语',
-    sort: 3,
-  },
-  王晶婷: {
-    field: '26考研',
-    subject: '英语',
-    sort: 4,
-  },
-  颉斌斌: {
-    field: '26考研',
-    subject: '英语',
-    sort: 5,
-  },
-  新东方: {
-    field: '26考研',
-    subject: '英语',
-    sort: 6,
-  },
-  朱伟: {
-    field: '26考研',
-    subject: '英语',
-    sort: 7,
-  },
-  石雷鹏: {
-    field: '26考研',
-    subject: '英语',
-    sort: 8,
-  },
-  王江涛: {
-    field: '26考研',
-    subject: '英语',
-    sort: 9,
-  },
-  Monkey: {
-    field: '26考研',
-    subject: '英语',
-    sort: 10,
-  },
-  其他: {
-    field: '26考研',
-    subject: '英语',
-    sort: 99,
-  },
-  徐涛: {
-    field: '26考研',
-    subject: '政治',
-    sort: 1,
-  },
-  肖: {
-    field: '26考研',
-    subject: '政治',
-    sort: 2,
-  },
-  腿姐: {
-    field: '26考研',
-    subject: '政治',
-    sort: 3,
-  },
-  苏一: {
-    field: '26考研',
-    subject: '政治',
-    sort: 4,
-  },
-  米鹏: {
-    field: '26考研',
-    subject: '政治',
-    sort: 5,
-  },
-};
-
-// 智能识别相关接口
-export interface SmartRecognitionRequest {
-  content: string;
-}
-
-export interface SmartRecognitionResponse {
-  domain?: string;
-  subject?: string;
-  main_name?: string;
-  resource_type?: string;
-  url?: string;
-  url_type?: string;
-  extract_code?: string;
-  description?: string;
-  resource_intro?: string;
-  sort?: number;
-  confidence: number; // 识别置信度
-  success: boolean;
-  message?: string;
-}
-
-// AI识别服务配置
-const AI_CONFIG = {
-  apiUrl: 'https://goapi.gptnb.ai/v1/chat/completions',
-  apiKey: 'sk-JcAXVYA8xb2PHl7bAa9d47A598Ee4971A910080400EbB122',
-  model: 'gpt-4o',
-};
-
-// 获取分类数据
-async function getCategoryData(): Promise<CategoryTreeNode[]> {
-  try {
-    const response = await getCategoryTreeApi();
-    // API直接返回数组，不需要.data
-    const data = Array.isArray(response)
-      ? response
-      : (response as any)?.data || [];
-    return data;
-  } catch (error) {
-    console.warn('获取分类数据失败:', error);
-    return [];
-  }
-}
-
-// 动态生成智能识别提示词
-function buildSmartRecognitionPrompt(categories: CategoryTreeNode[]): string {
-  // 扁平化分类树以获取所有分类
-  function flattenCategories(nodes: CategoryTreeNode[]): CategoryTreeNode[] {
-    const result: CategoryTreeNode[] = [];
-    for (const node of nodes) {
-      result.push(node);
-      if (node.children && node.children.length > 0) {
-        result.push(...flattenCategories(node.children));
-      }
-    }
-    return result;
-  }
-
-  const flatCategories = flattenCategories(categories);
-
-  // 从扁平化的分类中提取各级分类
-  const domains = flatCategories.filter(
-    (cat) => cat.category_type === 'domain',
-  );
-  const subjects = flatCategories.filter(
-    (cat) => cat.category_type === 'subject',
-  );
-  const resourceTypes = flatCategories.filter(
-    (cat) => cat.category_type === 'resource_type',
-  );
-
-  // 构建领域分类说明
-  const domainSection = domains
-    .map((domain) => {
-      const domainSubjects = subjects.filter(
-        (sub) => sub.parent_id === domain.id,
-      );
-      const subjectList = domainSubjects.map((sub) => sub.name).join('、');
-      return `- ${domain.name}：${domain.description || '包含相关内容'}${subjectList ? `（包含：${subjectList}）` : ''}`;
-    })
-    .join('\n');
-
-  // 构建科目分类说明
-  const subjectSection = domains
-    .map((domain) => {
-      const domainSubjects = subjects.filter(
-        (sub) => sub.parent_id === domain.id,
-      );
-      if (domainSubjects.length === 0) return '';
-
-      const subjectList = domainSubjects.map((sub) => sub.name).join('、');
-      return `${domain.name}领域：\n- ${subjectList}`;
-    })
-    .filter(Boolean)
-    .join('\n\n');
-
-  // 构建资源类型说明
-  const resourceTypeSection = resourceTypes.map((rt) => rt.name).join('、');
-
-  return `
-你是一个专业的网盘资源信息提取助手。请从用户提供的分享文本中提取资源信息，并以JSON格式返回。
-
-提取规则：
-1. 从文本中识别资源名称（通常在「」或[]中）
-2. 判断网盘类型（百度网盘、夸克网盘、阿里云盘等）
-3. 提取分享链接
-4. 提取提取码（如果有）
-5. 根据资源名称推断领域和科目
-6. 推断资源类型（课程、电子书、软件、真题等）
-7. 识别教师名字并设置对应的排序值
-
-领域分类（必须使用以下值）：
-${domainSection}
-
-科目分类（必须使用以下值）：
-${subjectSection}
-
-资源类型（必须使用以下值）：
-- ${resourceTypeSection}
-
-网盘类型映射（必须使用以下值）：
-- 夸克网盘/夸克 -> QuarkDrive
-- 百度网盘/百度 -> BaiduDrive
-- 阿里云盘/阿里 -> AlistDrive
-
-教师识别和排序（如果识别到以下教师名字，请设置对应的排序值）：
-数学教师：武忠祥(1), 张宇(2), 姜晓千(3), 李永乐(5), 汤家凤(6), 杨超(7), 周洋鑫(8)
-英语教师：田静(1), 唐迟(2), 刘晓燕(3), 王晶婷(4), 颉斌斌(5), 新东方(6), 朱伟(7), 石雷鹏(8), 王江涛(9), Monkey(10), 其他(99)
-政治教师：徐涛(1), 肖(2), 腿姐(3), 苏一(4), 米鹏(5)
-
-请严格按照以下JSON格式返回，不要包含任何其他文本：
-{
-  "domain": "领域（从上述枚举中选择）",
-  "subject": "科目（必须从上述枚举中选择）",
-  "main_name": "资源主要名称",
-  "resource_type": "资源类型（从上述枚举中选择）",
-  "url": "分享链接",
-  "url_type": "网盘类型（QuarkDrive/BaiduDrive/AlistDrive）",
-  "extract_code": "提取码（如果有）",
-  "description": "简要描述",
-  "resource_intro": "详细介绍",
-  "sort": 排序值（如果识别到教师则使用对应排序，否则设为0）,
-  "confidence": 0.95,
-  "success": true,
-  "message": "识别成功"
-}
-
-如果无法识别某些字段，请设为空字符串或null。confidence表示识别置信度(0-1)。
-特别注意：领域、科目、资源类型字段必须从上述枚举列表中精确选择，不能使用其他值。
-如果识别到教师名字，请根据上述映射表设置对应的排序值。
-`;
-}
-
-// 智能识别API
-// ==================== 分类管理 API ====================
-
-export async function getCategoryListApi(params: CategoryListParams) {
-  return requestClient.get<PaginationResult<CategoryDetail>>(
-    '/api/v1/category/list',
-    {
-      params,
-    },
-  );
-}
-
-export async function getCategoryTreeApi(
-  categoryType?: 'domain' | 'resource_type' | 'subject',
-) {
-  const params = categoryType ? { category_type: categoryType } : {};
-  return requestClient.get<CategoryTreeNode[]>('/api/v1/category/tree', {
-    params,
-  });
-}
-
-export async function getCategoryDetailApi(categoryId: number) {
-  return requestClient.get<CategoryDetail>(`/api/v1/category/${categoryId}`);
-}
-
-export async function createCategoryApi(params: CreateCategoryParams) {
-  return requestClient.post<CategoryDetail>('/api/v1/category', params);
-}
-
-export async function updateCategoryApi(
-  categoryId: number,
-  params: UpdateCategoryParams,
-) {
-  return requestClient.put<CategoryDetail>(
-    `/api/v1/category/${categoryId}`,
-    params,
-  );
-}
-
-export async function deleteCategoryApi(categoryId: number) {
-  return requestClient.delete(`/api/v1/category/${categoryId}`);
-}
-
-export async function getCategoryOptionsApi(
-  categoryType?: 'domain' | 'resource_type' | 'subject',
-) {
-  const params = categoryType ? { category_type: categoryType } : {};
-  return requestClient.get<CategoryOption[]>('/api/v1/category/options', {
-    params,
-  });
-}
-
-export async function getCategoryStatisticsApi() {
-  return requestClient.get<CategoryStatistics>('/api/v1/category/statistics');
-}
-
-export async function smartRecognitionApi(
-  content: string,
-): Promise<SmartRecognitionResponse> {
-  // 输入验证
-  if (!content || content.trim().length < 10) {
-    throw new Error('输入内容太短，请提供完整的分享文本');
-  }
-
-  // 动态获取分类数据
-  const categories = await getCategoryData();
-
-  const dynamicPrompt =
-    categories.length > 0
-      ? buildSmartRecognitionPrompt(categories)
-      : `
-你是一个专业的网盘资源信息提取助手。请从用户提供的分享文本中提取资源信息，并以JSON格式返回。
-
-提取规则：
-1. 从文本中识别资源名称（通常在「」或[]中）
-2. 判断网盘类型（百度网盘、夸克网盘、阿里云盘等）
-3. 提取分享链接
-4. 提取提取码（如果有）
-5. 根据资源名称推断领域和科目
-6. 推断资源类型（课程、电子书、软件、真题等）
-
-网盘类型映射（必须使用以下值）：
-- 夸克网盘/夸克 -> QuarkDrive
-- 百度网盘/百度 -> BaiduDrive
-- 阿里云盘/阿里 -> AlistDrive
-
-请严格按照以下JSON格式返回，不要包含任何其他文本：
-{
-  "domain": "领域",
-  "subject": "科目",
-  "main_name": "资源主要名称",
-  "resource_type": "资源类型",
-  "url": "分享链接",
-  "url_type": "网盘类型（QuarkDrive/BaiduDrive/AlistDrive）",
-  "extract_code": "提取码（如果有）",
-  "description": "简要描述",
-  "resource_intro": "详细介绍",
-  "sort": 0,
-  "confidence": 0.95,
-  "success": true,
-  "message": "识别成功"
-}
-`;
-
-  // 设置请求超时
-  const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), 30_000); // 30秒超时
-
-  try {
-    const response = await fetch(AI_CONFIG.apiUrl, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${AI_CONFIG.apiKey}`,
-      },
-      body: JSON.stringify({
-        model: AI_CONFIG.model,
-        messages: [
-          {
-            role: 'system',
-            content: dynamicPrompt,
-          },
-          {
-            role: 'user',
-            content: `请分析以下分享文本并提取资源信息：\n\n${content}`,
-          },
-        ],
-        temperature: 0.3,
-        max_tokens: 1000,
-      }),
-      signal: controller.signal,
-    });
-
-    clearTimeout(timeoutId);
-
-    if (!response.ok) {
-      if (response.status === 401) {
-        throw new Error('API密钥无效，请检查配置');
-      } else if (response.status === 429) {
-        throw new Error('请求过于频繁，请稍后再试');
-      } else if (response.status >= 500) {
-        throw new Error('AI服务暂时不可用，请稍后重试');
-      } else {
-        throw new Error(
-          `API请求失败: ${response.status} ${response.statusText}`,
-        );
-      }
-    }
-
-    const data = await response.json();
-
-    if (!data.choices || !data.choices[0] || !data.choices[0].message) {
-      throw new Error('AI响应格式错误');
-    }
-
-    const aiResponse = data.choices[0].message.content.trim();
-
-    // 尝试解析JSON响应
-    try {
-      // 处理被代码块包裹的JSON响应
-      let jsonString = aiResponse;
-
-      // 移除可能的代码块标记
-      if (jsonString.startsWith('```json')) {
-        jsonString = jsonString
-          .replace(/^```json\s*/, '')
-          .replace(/\s*```$/, '');
-      } else if (jsonString.startsWith('```')) {
-        jsonString = jsonString.replace(/^```\s*/, '').replace(/\s*```$/, '');
-      }
-
-      // 移除可能的其他格式标记
-      jsonString = jsonString.replace(/^json\s*/, '').trim();
-
-      const parsedResult = JSON.parse(jsonString);
-
-      // 验证必要字段
-      if (typeof parsedResult !== 'object') {
-        throw new TypeError('AI返回的不是有效的JSON对象');
-      }
-
-      // 设置默认值
-      const result: SmartRecognitionResponse = {
-        domain: parsedResult.domain || '',
-        subject: parsedResult.subject || '',
-        main_name: parsedResult.main_name || '',
-        resource_type: parsedResult.resource_type || '',
-        url: parsedResult.url || '',
-        url_type: parsedResult.url_type || '',
-        extract_code: parsedResult.extract_code || '',
-        description: parsedResult.description || '',
-        resource_intro: parsedResult.resource_intro || '',
-        sort: parsedResult.sort || 0,
-        confidence: Math.min(Math.max(parsedResult.confidence || 0.5, 0), 1), // 确保在0-1范围内
-        success: parsedResult.success !== false,
-        message: parsedResult.message || '识别完成',
-      };
-
-      // 基本验证：如果没有提取到关键信息，降低置信度
-      if (!result.main_name && !result.url) {
-        result.confidence = Math.min(result.confidence, 0.3);
-        result.message = '未能提取到关键信息，建议手动填写';
-      }
-
-      return result;
-    } catch (parseError) {
-      console.error('解析AI响应失败:', parseError);
-      console.error('原始AI响应:', aiResponse);
-
-      // 如果JSON解析失败，尝试简单的文本提取
-      return await fallbackTextExtraction(content);
-    }
-  } catch (error: any) {
-    clearTimeout(timeoutId);
-
-    if (error.name === 'AbortError') {
-      throw new Error('请求超时，请检查网络连接后重试');
-    }
-
-    console.error('智能识别API调用失败:', error);
-
-    // 降级到简单文本提取
-    return await fallbackTextExtraction(content);
-  }
-}
-
-// 降级处理：简单的文本提取
-async function fallbackTextExtraction(
-  content: string,
-): Promise<SmartRecognitionResponse> {
-  const result: SmartRecognitionResponse = {
-    domain: '',
-    subject: '',
-    main_name: '',
-    resource_type: '',
-    url: '',
-    url_type: '',
-    extract_code: '',
-    description: '',
-    resource_intro: '',
-    sort: 0,
-    confidence: 0.3,
-    success: true,
-    message: '使用简单提取模式',
-  };
-
-  // 提取链接
-  const urlMatch = content.match(/(https?:\/\/\S+)/);
-  if (urlMatch) {
-    result.url = urlMatch[1];
-  }
-
-  // 判断网盘类型
-  if (content.includes('夸克') || content.includes('quark')) {
-    result.url_type = 'QuarkDrive';
-  } else if (content.includes('百度') || content.includes('baidu')) {
-    result.url_type = 'BaiduDrive';
-  } else if (content.includes('阿里') || content.includes('aliyun')) {
-    result.url_type = 'AlistDrive';
-  }
-
-  // 提取资源名称（在「」或[]中）
-  const nameMatch = content.match(/[「【[]([^」】\]]+)[」】\]]/);
-  if (nameMatch) {
-    result.main_name = nameMatch[1];
-  }
-
-  // 提取提取码
-  const codeMatch = content.match(
-    /提取码[：:]\s*([a-z0-9]+)|密码[：:]\s*([a-z0-9]+)/i,
-  );
-  if (codeMatch) {
-    result.extract_code = codeMatch[1] || codeMatch[2];
-  }
-
-  // 教师识别和排序设置
-  let teacherFound = false;
-  for (const [teacherName, mapping] of Object.entries(TEACHER_MAPPINGS)) {
-    if (content.includes(teacherName)) {
-      result.sort = mapping.sort;
-      teacherFound = true;
-
-      // 根据教师设置对应的科目
-      switch (mapping.subject) {
-        case '政治': {
-          result.domain = '教育';
-          result.subject = '26考研政治';
-          result.resource_type = '课程';
-
-          break;
-        }
-        case '数学': {
-          result.domain = '教育';
-          result.subject = '26考研数学';
-          result.resource_type = '课程';
-
-          break;
-        }
-        case '英语': {
-          result.domain = '教育';
-          result.subject = '26考研英语';
-          result.resource_type = '课程';
-
-          break;
-        }
-        // No default
-      }
-      break; // 找到第一个匹配的教师就停止
-    }
-  }
-
-  // 如果没有通过教师识别设置领域，则进行简单的领域判断（使用正确的枚举值）
-  if (!teacherFound && result.main_name) {
-    const name = result.main_name.toLowerCase();
-
-    // 教育领域判断
-    if (
-      name.includes('考研') ||
-      name.includes('英语') ||
-      name.includes('数学') ||
-      name.includes('政治') ||
-      name.includes('课程') ||
-      name.includes('教学') ||
-      name.includes('学习') ||
-      name.includes('统考')
-    ) {
-      result.domain = '教育';
-      result.resource_type = '课程';
-
-      // 具体科目判断
-      if (name.includes('英语')) {
-        result.subject = '26考研英语';
-      } else if (name.includes('数学')) {
-        result.subject = '26考研数学';
-      } else if (name.includes('政治')) {
-        result.subject = '26考研政治';
-      } else if (name.includes('统考')) {
-        result.subject = '26考研统考';
-      } else if (name.includes('考研')) {
-        result.subject = '26考研非统考';
-      }
-    }
-    // 科技领域判断
-    else if (
-      name.includes('软件') ||
-      name.includes('编程') ||
-      name.includes('代码') ||
-      name.includes('ai') ||
-      name.includes('人工智能') ||
-      name.includes('数据') ||
-      name.includes('安全') ||
-      name.includes('云计算')
-    ) {
-      result.domain = '科技';
-      result.resource_type = '软件';
-
-      // 具体科目判断
-      if (
-        name.includes('编程') ||
-        name.includes('代码') ||
-        name.includes('开发')
-      ) {
-        result.subject = '编程开发';
-      } else if (name.includes('ai') || name.includes('人工智能')) {
-        result.subject = '人工智能';
-      } else if (name.includes('数据')) {
-        result.subject = '数据科学';
-      } else if (name.includes('安全')) {
-        result.subject = '网络安全';
-      } else if (name.includes('云计算') || name.includes('云')) {
-        result.subject = '云计算';
-      }
-    }
-    // 影视领域判断
-    else if (
-      name.includes('电影') ||
-      name.includes('电视') ||
-      name.includes('综艺') ||
-      name.includes('短剧') ||
-      name.includes('影视') ||
-      name.includes('视频')
-    ) {
-      result.domain = '影视';
-
-      // 具体科目判断
-      if (name.includes('电影')) {
-        result.subject = '电影';
-      } else if (name.includes('短剧')) {
-        result.subject = '短剧';
-      } else if (name.includes('电视') || name.includes('电视剧')) {
-        result.subject = '电视剧';
-      } else if (name.includes('综艺')) {
-        result.subject = '综艺';
-      }
-    }
-  }
-
-  result.description = content.slice(0, 200); // 取前200个字符作为描述
-
-  return result;
-}

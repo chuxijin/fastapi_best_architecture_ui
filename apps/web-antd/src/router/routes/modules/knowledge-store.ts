@@ -20,36 +20,6 @@ const routes: RouteRecordRaw[] = [
         },
       },
       {
-        name: 'KnowledgeStoreCategory',
-        path: '/knowledge-store/category',
-        meta: {
-          title: '分类标签',
-          icon: 'mdi:tag-multiple',
-        },
-        children: [
-          {
-            name: 'KnowledgeStoreCategories',
-            path: '/knowledge-store/category/categories',
-            component: () =>
-              import('#/views/knowledge-store/category/categories/index.vue'),
-            meta: {
-              title: '分类管理',
-              icon: 'mdi:folder-multiple',
-            },
-          },
-          {
-            name: 'KnowledgeStoreTags',
-            path: '/knowledge-store/category/tags',
-            component: () =>
-              import('#/views/knowledge-store/category/tags/index.vue'),
-            meta: {
-              title: '标签管理',
-              icon: 'mdi:tag',
-            },
-          },
-        ],
-      },
-      {
         name: 'KnowledgeStoreResource',
         path: '/knowledge-store/resource',
         meta: {

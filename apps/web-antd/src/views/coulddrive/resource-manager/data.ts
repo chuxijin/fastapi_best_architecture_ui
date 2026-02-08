@@ -2,17 +2,16 @@ import type { TableColumnsType } from 'ant-design-vue';
 
 import type { VbenFormSchema } from '#/adapter/form';
 import type { OnActionClickFn, VxeGridProps } from '#/adapter/vxe-table';
-import type { CategoryTreeNode } from '#/api';
 
 import { $t } from '@vben/locales';
 
 import {
-  DRIVE_TYPE_COLOR_MAP,
-  DRIVE_TYPE_LABEL_MAP,
-  DRIVE_TYPE_OPTIONS,
-  DRIVE_TYPE_TAG_OPTIONS,
-  getCategoryTreeApi,
+  DictEnum,
+  getDictOptions,
+  getDriveTypeColor,
+  getDriveTypeLabel,
 } from '#/api';
+import { getSysCategoryTreeApi } from '#/api/category';
 
 // 资源状态选项
 export const RESOURCE_STATUS_OPTIONS = [
@@ -88,16 +87,11 @@ export const RESOURCE_TABLE_COLUMNS: TableColumnsType = [
     ellipsis: true,
   },
   {
-    title: '领域',
-    dataIndex: 'domain',
-    key: 'domain',
-    width: 100,
-  },
-  {
-    title: '科目',
-    dataIndex: 'subject',
-    key: 'subject',
-    width: 100,
+    title: '分类',
+    dataIndex: 'category_name',
+    key: 'category_name',
+    width: 150,
+    ellipsis: true,
   },
   {
     title: '资源类型',
@@ -125,10 +119,10 @@ export const RESOURCE_TABLE_COLUMNS: TableColumnsType = [
     width: 80,
   },
   {
-    title: '审核状态',
-    dataIndex: 'audit_status',
-    key: 'audit_status',
-    width: 100,
+    title: '过期时间',
+    dataIndex: 'expired_at',
+    key: 'expired_at',
+    width: 180,
   },
   {
     title: '链接',
@@ -180,12 +174,11 @@ export const DEFAULT_PAGINATION = {
 // 默认搜索表单
 export const DEFAULT_SEARCH_FORM = {
   keyword: '',
-  domain: '',
-  subject: '',
+  category_id: undefined,
   resource_type: '',
   url_type: '',
   status: undefined,
-  audit_status: undefined,
+  expired_type: undefined,
   page: 1,
   size: 10,
 };
@@ -203,10 +196,10 @@ export const DEFAULT_STATISTICS = {
 
 // 动态查询表单配置函数
 export function createResourceQuerySchema(categoryOptions?: {
-  domainOptions: any[];
+  categoryTree: any[];
   resourceTypeOptions: any[];
 }): VbenFormSchema[] {
-  const domainOptions = categoryOptions?.domainOptions || [];
+  const categoryTree = categoryOptions?.categoryTree || [];
   const resourceTypeOptions = categoryOptions?.resourceTypeOptions || [];
 
   return [
@@ -219,24 +212,20 @@ export function createResourceQuerySchema(categoryOptions?: {
       label: '关键词',
     },
     {
-      component: 'Select',
+      component: 'TreeSelect',
       componentProps: {
-        options: domainOptions,
-        placeholder: '请选择领域',
+        treeData: categoryTree,
+        placeholder: '请选择分类',
         allowClear: true,
+        treeDefaultExpandAll: false,
+        fieldNames: {
+          label: 'label',
+          value: 'id',
+          children: 'children',
+        },
       },
-      fieldName: 'domain',
-      label: '领域',
-    },
-    {
-      component: 'Select',
-      componentProps: {
-        placeholder: '请选择科目',
-        allowClear: true,
-        options: [],
-      },
-      fieldName: 'subject',
-      label: '科目',
+      fieldName: 'category_id',
+      label: '分类',
     },
     {
       component: 'Select',
@@ -250,7 +239,7 @@ export function createResourceQuerySchema(categoryOptions?: {
     {
       component: 'Select',
       componentProps: {
-        options: DRIVE_TYPE_OPTIONS,
+        options: getDictOptions(DictEnum.DRIVE_TYPE),
         placeholder: '请选择网盘类型',
         allowClear: true,
       },
@@ -270,12 +259,12 @@ export function createResourceQuerySchema(categoryOptions?: {
     {
       component: 'Select',
       componentProps: {
-        options: AUDIT_STATUS_OPTIONS,
-        placeholder: '请选择审核状态',
+        options: EXPIRED_TYPE_OPTIONS,
+        placeholder: '请选择过期类型',
         allowClear: true,
       },
-      fieldName: 'audit_status',
-      label: '审核状态',
+      fieldName: 'expired_type',
+      label: '过期类型',
     },
   ];
 }
@@ -285,15 +274,11 @@ export const resourceQuerySchema = createResourceQuerySchema();
 
 // 工具函数
 export const getUrlTypeLabel = (type: string) => {
-  return (
-    DRIVE_TYPE_LABEL_MAP[type as keyof typeof DRIVE_TYPE_LABEL_MAP] || type
-  );
+  return getDriveTypeLabel(type);
 };
 
 export const getUrlTypeColor = (type: string) => {
-  return (
-    DRIVE_TYPE_COLOR_MAP[type as keyof typeof DRIVE_TYPE_COLOR_MAP] || 'default'
-  );
+  return getDriveTypeColor(type);
 };
 
 export const getStatusLabel = (status: number) => {
@@ -391,24 +376,9 @@ export function useResourceColumns(
       showOverflow: 'tooltip',
     },
     {
-      field: 'domain',
-      title: '领域',
-      width: 100,
-      align: 'center',
-      cellRender: {
-        name: 'CellTag',
-        options: [
-          { color: 'blue', label: '教育', value: '教育' },
-          { color: 'green', label: '科技', value: '科技' },
-          { color: 'orange', label: '影视', value: '影视' },
-        ],
-      },
-    },
-    {
-      field: 'subject',
-      title: '科目',
-      minWidth: 100,
-      align: 'center',
+      field: 'category_name',
+      title: '分类',
+      minWidth: 150,
       showOverflow: 'tooltip',
     },
     {
@@ -424,7 +394,7 @@ export function useResourceColumns(
       align: 'center',
       cellRender: {
         name: 'CellTag',
-        options: [...DRIVE_TYPE_TAG_OPTIONS],
+        options: getDictOptions(DictEnum.DRIVE_TYPE),
       },
     },
     {
@@ -450,18 +420,23 @@ export function useResourceColumns(
       },
     },
     {
-      field: 'audit_status',
-      title: '审核状态',
-      width: 100,
+      field: 'expired_at',
+      title: '过期时间',
+      width: 180,
       align: 'center',
-      cellRender: {
-        name: 'CellTag',
-        options: [
-          { color: 'orange', label: '待审核', value: 0 },
-          { color: 'green', label: '已通过', value: 1 },
-          { color: 'red', label: '已拒绝', value: 2 },
-          { color: 'green', label: '已通过', value: 4 },
-        ],
+      formatter: ({ row }) => {
+        if (row.expired_type === 0) {
+          return '永久';
+        }
+        return row.expired_at
+          ? new Date(row.expired_at).toLocaleString('zh-CN', {
+              year: 'numeric',
+              month: '2-digit',
+              day: '2-digit',
+              hour: '2-digit',
+              minute: '2-digit',
+            })
+          : '-';
       },
     },
     {
@@ -535,7 +510,7 @@ function flattenCategoryTree(categories: any[]): any[] {
 // 动态获取分类选项的函数
 export async function getCategoryOptions() {
   try {
-    const categoryResponse = await getCategoryTreeApi();
+    const categoryResponse = await getSysCategoryTreeApi();
 
     // 兼容返回值：优先取数组，否则尝试 .data
     const categories = Array.isArray(categoryResponse)
@@ -545,21 +520,33 @@ export async function getCategoryOptions() {
     // 扁平化整个分类树
     const flattenedCategories = flattenCategoryTree(categories);
 
-    // 提取各类型的选项 - 使用中文名称作为value
-    const domainOptions = flattenedCategories
-      .filter((cat) => cat.category_type === 'domain' && cat.status === 1)
+    // 提取资源类型选项
+    const resourceTypeOptions = flattenedCategories
+      .filter((cat) => cat.type === 'resource_type' && !!cat.status)
       .map((cat) => ({ label: cat.name, value: cat.name }));
 
-    const resourceTypeOptions = flattenedCategories
-      .filter(
-        (cat) => cat.category_type === 'resource_type' && cat.status === 1,
-      )
-      .map((cat) => ({ label: cat.name, value: cat.name }));
+    // 构建分类树（仅包含领域和科目）
+    function buildTree(nodes: any[], parentId: null | number = null): any[] {
+      return nodes
+        .filter(
+          (node) =>
+            node.parent_id === parentId &&
+            (node.type === 'domain' || node.type === 'subject'),
+        )
+        .map((node) => ({
+          ...node,
+          label: node.name,
+          value: node.id, // TreeSelect 使用 ID 作为 value
+          children: buildTree(nodes, node.id),
+        }));
+    }
+
+    const categoryTree = buildTree(flattenedCategories);
 
     return {
-      domainOptions,
       resourceTypeOptions,
       allCategories: flattenedCategories,
+      categoryTree,
     };
   } catch (error) {
     console.error('获取分类选项失败:', error);
@@ -567,76 +554,36 @@ export async function getCategoryOptions() {
       domainOptions: [],
       resourceTypeOptions: [],
       allCategories: [],
+      categoryTree: [],
     };
   }
 }
 
 // 表单配置函数
 export function createResourceFormSchema(categoryOptions?: {
-  allCategories: CategoryTreeNode[];
-  domainOptions: any[];
+  categoryTree: any[];
   resourceTypeOptions: any[];
 }): VbenFormSchema[] {
-  const domainOptions = categoryOptions?.domainOptions || [];
+  const categoryTree = categoryOptions?.categoryTree || [];
   const resourceTypeOptions = categoryOptions?.resourceTypeOptions || [];
-  const allCategories = categoryOptions?.allCategories || [];
 
   // 工具：从本地分类树按领域名称构造科目下拉
-  function buildSubjectOptionsByDomain(
-    categories: CategoryTreeNode[],
-    domainName: string,
-  ): Array<{ label: string; value: string }> {
-    if (!domainName) return [];
-    const domainCategory = categories.find(
-      (cat) => cat.category_type === 'domain' && cat.name === domainName,
-    );
-    if (!domainCategory) return [];
-    const subjects = categories.filter(
-      (cat) =>
-        cat.category_type === 'subject' &&
-        cat.parent_id === domainCategory.id &&
-        cat.status === 1,
-    );
-    return subjects.map((s) => ({ label: s.name, value: s.name }));
-  }
 
   return [
     {
-      component: 'Select',
+      component: 'TreeSelect',
       componentProps: {
-        options: domainOptions,
-        placeholder: '请选择领域',
-        onChange: async (value: string, formApi: any) => {
-          // 当领域改变时，清空科目并更新科目选项
-          formApi.setFieldValue('subject', '');
-
-          const options = value
-            ? buildSubjectOptionsByDomain(allCategories, value)
-            : [];
-
-          formApi.updateSchema([
-            {
-              fieldName: 'subject',
-              componentProps: {
-                options,
-                placeholder: options.length > 0 ? '请选择科目' : '请先选择领域',
-              },
-            },
-          ]);
+        treeData: categoryTree,
+        placeholder: '请选择分类',
+        treeDefaultExpandAll: false,
+        fieldNames: {
+          label: 'label',
+          value: 'id',
+          children: 'children',
         },
       },
-      fieldName: 'domain',
-      label: '领域',
-      rules: 'required',
-    },
-    {
-      component: 'Select',
-      componentProps: {
-        options: [],
-        placeholder: '请先选择领域',
-      },
-      fieldName: 'subject',
-      label: '科目',
+      fieldName: 'category_id',
+      label: '分类',
       rules: 'required',
     },
     {
@@ -670,7 +617,7 @@ export function createResourceFormSchema(categoryOptions?: {
     {
       component: 'Select',
       componentProps: {
-        options: DRIVE_TYPE_OPTIONS,
+        options: getDictOptions(DictEnum.DRIVE_TYPE),
         placeholder: '请选择网盘类型',
       },
       fieldName: 'url_type',

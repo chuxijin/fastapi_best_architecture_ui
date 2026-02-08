@@ -27,10 +27,11 @@ import { useVbenVxeGrid } from '#/adapter/vxe-table';
 import {
   createCoulddriveUserApi,
   deleteCoulddriveUserApi,
-  DRIVE_TYPE_OPTIONS,
+  DictEnum,
   getCoulddriveRelationshipListApi,
   getCoulddriveUserInfoApi,
   getCoulddriveUserListApi,
+  getDictOptions,
   getDriveTypeLabel,
   refreshCoulddriveUserApi,
 } from '#/api';
@@ -42,7 +43,9 @@ import {
 
 // 创建图标组件（如需更多图标可按需添加）
 
-const driveType = ref<string>(DRIVE_TYPE_OPTIONS[0].value);
+const driveType = ref<string>(
+  getDictOptions(DictEnum.DRIVE_TYPE)[0]?.value as string,
+);
 const authToken = ref<string>('');
 const userInfo = ref<CoulddriveUserInfo | null>(null);
 const fetchingUserInfo = ref<boolean>(false);
@@ -205,7 +208,8 @@ const [UserInfoModal, userInfoModalApi] = useVbenModal({
         userInfoFormApi.resetForm();
         userInfo.value = null;
         authToken.value = '';
-        driveType.value = DRIVE_TYPE_OPTIONS[0].value;
+        driveType.value = getDictOptions(DictEnum.DRIVE_TYPE)[0]
+          ?.value as string;
       }
     } else {
       // 关闭时重置状态
