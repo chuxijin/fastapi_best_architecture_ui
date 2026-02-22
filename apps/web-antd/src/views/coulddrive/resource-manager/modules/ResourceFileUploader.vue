@@ -7,7 +7,7 @@ import { createIconifyIcon } from '@vben/icons';
 
 import { message, UploadDragger } from 'ant-design-vue';
 
-import { uploadResourceFileApi } from '#/api/coulddrive';
+import { uploadFileApi } from '#/api/upload';
 
 const props = withDefaults(defineProps<Props>(), {
   modelValue: '',
@@ -69,8 +69,17 @@ async function customRequest(options: any) {
   const { file, onSuccess, onError } = options;
 
   try {
-    const result = await uploadResourceFileApi(file);
-    emit('update:modelValue', result.url || result.local_path);
+    const response = await uploadFileApi(file, 'resources');
+    
+    // 构建结果对象
+    const extension = file.name.split('.').pop()?.toLowerCase() || '';
+    const result = {
+        url: response.url,
+        filename: file.name,
+        file_type: extension
+    };
+
+    emit('update:modelValue', result.url);
     if (result.file_type) {
       emit('update:fileType', result.file_type);
     }

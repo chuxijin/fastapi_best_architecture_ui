@@ -44,7 +44,10 @@ export interface FileListParams {
 /**
  * 上传文件
  */
-export async function uploadFileApi(file: File): Promise<UploadResult> {
+export async function uploadFileApi(
+  file: File,
+  folder?: string,
+): Promise<UploadResult> {
   const formData = new FormData();
   formData.append('file', file);
 
@@ -52,6 +55,7 @@ export async function uploadFileApi(file: File): Promise<UploadResult> {
     '/api/v1/sys/files/upload',
     formData,
     {
+      params: folder ? { folder } : undefined,
       headers: {
         'Content-Type': 'multipart/form-data',
       },

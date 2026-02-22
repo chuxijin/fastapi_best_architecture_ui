@@ -59,9 +59,7 @@ function onAccountChange(userId: number) {
 
 // 处理文件上传成功
 function onUploadSuccess(result: any) {
-  // 必须确保 updated formData 属性是响应式的，虽然这里直接赋值 prop 对象属性违反单向数据流，
-  // 但 formData 是对象引用，Vue 中常用于表单双向绑定模式。
-  if (result.local_path) props.formData.local_file_path = result.local_path;
+  // v-model 已经处理了 local_file_path 的更新 (result.url)
   if (result.file_type) props.formData.file_type = result.file_type;
 }
 </script>
