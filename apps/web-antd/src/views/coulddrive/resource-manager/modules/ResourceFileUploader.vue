@@ -70,13 +70,13 @@ async function customRequest(options: any) {
 
   try {
     const response = await uploadFileApi(file, 'resources');
-    
+
     // 构建结果对象
     const extension = file.name.split('.').pop()?.toLowerCase() || '';
     const result = {
-        url: response.url,
-        filename: file.name,
-        file_type: extension
+      url: response.url,
+      filename: file.name,
+      file_type: extension,
     };
 
     emit('update:modelValue', result.url);
