@@ -556,7 +556,7 @@ export interface UsageQueryParams {
 /**
  * 兑换激活码参数
  */
-export interface RedeemCodeParams {
+export interface KsRedeemCodeParams {
   app_id: string;
   code: string;
   user_id: string;
@@ -621,7 +621,7 @@ export async function getActcodeUsageListApi(params?: UsageQueryParams) {
 /**
  * 兑换激活码
  */
-export async function redeemActcodeApi(data: RedeemCodeParams) {
+export async function redeemActcodeApi(data: KsRedeemCodeParams) {
   return requestClient.post<RedeemCodeResult>('/api/v1/actcode/redeem', data);
 }
 

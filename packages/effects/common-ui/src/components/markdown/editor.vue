@@ -60,7 +60,6 @@ const editorStyle = computed(() => {
 function onMounted() {
   emit('mounted');
 }
-
 </script>
 
 <template>

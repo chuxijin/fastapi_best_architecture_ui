@@ -280,10 +280,10 @@ const [Modal, modalApi] = useVbenModal({
           />
           <div class="flex-1">
             <div class="mb-1 font-semibold">{{ row.name }}</div>
-            <div class="text-muted-foreground mb-1 text-sm">
+            <div class="mb-1 text-sm text-muted-foreground">
               编码: {{ row.code }}
             </div>
-            <div class="text-muted-foreground mb-1 text-sm">
+            <div class="mb-1 text-sm text-muted-foreground">
               {{ row.desc || '暂无描述' }}
             </div>
             <div class="flex gap-4 text-sm">

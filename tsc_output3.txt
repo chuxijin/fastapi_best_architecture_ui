@@ -1,0 +1,150 @@
+
+> @vben/web-antdv-next@5.6.0 typecheck D:\100_Work\101_Program\Proj\fba\frontend\apps\web-antdv-next
+> vue-tsc --noEmit --skipLibCheck
+
+src/components/FileTreeSelector.vue(10,10): error TS2305: Module '"@vben/common-ui"' has no exported member 'VbenTree'.
+src/components/ImageUploader.vue(4,47): error TS2307: Cannot find module '@ant-design/icons-vue' or its corresponding type declarations.
+src/components/MediaPicker.vue(39,7): error TS6133: 'FolderOpenOutlined' is declared but its value is never read.
+src/components/MediaPicker.vue(435,44): error TS18048: 'file.size' is possibly 'undefined'.
+src/components/MediaPicker.vue(438,37): error TS2345: Argument of type 'number | undefined' is not assignable to parameter of type 'number'.
+  Type 'undefined' is not assignable to type 'number'.
+src/plugins/code_generator/views/preview.vue(156,16): error TS2322: Type '(selectedKeys: string[]) => void' is not assignable to type '(selectedKeys: Key[], info: { event: "select"; selected: boolean; node: EventDataNode<DataNode>; selectedNodes: DataNode[]; nativeEvent: MouseEvent; }) => void'.
+  Types of parameters 'selectedKeys' and 'selectedKeys' are incompatible.
+    Type 'Key[]' is not assignable to type 'string[]'.
+      Type 'Key' is not assignable to type 'string'.
+        Type 'number' is not assignable to type 'string'.
+src/views/_core/profile/basic-info.vue(131,11): error TS2322: Type '"ghost"' is not assignable to type '"primary" | "default" | "link" | "text" | "dashed" | undefined'.
+src/views/coulddrive/file-manager/modules/BatchRenameFloatingWindow.vue(23,7): error TS6133: 'currentFolderRef' is declared but its value is never read.
+src/views/coulddrive/file-manager/modules/BatchRenameFloatingWindow.vue(24,7): error TS6133: 'currentFileRef' is declared but its value is never read.
+src/views/coulddrive/file-manager/modules/BatchRenameFloatingWindow.vue(25,7): error TS6133: 'progressStatsRef' is declared but its value is never read.
+src/views/coulddrive/resource-manager/modules/ResourceEditViewModal.vue(172,14): error TS2322: Type 'readonly { cookies?: string | undefined; label: string; type?: string | undefined; value: number; }[] | undefined' is not assignable to type 'DefaultOptionType[] | undefined'.
+  The type 'readonly { cookies?: string | undefined; label: string; type?: string | undefined; value: number; }[]' is 'readonly' and cannot be assigned to the mutable type 'DefaultOptionType[]'.
+src/views/coulddrive/sync-manager/index.vue(256,9): error TS2322: Type 'string' is not assignable to type 'number'.
+src/views/coulddrive/sync-manager/modules/SyncConfigDrawer.vue(624,16): error TS2322: Type 'string | false' is not assignable to type 'boolean | undefined'.
+  Type 'string' is not assignable to type 'boolean | undefined'.
+src/views/coulddrive/sync-manager/modules/SyncConfigDrawer.vue(688,18): error TS2322: Type 'false | "group" | "friend"' is not assignable to type 'boolean | undefined'.
+  Type '"group"' is not assignable to type 'boolean | undefined'.
+src/views/coulddrive/template-manager/index.vue(124,8): error TS6133: 'Form' is declared but its value is never read.
+src/views/coulddrive/template-manager/index.vue(151,29): error TS6133: 'newType' is declared but its value is never read.
+src/views/coulddrive/template-manager/index.vue(909,10): error TS6133: 'insertExampleConfig' is declared but its value is never read.
+src/views/gongkao/gangwei/ImportModal.vue(190,3): error TS2532: Object is possibly 'undefined'.
+src/views/gongkao/gangwei/ImportModal.vue(192,5): error TS2532: Object is possibly 'undefined'.
+src/views/gongkao/gangwei/ImportModal.vue(198,3): error TS2532: Object is possibly 'undefined'.
+src/views/gongkao/gangwei/ImportModal.vue(200,5): error TS2532: Object is possibly 'undefined'.
+src/views/gongkao/gangwei/ImportModal.vue(205,3): error TS2532: Object is possibly 'undefined'.
+src/views/gongkao/gangwei/ImportModal.vue(207,5): error TS2532: Object is possibly 'undefined'.
+src/views/gongkao/gangwei/ImportModal.vue(208,5): error TS2532: Object is possibly 'undefined'.
+src/views/gongkao/gangwei/ImportModal.vue(308,42): error TS2322: Type 'null' is not assignable to type 'boolean | undefined'.
+src/views/gongkao/gangwei/ImportModal.vue(446,18): error TS2322: Type '(vals: string[]) => void' is not assignable to type '(value: SelectValue, option: DefaultOptionType | DefaultOptionType[]) => void'.
+  Types of parameters 'vals' and 'value' are incompatible.
+    Type 'SelectValue' is not assignable to type 'string[]'.
+      Type 'undefined' is not assignable to type 'string[]'.
+src/views/gongkao/gangwei/ImportModal.vue(466,18): error TS2322: Type '(val: string) => void' is not assignable to type '(value: SelectValue, option: DefaultOptionType | DefaultOptionType[]) => void'.
+  Types of parameters 'val' and 'value' are incompatible.
+    Type 'SelectValue' is not assignable to type 'string'.
+      Type 'undefined' is not assignable to type 'string'.
+src/views/gongkao/gangwei/ImportModal.vue(488,18): error TS2322: Type '(val: string) => void' is not assignable to type '(value: SelectValue, option: DefaultOptionType | DefaultOptionType[]) => void'.
+  Types of parameters 'val' and 'value' are incompatible.
+    Type 'SelectValue' is not assignable to type 'string'.
+      Type 'undefined' is not assignable to type 'string'.
+src/views/gongkao/gangwei/ImportScoreModal.vue(196,3): error TS2532: Object is possibly 'undefined'.
+src/views/gongkao/gangwei/ImportScoreModal.vue(198,5): error TS2532: Object is possibly 'undefined'.
+src/views/gongkao/gangwei/ImportScoreModal.vue(203,3): error TS2532: Object is possibly 'undefined'.
+src/views/gongkao/gangwei/ImportScoreModal.vue(205,5): error TS2532: Object is possibly 'undefined'.
+src/views/gongkao/gangwei/ImportScoreModal.vue(335,42): error TS2322: Type 'null' is not assignable to type 'boolean | undefined'.
+src/views/gongkao/gangwei/ImportScoreModal.vue(498,18): error TS2322: Type '(val: string) => void' is not assignable to type '(value: SelectValue, option: DefaultOptionType | DefaultOptionType[]) => void'.
+  Types of parameters 'val' and 'value' are incompatible.
+    Type 'SelectValue' is not assignable to type 'string'.
+      Type 'undefined' is not assignable to type 'string'.
+src/views/gongkao/zhenti/data.ts(391,5): error TS2741: Property 'triggerFields' is missing in type '{ show: (values: Partial<Record<string, any>>) => boolean; }' but required in type 'FormItemDependencies'.
+src/views/gongkao/zhenti/data.ts(404,5): error TS2741: Property 'triggerFields' is missing in type '{ show: (values: Partial<Record<string, any>>) => boolean; }' but required in type 'FormItemDependencies'.
+src/views/gongkao/zhenti/index.vue(427,23): error TS2322: Type '"small"' is not assignable to type 'ButtonVariantSize'.
+src/views/gongkao/zhenti/index.vue(454,21): error TS2322: Type '"small"' is not assignable to type 'ButtonVariantSize'.
+src/views/gongkao/zhenti/index.vue(465,23): error TS2322: Type '"small"' is not assignable to type 'ButtonVariantSize'.
+src/views/job/posting/data.ts(44,40): error TS2339: Property 'RECRUITMENT_TYPE' does not exist on type 'typeof DictEnum'.
+src/views/job/posting/index.vue(71,3): error TS2353: Object literal may only specify known properties, and 'gridProps' does not exist in type 'VbenFormProps<BaseFormComponentType>'.
+src/views/job/posting/index.vue(491,29): error TS2532: Object is possibly 'undefined'.
+src/views/knowledge-store/resource/material-package/index.vue(157,3): error TS2322: Type '({ type: string; width: number; title?: undefined; field?: undefined; minWidth?: undefined; slots?: undefined; fixed?: undefined; } | { type: string; width: number; title: string; field?: undefined; minWidth?: undefined; slots?: undefined; fixed?: undefined; } | { ...; } | { ...; } | { ...; } | { ...; })[]' is not assignable to type 'Column<MaterialPackage>[]'.
+  Type '{ type: string; width: number; title?: undefined; field?: undefined; minWidth?: undefined; slots?: undefined; fixed?: undefined; } | { type: string; width: number; title: string; field?: undefined; minWidth?: undefined; slots?: undefined; fixed?: undefined; } | { ...; } | { ...; } | { ...; } | { ...; }' is not assignable to type 'Column<MaterialPackage>'.
+    Type '{ type: string; width: number; title?: undefined; field?: undefined; minWidth?: undefined; slots?: undefined; fixed?: undefined; }' is not assignable to type 'ColumnOptions<MaterialPackage>'.
+      Types of property 'type' are incompatible.
+        Type 'string' is not assignable to type 'Type | undefined'.
+src/views/knowledge-store/resource/material-package/index.vue(160,21): error TS6133: 'page' is declared but its value is never read.
+src/views/knowledge-store/resource/material-package/index.vue(194,11): error TS2339: Property 'action' does not exist on type 'OnActionClickParams'.
+src/views/knowledge-store/resource/material-package/index.vue(248,11): error TS2322: Type '"small"' is not assignable to type 'ButtonVariantSize'.
+src/views/knowledge-store/resource/material-package/index.vue(250,35): error TS2353: Object literal may only specify known properties, and 'action' does not exist in type 'OnActionClickParams'.
+src/views/knowledge-store/resource/material-package/index.vue(255,11): error TS2322: Type '"small"' is not assignable to type 'ButtonVariantSize'.
+src/views/knowledge-store/resource/material-package/index.vue(257,35): error TS2353: Object literal may only specify known properties, and 'action' does not exist in type 'OnActionClickParams'.
+src/views/knowledge-store/resource/material-package/index.vue(262,11): error TS2322: Type '"small"' is not assignable to type 'ButtonVariantSize'.
+src/views/knowledge-store/resource/material-package/index.vue(265,35): error TS2353: Object literal may only specify known properties, and 'action' does not exist in type 'OnActionClickParams'.
+src/views/knowledge-store/resource/question-bank/edit/components/BasicInfo.vue(93,18): error TS2532: Object is possibly 'undefined'.
+src/views/knowledge-store/resource/question-bank/edit/components/BasicInfo.vue(424,14): error TS2322: Type '{ uid: string; size?: number | undefined; name: string; fileName?: string | undefined; lastModified?: number | undefined; lastModifiedDate?: Date | undefined; url?: string | undefined; ... 10 more ...; preview?: string | undefined; }[]' is not assignable to type 'UploadFile<any>[]'.
+  Type '{ uid: string; size?: number | undefined; name: string; fileName?: string | undefined; lastModified?: number | undefined; lastModifiedDate?: Date | undefined; url?: string | undefined; ... 10 more ...; preview?: string | undefined; }' is not assignable to type 'UploadFile<any>'.
+    Types of property 'status' are incompatible.
+      Type 'import("D:/100_Work/101_Program/Proj/fba/frontend/node_modules/.pnpm/ant-design-vue@4.2.6_vue@3.5.28_typescript@5.9.3_/node_modules/ant-design-vue/es/upload/interface").UploadFileStatus | undefined' is not assignable to type 'import("D:/100_Work/101_Program/Proj/fba/frontend/node_modules/.pnpm/antdv-next@1.0.3_vue@3.5.28_typescript@5.9.3_/node_modules/antdv-next/dist/upload/interface").UploadFileStatus | undefined'.
+        Type '"success"' is not assignable to type 'UploadFileStatus | undefined'.
+src/views/knowledge-store/resource/question-bank/edit/components/BasicInfo.vue(449,14): error TS2322: Type '{ uid: string; size?: number | undefined; name: string; fileName?: string | undefined; lastModified?: number | undefined; lastModifiedDate?: Date | undefined; url?: string | undefined; ... 10 more ...; preview?: string | undefined; }[]' is not assignable to type 'UploadFile<any>[]'.
+  Type '{ uid: string; size?: number | undefined; name: string; fileName?: string | undefined; lastModified?: number | undefined; lastModifiedDate?: Date | undefined; url?: string | undefined; ... 10 more ...; preview?: string | undefined; }' is not assignable to type 'UploadFile<any>'.
+    Types of property 'status' are incompatible.
+      Type 'import("D:/100_Work/101_Program/Proj/fba/frontend/node_modules/.pnpm/ant-design-vue@4.2.6_vue@3.5.28_typescript@5.9.3_/node_modules/ant-design-vue/es/upload/interface").UploadFileStatus | undefined' is not assignable to type 'import("D:/100_Work/101_Program/Proj/fba/frontend/node_modules/.pnpm/antdv-next@1.0.3_vue@3.5.28_typescript@5.9.3_/node_modules/antdv-next/dist/upload/interface").UploadFileStatus | undefined'.
+        Type '"success"' is not assignable to type 'UploadFileStatus | undefined'.
+src/views/knowledge-store/resource/question-bank/edit/components/MaterialManage.vue(264,3): error TS2322: Type 'null' is not assignable to type 'boolean | undefined'.
+src/views/knowledge-store/resource/question-bank/edit/components/MaterialManage.vue(308,16): error TS6133: 'handleToggleActive' is declared but its value is never read.
+src/views/knowledge-store/resource/question-bank/edit/components/question-data.ts(3,3): error TS2305: Module '"#/adapter/vxe-table"' has no exported member 'DifficultyType'.
+src/views/knowledge-store/resource/question-bank/edit/components/question-data.ts(5,3): error TS2305: Module '"#/adapter/vxe-table"' has no exported member 'QuestionListItem'.
+src/views/knowledge-store/resource/question-bank/edit/components/question-data.ts(6,3): error TS2305: Module '"#/adapter/vxe-table"' has no exported member 'QuestionType'.
+src/views/knowledge-store/resource/question-bank/edit/components/question-form-schema.ts(43,3): error TS6133: 'bankId' is declared but its value is never read.
+src/views/knowledge-store/resource/question-bank/edit/components/QuestionImport.vue(85,32): error TS2345: Argument of type 'string | undefined' is not assignable to parameter of type 'string'.
+  Type 'undefined' is not assignable to type 'string'.
+src/views/knowledge-store/resource/question-bank/edit/components/QuestionImport.vue(86,9): error TS6133: 'expectedHeaders' is declared but its value is never read.
+src/views/knowledge-store/resource/question-bank/edit/components/QuestionImport.vue(122,18): error TS2532: Object is possibly 'undefined'.
+src/views/knowledge-store/resource/question-bank/edit/components/ShortAnswerEditor.vue(61,22): error TS2532: Object is possibly 'undefined'.
+src/views/knowledge-store/resource/question-bank/edit/components/ShortAnswerEditor.vue(65,5): error TS2532: Object is possibly 'undefined'.
+src/views/knowledge-store/resource/question-bank/operation/components/ActivationCodes.vue(307,12): error TS7006: Parameter 'values' implicitly has an 'any' type.
+src/views/knowledge-store/resource/question-bank/operation/components/ActivationCodes.vue(321,12): error TS7006: Parameter 'values' implicitly has an 'any' type.
+src/views/knowledge-store/resource/question-bank/operation/components/ActivationCodes.vue(368,12): error TS7006: Parameter 'values' implicitly has an 'any' type.
+src/views/knowledge-store/resource/question-bank/operation/components/ActivationCodes.vue(384,12): error TS7006: Parameter 'values' implicitly has an 'any' type.
+src/views/knowledge-store/resource/question-bank/operation/components/ActivationCodes.vue(399,12): error TS7006: Parameter 'values' implicitly has an 'any' type.
+src/views/knowledge-store/resource/question-bank/operation/components/ActivationCodes.vue(413,12): error TS7006: Parameter 'values' implicitly has an 'any' type.
+src/views/knowledge-store/resource/question-bank/operation/components/ActivationCodes.vue(427,12): error TS7006: Parameter 'values' implicitly has an 'any' type.
+src/views/knowledge-store/resource/question-bank/operation/components/ActivationCodes.vue(441,12): error TS7006: Parameter 'values' implicitly has an 'any' type.
+src/views/knowledge-store/resource/question-bank/operation/components/ActivationCodes.vue(459,12): error TS7006: Parameter 'values' implicitly has an 'any' type.
+src/views/knowledge-store/resource/question-bank/operation/components/ActivationCodes.vue(476,12): error TS7006: Parameter 'values' implicitly has an 'any' type.
+src/views/knowledge-store/resource/question-bank/operation/components/ActivationCodes.vue(491,12): error TS7006: Parameter 'values' implicitly has an 'any' type.
+src/views/knowledge-store/resource/question-bank/operation/components/ActivationCodes.vue(509,12): error TS7006: Parameter 'values' implicitly has an 'any' type.
+src/views/knowledge-store/resource/question-bank/operation/components/ActivationCodes.vue(524,12): error TS7006: Parameter 'values' implicitly has an 'any' type.
+src/views/knowledge-store/resource/question-bank/operation/components/ActivationCodes.vue(538,12): error TS7006: Parameter 'values' implicitly has an 'any' type.
+src/views/knowledge-store/resource/question-bank/operation/components/Members.vue(106,38): error TS7053: Element implicitly has an 'any' type because expression of type 'string' can't be used to index type '{ bank: { title: string; getColumns: () => ({ field: string; title: string; width: number; minWidth?: undefined; slots?: undefined; align?: undefined; fixed?: undefined; cellRender?: undefined; } | { field: string; ... 6 more ...; cellRender?: undefined; } | { ...; } | { ...; })[]; }; class: { ...; }; vip: { ...; }; }'.
+  No index signature with a parameter of type 'string' was found on type '{ bank: { title: string; getColumns: () => ({ field: string; title: string; width: number; minWidth?: undefined; slots?: undefined; align?: undefined; fixed?: undefined; cellRender?: undefined; } | { field: string; ... 6 more ...; cellRender?: undefined; } | { ...; } | { ...; })[]; }; class: { ...; }; vip: { ...; }; }'.
+src/views/knowledge-store/resource/question-bank/operation/components/Members.vue(155,3): error TS2740: Type 'ComputedRef<any>' is missing the following properties from type 'Column<any>[]': length, pop, push, concat, and 35 more.
+src/views/knowledge-store/resource/question-bank/operation/components/Members.vue(191,8): error TS2322: Type '(key: string) => void' is not assignable to type '(activeKey: Key) => void'.
+  Types of parameters 'key' and 'activeKey' are incompatible.
+    Type 'Key' is not assignable to type 'string'.
+      Type 'number' is not assignable to type 'string'.
+src/views/knowledge-store/resource/question-bank/operation/index.vue(84,12): error TS2322: Type '({ key }: { key: string; }) => void' is not assignable to type 'MenuClickEventHandler'.
+  Types of parameters '__0' and 'info' are incompatible.
+    Type 'MenuInfo' is not assignable to type '{ key: string; }'.
+      Types of property 'key' are incompatible.
+        Type 'Key' is not assignable to type 'string'.
+          Type 'number' is not assignable to type 'string'.
+src/views/social/account/index.vue(406,13): error TS2322: Type 'string' is not assignable to type 'number'.
+src/views/social/account/index.vue(408,14): error TS2322: Type '(v: string) => ExtendedModalApi' is not assignable to type '(value?: string | number | undefined) => void'.
+  Types of parameters 'v' and 'value' are incompatible.
+    Type 'string | number | undefined' is not assignable to type 'string'.
+      Type 'undefined' is not assignable to type 'string'.
+src/views/social/metric/index.vue(146,16): error TS6133: 'onDelete' is declared but its value is never read.
+src/views/social/work/SocialTrendModal.vue(6,20): error TS2440: Import declaration conflicts with local declaration of 'defineExpose'.
+src/views/social/work/SocialTrendModal.vue(6,34): error TS2440: Import declaration conflicts with local declaration of 'defineProps'.
+src/views/system/user/index.vue(289,14): error TS2322: Type '{ children?: ...[] | undefined; id: number; name: string; parent_id: number; sort: number; leader?: string | undefined; phone?: string | undefined; email?: string | undefined; status: number; created_time: string; }[]' is not assignable to type 'DataNode[]'.
+  Type '{ children?: ...[] | undefined; id: number; name: string; parent_id: number; sort: number; leader?: string | undefined; phone?: string | undefined; email?: string | undefined; status: number; created_time: string; }' is not assignable to type 'DataNode'.
+    Property 'key' is missing in type '{ children?: ...[] | undefined; id: number; name: string; parent_id: number; sort: number; leader?: string | undefined; phone?: string | undefined; email?: string | undefined; status: number; created_time: string; }' but required in type '{ key: Key; title?: VueNode | ((data: DataNode) => VueNode); }'.
+src/views/system/user/index.vue(292,14): error TS2322: Type '(selectedKeys: number[]) => void' is not assignable to type '(selectedKeys: Key[], info: { event: "select"; selected: boolean; node: EventDataNode<DataNode>; selectedNodes: DataNode[]; nativeEvent: MouseEvent; }) => void'.
+  Types of parameters 'selectedKeys' and 'selectedKeys' are incompatible.
+    Type 'Key[]' is not assignable to type 'number[]'.
+      Type 'Key' is not assignable to type 'number'.
+        Type 'string' is not assignable to type 'number'.
+src/views/system/user/index.vue(294,24): error TS2339: Property 'title' does not exist on type 'Readonly<{ switcherLoadingIcon: () => any; switcherIcon: (props: AntTreeNodeProps) => any; default: () => any; draggableIcon: () => any; icon: (props: AntdTreeNodeAttribute) => any; titleRender: ((node: DataNode) => any) | undefined; }>'.
+../../packages/effects/common-ui/src/components/code-mirror/data.ts(2,21): error TS2307: Cannot find module '@codemirror/lang-sql' or its corresponding type declarations.
+D:\100_Work\101_Program\Proj\fba\frontend\apps\web-antdv-next:
+ ERR_PNPM_RECURSIVE_RUN_FIRST_FAIL  @vben/web-antdv-next@5.6.0 typecheck: `vue-tsc --noEmit --skipLibCheck`
+Exit status 2

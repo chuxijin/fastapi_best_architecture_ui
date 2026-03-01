@@ -124,14 +124,14 @@ const operationTools: OperationTool[] = [
   <div class="p-5">
     <div class="mb-4">
       <h2 class="text-2xl font-semibold">知识店铺首页</h2>
-      <p class="text-muted-foreground mt-1">实时统计看板</p>
+      <p class="mt-1 text-muted-foreground">实时统计看板</p>
     </div>
 
-    <div class="bg-card rounded-lg border p-6 shadow-sm">
+    <div class="rounded-lg border bg-card p-6 shadow-sm">
       <div class="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
         <template v-for="item in statItems" :key="item.title">
-          <div class="bg-background rounded-lg border p-6">
-            <h3 class="text-foreground mb-4 text-xl font-semibold">
+          <div class="rounded-lg border bg-background p-6">
+            <h3 class="mb-4 text-xl font-semibold text-foreground">
               {{ item.title }}
             </h3>
 
@@ -145,7 +145,7 @@ const operationTools: OperationTool[] = [
               <component :is="item.icon" class="size-8 flex-shrink-0" />
             </div>
 
-            <div class="border-border space-y-2 border-t pt-4">
+            <div class="space-y-2 border-t border-border pt-4">
               <div class="flex items-center justify-between text-sm">
                 <span class="text-muted-foreground">{{ item.monthLabel }}</span>
                 <VbenCountToAnimator
@@ -170,12 +170,12 @@ const operationTools: OperationTool[] = [
       </div>
     </div>
 
-    <div class="bg-card mt-6 rounded-lg border p-6 shadow-sm">
+    <div class="mt-6 rounded-lg border bg-card p-6 shadow-sm">
       <h3 class="mb-4 text-lg font-semibold">运营工具</h3>
 
       <div class="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
         <template v-for="tool in operationTools" :key="tool.title">
-          <div class="bg-background rounded-lg border p-6">
+          <div class="rounded-lg border bg-background p-6">
             <div class="mb-4 flex items-start">
               <div
                 class="flex size-12 items-center justify-center rounded-full bg-blue-100"
@@ -186,11 +186,11 @@ const operationTools: OperationTool[] = [
               </div>
             </div>
 
-            <h4 class="text-foreground mb-2 text-base font-semibold">
+            <h4 class="mb-2 text-base font-semibold text-foreground">
               {{ tool.title }}
             </h4>
 
-            <p class="text-muted-foreground mb-4 text-sm leading-relaxed">
+            <p class="mb-4 text-sm leading-relaxed text-muted-foreground">
               {{ tool.description }}
             </p>
 

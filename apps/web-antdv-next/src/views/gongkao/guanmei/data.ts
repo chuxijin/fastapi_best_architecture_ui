@@ -35,7 +35,7 @@ export function useColumns(
         if (cellValue && cellValue.length > 50) {
           return `${cellValue.replaceAll(/<[^>]+>/g, '').slice(0, 50)}...`;
         }
-        return cellValue?.replace(/<[^>]+>/g, '') || '';
+        return cellValue?.replaceAll(/<[^>]+>/g, '') || '';
       },
     },
     {
@@ -46,7 +46,7 @@ export function useColumns(
         if (cellValue && cellValue.length > 50) {
           return `${cellValue.replaceAll(/<[^>]+>/g, '').slice(0, 50)}...`;
         }
-        return cellValue?.replace(/<[^>]+>/g, '') || '';
+        return cellValue?.replaceAll(/<[^>]+>/g, '') || '';
       },
     },
     { field: 'view_count', title: '阅读量', width: 100 },
