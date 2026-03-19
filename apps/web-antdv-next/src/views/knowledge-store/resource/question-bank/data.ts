@@ -44,6 +44,21 @@ export const querySchema: VbenFormSchema[] = [
     label: '状态',
     formItemClass: 'md:col-span-1',
   },
+  {
+    component: 'Select',
+    componentProps: {
+      allowClear: true,
+      placeholder: '请选择题库类型',
+      options: [
+        { label: '普通题库', value: 1 },
+        { label: '试卷', value: 2 },
+        { label: '合集', value: 3 },
+      ],
+    },
+    fieldName: 'bank_type',
+    label: '题库类型',
+    formItemClass: 'md:col-span-1',
+  },
 ];
 
 export const statusMap: Record<number, { color: string; label: string }> = {
@@ -180,13 +195,14 @@ export const formSchema: VbenFormSchema[] = [
     component: 'RadioGroup',
     componentProps: {
       options: [
-        { label: '普通题库(含题目)', value: 10 },
-        { label: '合集目录(仅含子题库)', value: 20 },
+        { label: '普通题库', value: 1 },
+        { label: '试卷', value: 2 },
+        { label: '合集', value: 3 },
       ],
     },
-    fieldName: 'type',
+    fieldName: 'bank_type',
     label: '题库类型',
-    defaultValue: 10,
+    defaultValue: 1,
     rules: 'required',
   },
   {

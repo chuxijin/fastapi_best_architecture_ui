@@ -82,6 +82,15 @@ const routes: RouteRecordRaw[] = [
           icon: 'mdi:tag-multiple-outline',
         },
       },
+      {
+        name: 'GongkaoContent',
+        path: '/gongkao/content',
+        component: () => import('#/views/gongkao/content/index.vue'),
+        meta: {
+          title: '内容管理',
+          icon: 'mdi:file-edit-outline',
+        },
+      },
     ],
   },
 ];

@@ -2,12 +2,7 @@
 import type { VbenFormProps } from '@vben/common-ui';
 
 import type { VxeTableGridOptions } from '#/adapter/vxe-table';
-import type {
-  BankResult,
-  QuestionParams,
-  QuestionResult,
-  QuestionType,
-} from '#/api';
+import type { BankResult, QuestionResult, QuestionType } from '#/api';
 
 import { computed, onMounted, ref } from 'vue';
 
@@ -16,7 +11,6 @@ import { MaterialSymbolsAdd } from '@vben/icons';
 
 import { Dropdown, Menu, MenuItem, message } from 'ant-design-vue';
 
-import { useVbenForm } from '#/adapter/form';
 import { useVbenVxeGrid } from '#/adapter/vxe-table';
 import {
   createQuestionApi,
@@ -34,7 +28,6 @@ import {
   questionTypeMap,
   useColumns,
 } from './question-data';
-import { createQuestionFormSchema } from './question-form-schema';
 import UnifiedQuestionForm from './UnifiedQuestionForm.vue';
 
 interface Props {
@@ -116,12 +109,6 @@ const gridOptions: VxeTableGridOptions<QuestionResult> = {
 
 const [Grid, gridApi] = useVbenVxeGrid({ formOptions, gridOptions });
 
-const [QuestionForm, questionFormApi] = useVbenForm({
-  wrapperClass: 'grid-cols-1',
-  showDefaultActions: false,
-  schema: createQuestionFormSchema(props.bankId, chapterOptions.value),
-});
-
 const modalTitle = computed(() => {
   if (currentEditId.value) {
     return `编辑${questionTypeMap[currentQuestionType.value] || '题目'}`;
@@ -131,64 +118,20 @@ const modalTitle = computed(() => {
     : '添加题目';
 });
 
-// 判断是否使用自定义表单组件（统一组件支持所有题型）
-const useCustomForm = computed(() => {
-  return [
-    'fill',
-    'judgement',
-    'material',
-    'multiple',
-    'shortAnswer',
-    'single',
-  ].includes(currentQuestionType.value);
-});
-
 // 添加/编辑弹窗
 const [Modal, modalApi] = useVbenModal({
   class: 'w-9/12',
   destroyOnClose: true,
   async onConfirm() {
-    if (useCustomForm.value && currentFormRef.value) {
-      // 调用自定义表单的提交方法
-      await currentFormRef.value.submit();
+    if (!currentFormRef.value) {
+      message.warning('当前题型暂不支持编辑');
       return;
     }
 
-    const { valid } = await questionFormApi.validate();
-    if (valid) {
-      modalApi.lock();
-      try {
-        const data = await questionFormApi.getValues<QuestionParams>();
-        data.bank_id = props.bankId;
-
-        if (currentEditId.value) {
-          // 编辑模式
-          await updateQuestionApi(currentEditId.value, data);
-          message.success('更新题目成功');
-        } else {
-          // 新增模式
-          await createQuestionApi(data);
-          message.success('添加题目成功');
-        }
-
-        await modalApi.close();
-        onRefresh();
-      } catch {
-        message.error(currentEditId.value ? '更新题目失败' : '添加题目失败');
-      } finally {
-        modalApi.unlock();
-      }
-    }
+    await currentFormRef.value.submit();
   },
   onOpenChange(isOpen) {
-    if (isOpen) {
-      if (!useCustomForm.value) {
-        questionFormApi.resetForm();
-        questionFormApi.updateSchema(
-          createQuestionFormSchema(props.bankId, chapterOptions.value),
-        );
-      }
-    } else {
+    if (!isOpen) {
       currentFormRef.value = null;
       currentEditId.value = null;
     }
@@ -267,21 +210,30 @@ async function onActionClick({
     case 'preview': {
       try {
         const detail = (await getQuestionDetailApi(row.id)) as any;
+        const defaultAnalysis = Array.isArray(detail.analyses)
+          ? detail.analyses.find((item: any) => item.is_default) ||
+            detail.analyses[0]
+          : undefined;
 
-        // 转换 options_data 对象为数组（方便前端显示）
+        detail.analysis = defaultAnalysis || null;
+
+        detail.score = Number(detail.score ?? detail.default_score ?? 0);
+        detail.chapter = detail.chapter_name
+          ? { name: detail.chapter_name }
+          : undefined;
+
+        detail.options = [];
         if (detail.options_data) {
           detail.options = Object.values(detail.options_data).map(
             (opt: any) => {
-              // 从 analysis 中判断是否是正确答案
               let is_correct = false;
-              if (detail.analysis && detail.analysis.answer_data) {
-                const correct = detail.analysis.answer_data.correct;
-                if (Array.isArray(correct)) {
-                  is_correct = correct.includes(opt.code);
-                } else {
-                  is_correct = opt.code === correct;
-                }
+              const correct = detail.analysis?.answer_data?.correct;
+              if (Array.isArray(correct)) {
+                is_correct = correct.includes(opt.code);
+              } else if (typeof correct === 'string') {
+                is_correct = opt.code === correct;
               }
+
               return {
                 label: opt.code,
                 content: opt.content,
@@ -324,28 +276,12 @@ function handleAddQuestion(type: QuestionType) {
   currentEditId.value = null;
   currentQuestionType.value = type;
   modalApi.open();
-  // 非自定义表单才需要设置值
-  const customFormTypes: QuestionType[] = [
-    'single',
-    'multiple',
-    'judgement',
-    'fill',
-    'shortAnswer',
-  ];
-  if (!customFormTypes.includes(type)) {
-    questionFormApi.setValues({
-      type,
-      bank_id: props.bankId,
-      score: 1,
-      is_active: true,
-    });
-  }
 }
 </script>
 
 <template>
-  <div class="h-full">
-    <Grid class="h-full">
+  <div class="flex h-full min-h-0 flex-col">
+    <Grid class="h-full min-h-0">
       <template #toolbar-actions>
         <Dropdown>
           <VbenButton>
@@ -396,7 +332,6 @@ function handleAddQuestion(type: QuestionType) {
     <Modal :title="modalTitle">
       <!-- 使用统一表单组件 -->
       <UnifiedQuestionForm
-        v-if="useCustomForm"
         ref="currentFormRef"
         :bank-id="bankId"
         :question-type="currentQuestionType"
@@ -404,8 +339,6 @@ function handleAddQuestion(type: QuestionType) {
         :edit-id="currentEditId"
         @submit="handleQuestionSubmit"
       />
-      <!-- 其他题型使用通用表单（如果有未支持的题型） -->
-      <QuestionForm v-else />
     </Modal>
 
     <!-- 预览弹窗 -->
@@ -420,7 +353,9 @@ function handleAddQuestion(type: QuestionType) {
                 >题型</label
               >
               <p class="text-sm text-gray-900">
-                {{ questionTypeMap[previewData.type] || '未知' }}
+                {{
+                  questionTypeMap[previewData.type as QuestionType] || '未知'
+                }}
               </p>
             </div>
             <div>
@@ -436,7 +371,9 @@ function handleAddQuestion(type: QuestionType) {
               <p class="text-sm text-gray-900">
                 {{
                   previewData.difficulty
-                    ? difficultyMap[previewData.difficulty]
+                    ? difficultyMap[
+                        previewData.difficulty as keyof typeof difficultyMap
+                      ]
                     : '-'
                 }}
               </p>
@@ -543,16 +480,31 @@ function handleAddQuestion(type: QuestionType) {
               </div>
               <!-- 简答 -->
               <div v-else-if="previewData.type === 'shortAnswer'">
-                <p><strong>关键词：</strong></p>
-                <ul class="ml-5 list-disc">
-                  <li
-                    v-for="(keyword, idx) in previewData.analysis.answer_data
-                      .keywords"
-                    :key="idx"
-                  >
-                    {{ keyword }}
-                  </li>
-                </ul>
+                <template
+                  v-if="
+                    Array.isArray(previewData.analysis.answer_data.keywords) &&
+                    previewData.analysis.answer_data.keywords.length > 0
+                  "
+                >
+                  <p><strong>关键词：</strong></p>
+                  <ul class="ml-5 list-disc">
+                    <li
+                      v-for="(keyword, idx) in previewData.analysis.answer_data
+                        .keywords"
+                      :key="idx"
+                    >
+                      {{ keyword }}
+                    </li>
+                  </ul>
+                </template>
+                <p v-else>
+                  {{
+                    Array.isArray(previewData.analysis.answer_data.correct)
+                      ? previewData.analysis.answer_data.correct.join('；')
+                      : previewData.analysis.answer_data.correct ||
+                        '暂无参考答案'
+                  }}
+                </p>
               </div>
             </template>
             <p v-else class="text-gray-500">暂无答案</p>

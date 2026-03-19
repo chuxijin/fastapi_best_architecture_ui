@@ -1,12 +1,6 @@
 import type { VbenFormSchema } from '#/adapter/form';
-import type {
-  DifficultyType,
-  OnActionClickFn,
-  QuestionListItem,
-  QuestionType,
-  VxeGridProps,
-} from '#/adapter/vxe-table';
-
+import type { OnActionClickFn, VxeGridProps } from '#/adapter/vxe-table';
+import type { DifficultyType, QuestionListItem, QuestionType } from '#/api';
 /**
  * 题型映射（字符串类型）
  */
@@ -16,7 +10,6 @@ export const questionTypeMap: Record<QuestionType, string> = {
   judgement: '判断题',
   fill: '填空题',
   shortAnswer: '简答题',
-  material: '材料题',
 };
 
 /**
@@ -169,13 +162,15 @@ export function useColumns(
       field: 'score',
       title: '分值',
       width: 80,
+      formatter: ({ row }) => row.score ?? row.default_score ?? '-',
     },
     {
       field: 'knowledge_point',
       title: '考点',
       width: 150,
       showOverflow: 'tooltip',
-      formatter: ({ cellValue }) => cellValue || '-',
+      formatter: ({ cellValue }) =>
+        Array.isArray(cellValue) ? cellValue.join('、') : cellValue || '-',
     },
     {
       field: 'is_active',

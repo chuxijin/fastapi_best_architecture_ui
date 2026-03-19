@@ -5,7 +5,7 @@ import type {
   CoulddriveUserListParams,
 } from '#/api';
 
-import { onMounted, ref, watch } from 'vue';
+import { computed, onMounted, ref, watch } from 'vue';
 
 import { createIconifyIcon } from '@vben/icons';
 
@@ -22,96 +22,159 @@ import {
   SYNC_METHOD_OPTIONS,
   updateCoulddriveSyncConfigApi,
 } from '#/api';
-// 移除usePathNavigation导入，由FileSelector组件处理
 import FileSelector from '#/components/FileSelector.vue';
 
 import { useCronScheduler } from '../composables/useCronScheduler';
 
-const props = withDefaults(defineProps<Props>(), {
-  visible: false,
-  editData: null,
-});
-// Emits
-const emit = defineEmits<{
-  success: [];
-  'update:visible': [value: boolean];
-}>();
-// 创建图标组件
-const Settings = createIconifyIcon('mdi:cog');
-const ClockOutline = createIconifyIcon('mdi:clock-outline');
-const Play = createIconifyIcon('mdi:play');
-const FileDocument = createIconifyIcon('mdi:file-document-outline');
-
-// Props
 interface Props {
   visible?: boolean;
   editData?: any;
 }
 
-// 账号选项（恢复为本地实现，避免外部依赖导致报错）
-const accountOptions = ref<
-  Array<{ cookies?: string; label: string; value: number }>
->([]);
+interface SelectOption<T = number | string> {
+  label: string;
+  value: T;
+}
+
+interface RuleTemplateOption extends SelectOption<null | number> {
+  description?: string;
+}
+
+interface SyncConfigFormData {
+  enable: boolean;
+  remark: string;
+  type: string;
+  src_path: string;
+  src_meta: string;
+  dst_path: string;
+  dst_meta: string;
+  user_id: null | number;
+  cron_display: string;
+  cron: string;
+  cron_type: string;
+  cron_value: number;
+  cron_hour: number;
+  cron_minute: number;
+  cron_weekday: number;
+  cron_day: number;
+  speed: number;
+  method: string;
+  exclude_template_id: null | number;
+  rename_template_id: null | number;
+  end_time: null | string;
+}
+
+const props = withDefaults(defineProps<Props>(), {
+  visible: false,
+  editData: null,
+});
+
+const emit = defineEmits<{
+  success: [];
+  'update:visible': [value: boolean];
+}>();
+
+const Settings = createIconifyIcon('mdi:cog');
+const ClockOutline = createIconifyIcon('mdi:clock-outline');
+const Play = createIconifyIcon('mdi:play');
+const FileDocument = createIconifyIcon('mdi:file-document-outline');
+
+const accountOptions = ref<Array<SelectOption<number> & { cookies?: string }>>(
+  [],
+);
 const accountCache = ref<
-  Map<string, Array<{ cookies?: string; label: string; value: number }>>
+  Map<string, Array<SelectOption<number> & { cookies?: string }>>
 >(new Map());
+const accountLoading = ref(false);
 
-// 规则模板选项
-const exclusionRuleOptions = ref<
-  Array<{ description?: string; label: string; value: null | number }>
->([]);
-const renameRuleOptions = ref<
-  Array<{ description?: string; label: string; value: null | number }>
->([]);
+const exclusionRuleOptions = ref<RuleTemplateOption[]>([]);
+const renameRuleOptions = ref<RuleTemplateOption[]>([]);
 
-const sourceOptionsCache = ref<
-  Map<string, Array<{ label: string; value: string }>>
->(new Map());
+const sourceOptions = ref<Array<SelectOption<string>>>([]);
+const sourceOptionsCache = ref<Map<string, Array<SelectOption<string>>>>(
+  new Map(),
+);
+const sourceLoading = ref(false);
 
-// 路径选择相关状态
 const pathSelectionModalVisible = ref(false);
 const pathSelectionMode = ref<'source' | 'target'>('source');
 const selectedAccountCookies = ref('');
 
-// 来源选择相关状态
 const sourceType = ref('');
 const sourceId = ref('');
-const sourceOptions = ref<Array<{ label: string; value: string }>>([]);
 
-// 文件选择状态 - 移除，由FileSelector组件处理
-
-// 编辑模式状态
 const isEditMode = ref(false);
 const editingConfigId = ref<null | number>(null);
+const hydratingForm = ref(false);
 
-// 表单数据
-const formData = ref({
-  enable: true,
-  remark: '',
-  type: '',
-  src_path: '',
-  src_meta: '',
-  dst_path: '',
-  dst_meta: '',
-  user_id: null,
-  cron_display: '',
-  cron: '',
-  cron_type: '',
-  cron_value: 1,
-  cron_hour: 2,
-  cron_minute: 0,
-  cron_weekday: 1,
-  cron_day: 1,
-  speed: 0,
-  method: 'incremental',
-  exclude_template_id: null,
-  rename_template_id: null,
-  end_time: null,
+const formData = ref<SyncConfigFormData>(createDefaultFormData());
+
+const driveTypeOptions = computed(() => {
+  return getDictOptions(DictEnum.DRIVE_TYPE).map((option) => ({
+    label: option.label,
+    value: String(option.value),
+  }));
 });
 
-// 移除breadcrumbPaths，由FileSelector组件处理
+const sourceTypeOptions: Array<SelectOption<string>> = [
+  { label: '我的网盘', value: '' },
+  { label: '好友分享', value: 'friend' },
+  { label: '群组分享', value: 'group' },
+  { label: '分享链接', value: 'link' },
+];
 
-// 定时相关（抽离为可复用逻辑）
+const cronTypeOptions: Array<SelectOption<string>> = [
+  { label: '手动执行', value: '' },
+  { label: '每天执行', value: 'daily' },
+  { label: '每 N 天执行', value: 'n_days' },
+  { label: '每小时执行', value: 'hourly' },
+  { label: '每 N 小时执行', value: 'n_hours' },
+  { label: '每 N 分钟执行', value: 'n_minutes' },
+  { label: '每 N 秒执行', value: 'n_seconds' },
+  { label: '每周执行', value: 'weekly' },
+  { label: '每月执行', value: 'monthly' },
+];
+
+const weekdayOptions: Array<SelectOption<number>> = [
+  { label: '周一', value: 1 },
+  { label: '周二', value: 2 },
+  { label: '周三', value: 3 },
+  { label: '周四', value: 4 },
+  { label: '周五', value: 5 },
+  { label: '周六', value: 6 },
+  { label: '周日', value: 7 },
+];
+
+const syncMethodOptions = computed(() => {
+  return SYNC_METHOD_OPTIONS.map((option) => ({
+    description: option.description,
+    label: option.label,
+    value: option.value,
+  }));
+});
+
+const recursionSpeedOptions = computed(() => {
+  return RECURSION_SPEED_OPTIONS.map((option) => ({
+    key: option.key,
+    label: option.label,
+    value: option.value,
+  }));
+});
+
+const exclusionRuleSelectOptions = computed(() => {
+  return exclusionRuleOptions.value.map((option) => ({
+    label: option.label,
+    value: option.value,
+  }));
+});
+
+const renameRuleSelectOptions = computed(() => {
+  return renameRuleOptions.value.map((option) => ({
+    label: option.label,
+    value: option.value,
+  }));
+});
+
 const {
   needsValueInput,
   needsTimeInput,
@@ -123,363 +186,80 @@ const {
   updateCronExpression,
 } = useCronScheduler(formData);
 
-// 移除canGoBack，由FileSelector组件处理
-
-// 监听网盘类型变化，自动加载对应账号
 watch(
   () => formData.value.type,
   async (newType, oldType) => {
-    // 只有在用户手动更改类型时才清空账号选择，编辑模式下不清空
-    if (oldType && newType !== oldType && !isEditMode.value) {
-      formData.value.user_id = null;
-      selectedAccountCookies.value = '';
+    if (hydratingForm.value) {
+      return;
     }
+
+    if (oldType && newType !== oldType) {
+      formData.value.user_id = null;
+      accountOptions.value = [];
+      selectedAccountCookies.value = '';
+      resetSourceSelection();
+    }
+
     await loadAccountOptions(newType);
   },
-  { immediate: false },
 );
 
-// 监听账号变化，获取 cookies
 watch(
   () => formData.value.user_id,
-  (newUserId) => {
-    if (newUserId) {
-      const account = accountOptions.value.find(
-        (acc) => acc.value === newUserId,
-      );
-      selectedAccountCookies.value = account?.cookies || '';
-    } else {
-      selectedAccountCookies.value = '';
+  async (newUserId, oldUserId) => {
+    const selectedAccount = accountOptions.value.find(
+      (account) => account.value === newUserId,
+    );
+    selectedAccountCookies.value = selectedAccount?.cookies || '';
+
+    if (!hydratingForm.value && oldUserId && newUserId !== oldUserId) {
+      resetSourceSelection();
+    }
+
+    if (
+      !hydratingForm.value &&
+      selectedAccountCookies.value &&
+      (sourceType.value === 'friend' || sourceType.value === 'group')
+    ) {
+      await loadSourceOptions(sourceType.value);
+    }
+  },
+);
+
+watch(
+  [() => props.visible, () => props.editData],
+  async ([visible, editData]) => {
+    if (!visible) {
+      return;
+    }
+
+    hydratingForm.value = true;
+
+    try {
+      if (editData) {
+        await initializeEditForm(editData);
+        return;
+      }
+
+      resetForm();
+    } finally {
+      hydratingForm.value = false;
     }
   },
   { immediate: false },
 );
 
-// 监听抽屉打开和编辑数据变化
 watch(
-  [() => props.visible, () => props.editData],
-  async ([visible, newData]) => {
-    if (!visible) return; // 如果抽屉未打开，不处理
-
-    if (newData) {
-      isEditMode.value = true;
-      editingConfigId.value = newData.id;
-
-      // 填充表单数据
-      formData.value = {
-        enable: newData.enable,
-        remark: newData.remark || '',
-        type: newData.type || '',
-        src_path: newData.src_path || '',
-        src_meta: newData.src_meta || '',
-        dst_path: newData.dst_path || '',
-        dst_meta: newData.dst_meta || '',
-        user_id: newData.user_id || null,
-        cron_display: '',
-        cron: newData.cron || '',
-        cron_type: '',
-        cron_value: 1,
-        cron_hour: 2,
-        cron_minute: 0,
-        cron_weekday: 1,
-        cron_day: 1,
-        speed: newData.speed || 0,
-        method: newData.method || 'incremental',
-        exclude_template_id: newData.exclude_template_id || null,
-        rename_template_id: newData.rename_template_id || null,
-        end_time: newData.end_time || null,
-      };
-
-      // 解析 src_meta
-      if (newData.src_meta) {
-        try {
-          const srcMeta = JSON.parse(newData.src_meta);
-          sourceType.value = srcMeta.source_type || '';
-          sourceId.value = srcMeta.source_id || '';
-        } catch (error) {
-          console.error('解析 src_meta 失败:', error);
-        }
-      }
-
-      // 解析 cron 表达式
-      if (newData.cron) {
-        parseCronExpression(newData.cron);
-      } else {
-        // 如果没有 cron 表达式，设置为手动执行
-        formData.value.cron_type = '';
-        formData.value.cron_display = '手动执行';
-      }
-
-      // 加载相关数据
-      if (newData.type) {
-        await loadAccountOptions(newData.type);
-
-        // 确保user_id在账号选项加载后重新设置
-        formData.value.user_id = newData.user_id;
-
-        // 设置选中账号的cookies
-        const selectedAccount = accountOptions.value.find(
-          (account) => account.value === newData.user_id,
-        );
-        if (selectedAccount) {
-          selectedAccountCookies.value = selectedAccount.cookies || '';
-        }
-      }
-
-      // 打开抽屉时自动加载来源选项（非阻塞），若 cookies 失效会提示但不阻塞抽屉
-      if (
-        selectedAccountCookies.value &&
-        sourceType.value &&
-        (sourceType.value === 'friend' || sourceType.value === 'group')
-      ) {
-        // 不 await，避免网络错误阻塞抽屉打开
-        loadSourceOptions(sourceType.value).catch(() => {
-          // 已在内部 message.error 提示，这里忽略
-        });
-      }
-    } else {
-      // 只有在新建模式下才重置表单
+  () => props.visible,
+  (visible) => {
+    if (!visible) {
       resetForm();
     }
   },
-  { immediate: false },
 );
 
-// 获取账号列表由 useDriveAccounts 提供
-
-// 获取排除规则模板
-async function loadExclusionRuleOptions() {
-  try {
-    const response = await getRuleTemplatesByTypeApi('exclusion');
-    exclusionRuleOptions.value = [
-      { label: '无排除规则', value: null, description: '不使用任何排除规则' },
-      ...response.map((template: any) => ({
-        label: template.template_name,
-        value: template.id,
-        description: template.description,
-      })),
-    ];
-  } catch (error) {
-    console.error('获取排除规则模板失败:', error);
-    exclusionRuleOptions.value = [
-      { label: '无排除规则', value: null, description: '不使用任何排除规则' },
-    ];
-  }
-}
-
-// 获取重命名规则模板
-async function loadRenameRuleOptions() {
-  try {
-    const response = await getRuleTemplatesByTypeApi('rename');
-    renameRuleOptions.value = [
-      {
-        label: '无重命名规则',
-        value: null,
-        description: '不使用任何重命名规则',
-      },
-      ...response.map((template: any) => ({
-        label: template.template_name,
-        value: template.id,
-        description: template.description,
-      })),
-    ];
-  } catch (error) {
-    console.error('获取重命名规则模板失败:', error);
-    renameRuleOptions.value = [
-      {
-        label: '无重命名规则',
-        value: null,
-        description: '不使用任何重命名规则',
-      },
-    ];
-  }
-}
-
-// 重建面包屑路径
-// 移除未使用的辅助函数 rebuildBreadcrumbPaths
-
-// 路径选择相关函数
-async function selectSourcePath() {
-  if (!formData.value.type || !formData.value.user_id) {
-    message.warning('请先选择网盘类型和关联账号');
-    return;
-  }
-
-  pathSelectionMode.value = 'source';
-  pathSelectionModalVisible.value = true;
-}
-
-async function selectTargetPath() {
-  if (!formData.value.type || !formData.value.user_id) {
-    message.warning('请先选择网盘类型和关联账号');
-    return;
-  }
-
-  pathSelectionMode.value = 'target';
-  pathSelectionModalVisible.value = true;
-}
-
-// 处理来源类型变化
-async function onSourceTypeChange(type: string) {
-  sourceId.value = '';
-  sourceOptions.value = [];
-
-  if (type === 'friend' || type === 'group') {
-    await loadSourceOptions(type);
-  }
-}
-
-// 处理来源ID变化
-async function onSourceIdChange() {
-  // 移除具体实现，由FileSelector组件处理
-}
-
-// 加载来源选项（好友或群组）
-async function loadSourceOptions(type: string) {
-  if (!selectedAccountCookies.value) {
-    message.error('账号认证信息缺失');
-    return;
-  }
-
-  const cacheKey = `${formData.value.type}_${type}_${formData.value.user_id}`;
-
-  if (sourceOptionsCache.value.has(cacheKey)) {
-    sourceOptions.value = sourceOptionsCache.value.get(cacheKey) || [];
-    return;
-  }
-
-  try {
-    const params: CoulddriveRelationshipParams = {
-      drive_type: formData.value.type,
-      relationship_type: type as 'friend' | 'group',
-      page: 1,
-      size: 100,
-    };
-
-    const response = await getCoulddriveRelationshipListApi(
-      params,
-      selectedAccountCookies.value,
-    );
-    const items = response.items || [];
-
-    let options: Array<{ label: string; value: string }> = [];
-
-    if (type === 'friend') {
-      options = items.map((item: any) => ({
-        label: item.nick_name || item.uname || item.uk,
-        value: item.uk.toString(),
-      }));
-    } else if (type === 'group') {
-      options = items.map((item: any) => ({
-        label: item.name || item.gid,
-        value: item.gid,
-      }));
-    }
-
-    sourceOptionsCache.value.set(cacheKey, options);
-    sourceOptions.value = options;
-  } catch (error) {
-    console.error('加载来源选项失败:', error);
-    message.error('加载来源选项失败');
-    sourceOptions.value = [];
-  }
-}
-
-// 处理文件选择确认
-function handleFileSelectConfirm(data: any) {
-  if (pathSelectionMode.value === 'source') {
-    // 对于源路径，如果有选中的文件夹，使用选中文件夹的路径
-    formData.value.src_path =
-      data.selectedFiles &&
-      data.selectedFiles.length > 0 &&
-      data.selectedFiles[0].is_folder
-        ? data.selectedFiles[0].file_path
-        : data.currentPath || data.path;
-
-    if (sourceType.value && sourceId.value) {
-      formData.value.src_meta = JSON.stringify({
-        source_type: sourceType.value,
-        source_id: sourceId.value,
-      });
-    }
-    message.success(`已选择源路径: ${formData.value.src_path}`);
-  } else if (pathSelectionMode.value === 'target') {
-    // 对于目标路径，如果有选中的文件夹，使用选中文件夹的信息
-    if (
-      data.selectedFiles &&
-      data.selectedFiles.length > 0 &&
-      data.selectedFiles[0].is_folder
-    ) {
-      const selectedFolder = data.selectedFiles[0];
-      formData.value.dst_path = selectedFolder.file_path;
-      formData.value.dst_meta = JSON.stringify({
-        file_id: selectedFolder.file_id,
-      });
-    } else {
-      // 如果没有选中文件夹，使用当前路径
-      formData.value.dst_path = data.currentPath || data.path;
-      formData.value.dst_meta = JSON.stringify({
-        file_path: data.currentPath || data.path,
-        file_id: data.fileId || '0',
-      });
-    }
-    message.success(`已选择目标路径: ${formData.value.dst_path}`);
-  }
-  pathSelectionModalVisible.value = false;
-}
-
-// 处理文件选择取消
-function handleFileSelectCancel() {
-  pathSelectionModalVisible.value = false;
-}
-
-// 移除这些函数，由FileSelector组件处理
-
-// 移除未使用的辅助函数 formatFileSize 与 formatDateTime
-
-// 解析/生成函数由 useCronScheduler 提供
-
-// 获取账号列表（本地实现）
-async function loadAccountOptions(type?: string) {
-  if (!type) {
-    accountOptions.value = [];
-    return;
-  }
-
-  if (accountCache.value.has(type)) {
-    accountOptions.value = accountCache.value.get(type) || [];
-    return;
-  }
-
-  try {
-    const params: CoulddriveUserListParams = {
-      type,
-      is_valid: true,
-      page: 1,
-      size: 100,
-    };
-
-    const response = await getCoulddriveUserListApi(params);
-    const accounts = response.items || [];
-
-    const options = accounts.map((account: CoulddriveDriveAccountDetail) => ({
-      label: `${account.username || account.user_id} (${account.type})`,
-      value: account.id,
-      cookies: account.cookies,
-    }));
-
-    accountCache.value.set(type, options);
-    accountOptions.value = options;
-  } catch (error) {
-    console.error('获取账号列表失败:', error);
-    message.error('获取账号列表失败');
-    accountOptions.value = [];
-  }
-}
-
-// 重置表单
-function resetForm() {
-  formData.value = {
+function createDefaultFormData(): SyncConfigFormData {
+  return {
     enable: true,
     remark: '',
     type: '',
@@ -502,42 +282,365 @@ function resetForm() {
     rename_template_id: null,
     end_time: null,
   };
-  isEditMode.value = false;
-  editingConfigId.value = null;
+}
+
+function resetSourceSelection() {
   sourceType.value = '';
   sourceId.value = '';
   sourceOptions.value = [];
+  formData.value.src_path = '';
+  formData.value.src_meta = '';
 }
 
-// 提交表单
-async function handleSubmit() {
+function resetForm() {
+  formData.value = createDefaultFormData();
+  isEditMode.value = false;
+  editingConfigId.value = null;
+  accountOptions.value = [];
+  selectedAccountCookies.value = '';
+  resetSourceSelection();
+}
+
+async function initializeEditForm(editData: any) {
+  resetForm();
+
+  isEditMode.value = true;
+  editingConfigId.value = editData.id ?? null;
+
+  formData.value = {
+    enable: Boolean(editData.enable),
+    remark: editData.remark || '',
+    type: editData.type || '',
+    src_path: editData.src_path || '',
+    src_meta: editData.src_meta || '',
+    dst_path: editData.dst_path || '',
+    dst_meta: editData.dst_meta || '',
+    user_id: editData.user_id || null,
+    cron_display: '',
+    cron: editData.cron || '',
+    cron_type: '',
+    cron_value: 1,
+    cron_hour: 2,
+    cron_minute: 0,
+    cron_weekday: 1,
+    cron_day: 1,
+    speed: editData.speed ?? 0,
+    method: editData.method || 'incremental',
+    exclude_template_id: editData.exclude_template_id || null,
+    rename_template_id: editData.rename_template_id || null,
+    end_time: editData.end_time || null,
+  };
+
+  if (editData.src_meta) {
+    try {
+      const srcMeta = JSON.parse(editData.src_meta);
+      sourceType.value = srcMeta.source_type || '';
+      sourceId.value = srcMeta.source_id || '';
+    } catch (error) {
+      console.error('解析来源元数据失败:', error);
+    }
+  }
+
+  if (editData.cron) {
+    parseCronExpression(editData.cron);
+  } else {
+    formData.value.cron_type = '';
+    formData.value.cron_display = '手动执行';
+  }
+
+  if (editData.type) {
+    await loadAccountOptions(editData.type);
+    formData.value.user_id = editData.user_id || null;
+
+    const selectedAccount = accountOptions.value.find(
+      (account) => account.value === editData.user_id,
+    );
+    selectedAccountCookies.value = selectedAccount?.cookies || '';
+  }
+
   if (
-    !formData.value.type ||
-    !formData.value.src_path ||
-    !formData.value.dst_path ||
-    !formData.value.user_id
+    selectedAccountCookies.value &&
+    sourceType.value &&
+    (sourceType.value === 'friend' || sourceType.value === 'group')
   ) {
-    message.error('请填写必填字段');
+    await loadSourceOptions(sourceType.value);
+  }
+}
+
+async function loadAccountOptions(type?: string) {
+  if (!type) {
+    accountOptions.value = [];
     return;
   }
 
+  if (accountCache.value.has(type)) {
+    accountOptions.value = accountCache.value.get(type) || [];
+    return;
+  }
+
+  accountLoading.value = true;
+
   try {
-    const {
-      cron_display,
-      cron_type,
-      cron_value,
-      cron_hour,
-      cron_minute,
-      cron_weekday,
-      cron_day,
-      ...submitData
-    } = formData.value;
+    const params: CoulddriveUserListParams = {
+      type,
+      is_valid: true,
+      page: 1,
+      size: 100,
+    };
+    const response = await getCoulddriveUserListApi(params);
+    const accounts = response.items || [];
 
-    submitData.cron = submitData.cron || '';
+    const options = accounts.map((account: CoulddriveDriveAccountDetail) => ({
+      label: `${account.username || account.user_id} (${account.type})`,
+      value: account.id,
+      cookies: account.cookies,
+    }));
 
+    accountCache.value.set(type, options);
+    accountOptions.value = options;
+  } catch (error) {
+    console.error('获取关联账号失败:', error);
+    message.error('获取关联账号失败');
+    accountOptions.value = [];
+  } finally {
+    accountLoading.value = false;
+  }
+}
+
+async function loadExclusionRuleOptions() {
+  try {
+    const response = await getRuleTemplatesByTypeApi('exclusion');
+    exclusionRuleOptions.value = [
+      {
+        label: '不使用排除规则',
+        value: null,
+        description: '同步时不过滤任何文件',
+      },
+      ...response.map((template: any) => ({
+        label: template.template_name,
+        value: template.id,
+        description: template.description,
+      })),
+    ];
+  } catch (error) {
+    console.error('获取排除规则模板失败:', error);
+    exclusionRuleOptions.value = [
+      {
+        label: '不使用排除规则',
+        value: null,
+        description: '同步时不过滤任何文件',
+      },
+    ];
+  }
+}
+
+async function loadRenameRuleOptions() {
+  try {
+    const response = await getRuleTemplatesByTypeApi('rename');
+    renameRuleOptions.value = [
+      {
+        label: '不使用重命名规则',
+        value: null,
+        description: '同步时保留原始文件名',
+      },
+      ...response.map((template: any) => ({
+        label: template.template_name,
+        value: template.id,
+        description: template.description,
+      })),
+    ];
+  } catch (error) {
+    console.error('获取重命名规则模板失败:', error);
+    renameRuleOptions.value = [
+      {
+        label: '不使用重命名规则',
+        value: null,
+        description: '同步时保留原始文件名',
+      },
+    ];
+  }
+}
+
+async function onSourceTypeChange(type: string) {
+  sourceType.value = type;
+  sourceId.value = '';
+  sourceOptions.value = [];
+  formData.value.src_path = '';
+  formData.value.src_meta = '';
+
+  if (type === 'friend' || type === 'group') {
+    await loadSourceOptions(type);
+  }
+}
+
+function onSourceIdChange() {
+  formData.value.src_path = '';
+  formData.value.src_meta = '';
+}
+
+async function loadSourceOptions(type: string) {
+  if (!selectedAccountCookies.value || !formData.value.user_id) {
+    sourceOptions.value = [];
+    return;
+  }
+
+  const cacheKey = `${formData.value.type}_${type}_${formData.value.user_id}`;
+
+  if (sourceOptionsCache.value.has(cacheKey)) {
+    sourceOptions.value = sourceOptionsCache.value.get(cacheKey) || [];
+    return;
+  }
+
+  sourceLoading.value = true;
+
+  try {
+    const params: CoulddriveRelationshipParams = {
+      drive_type: formData.value.type,
+      relationship_type: type as 'friend' | 'group',
+      page: 1,
+      size: 100,
+    };
+
+    const response = await getCoulddriveRelationshipListApi(
+      params,
+      selectedAccountCookies.value,
+    );
+    const items = response.items || [];
+
+    const options =
+      type === 'friend'
+        ? items.map((item: any) => ({
+            label: item.nick_name || item.uname || String(item.uk),
+            value: String(item.uk),
+          }))
+        : items.map((item: any) => ({
+            label: item.name || String(item.gid),
+            value: String(item.gid),
+          }));
+
+    sourceOptionsCache.value.set(cacheKey, options);
+    sourceOptions.value = options;
+  } catch (error) {
+    console.error('获取来源选项失败:', error);
+    message.error('获取来源选项失败');
+    sourceOptions.value = [];
+  } finally {
+    sourceLoading.value = false;
+  }
+}
+
+async function selectSourcePath() {
+  if (!formData.value.type || !formData.value.user_id) {
+    message.warning('请先选择网盘类型和关联账号');
+    return;
+  }
+
+  if (sourceType.value && !sourceId.value) {
+    message.warning(
+      sourceType.value === 'link'
+        ? '请先填写分享链接'
+        : '请先选择来源对象后再选择路径',
+    );
+    return;
+  }
+
+  pathSelectionMode.value = 'source';
+  pathSelectionModalVisible.value = true;
+}
+
+async function selectTargetPath() {
+  if (!formData.value.type || !formData.value.user_id) {
+    message.warning('请先选择网盘类型和关联账号');
+    return;
+  }
+
+  pathSelectionMode.value = 'target';
+  pathSelectionModalVisible.value = true;
+}
+
+function handleFileSelectConfirm(data: any) {
+  if (pathSelectionMode.value === 'source') {
+    const sourcePath =
+      data.selectedFiles &&
+      data.selectedFiles.length > 0 &&
+      data.selectedFiles[0].is_folder
+        ? data.selectedFiles[0].file_path
+        : data.currentPath || data.path;
+
+    formData.value.src_path = sourcePath;
+    formData.value.src_meta = JSON.stringify({
+      source_id: sourceId.value,
+      source_type: sourceType.value,
+    });
+
+    message.success(`已选择源路径：${formData.value.src_path}`);
+  } else {
+    if (
+      data.selectedFiles &&
+      data.selectedFiles.length > 0 &&
+      data.selectedFiles[0].is_folder
+    ) {
+      const selectedFolder = data.selectedFiles[0];
+      formData.value.dst_path = selectedFolder.file_path;
+      formData.value.dst_meta = JSON.stringify({
+        file_id: selectedFolder.file_id,
+      });
+    } else {
+      const currentPath = data.currentPath || data.path;
+      formData.value.dst_path = currentPath;
+      formData.value.dst_meta = JSON.stringify({
+        file_id: data.fileId || '0',
+        file_path: currentPath,
+      });
+    }
+
+    message.success(`已选择目标路径：${formData.value.dst_path}`);
+  }
+
+  pathSelectionModalVisible.value = false;
+}
+
+function handleFileSelectCancel() {
+  pathSelectionModalVisible.value = false;
+}
+
+function getPopupContainer(triggerNode: HTMLElement) {
+  return triggerNode.parentElement ?? document.body;
+}
+
+async function handleSubmit() {
+  if (
+    !formData.value.remark.trim() ||
+    !formData.value.type ||
+    !formData.value.user_id ||
+    !formData.value.src_path ||
+    !formData.value.dst_path
+  ) {
+    message.error('请填写完整的必填信息');
+    return;
+  }
+
+  const submitData = {
+    enable: formData.value.enable,
+    remark: formData.value.remark.trim(),
+    type: formData.value.type,
+    src_path: formData.value.src_path,
+    src_meta: formData.value.src_meta || '',
+    dst_path: formData.value.dst_path,
+    dst_meta: formData.value.dst_meta || '',
+    user_id: formData.value.user_id,
+    cron: formData.value.cron || '',
+    speed: formData.value.speed,
+    method: formData.value.method as any,
+    exclude_template_id: formData.value.exclude_template_id,
+    rename_template_id: formData.value.rename_template_id,
+    end_time: formData.value.end_time || null,
+  };
+
+  try {
     if (isEditMode.value && editingConfigId.value !== null) {
       await updateCoulddriveSyncConfigApi(
-        editingConfigId.value as number,
+        editingConfigId.value,
         submitData as any,
       );
       message.success('同步配置更新成功');
@@ -549,19 +652,17 @@ async function handleSubmit() {
     emit('success');
     handleClose();
   } catch (error) {
+    console.error('提交同步配置失败:', error);
     message.error(isEditMode.value ? '更新失败' : '创建失败');
-    console.error(error);
   }
 }
 
-// 关闭抽屉
 function handleClose() {
   emit('update:visible', false);
-  // 不在关闭时重置表单，而是在打开新建模式时重置
 }
 
-// 组件挂载时加载规则模板选项
 onMounted(() => {
+  getDictOptions(DictEnum.DRIVE_TYPE);
   loadExclusionRuleOptions();
   loadRenameRuleOptions();
 });
@@ -569,13 +670,12 @@ onMounted(() => {
 
 <template>
   <a-drawer
-    :visible="visible"
+    :open="visible"
     :title="isEditMode ? '编辑同步配置' : '新增同步配置'"
-    width="800"
+    :size="800"
     @close="handleClose"
   >
     <div class="space-y-6">
-      <!-- 基本信息 -->
       <div class="rounded-lg bg-gray-50 p-4">
         <h3 class="mb-4 flex items-center text-lg font-medium">
           <Settings class="mr-2" />
@@ -584,9 +684,9 @@ onMounted(() => {
 
         <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
           <div>
-            <label class="mb-1 block text-sm font-medium text-gray-700"
-              >备注 *</label
-            >
+            <label class="mb-1 block text-sm font-medium text-gray-700">
+              备注 *
+            </label>
             <a-input
               v-model:value="formData.remark"
               placeholder="请输入配置备注"
@@ -595,48 +695,38 @@ onMounted(() => {
           </div>
 
           <div>
-            <label class="mb-1 block text-sm font-medium text-gray-700"
-              >网盘类型 *</label
-            >
+            <label class="mb-1 block text-sm font-medium text-gray-700">
+              网盘类型 *
+            </label>
             <a-select
               v-model:value="formData.type"
               placeholder="请选择网盘类型"
               class="w-full"
-            >
-              <a-select-option
-                v-for="option in getDictOptions(DictEnum.DRIVE_TYPE)"
-                :key="option.value"
-                :value="option.value"
-              >
-                {{ option.label }}
-              </a-select-option>
-            </a-select>
+              :get-popup-container="getPopupContainer"
+              :options="driveTypeOptions"
+            />
           </div>
 
           <div>
-            <label class="mb-1 block text-sm font-medium text-gray-700"
-              >关联账号 *</label
-            >
+            <label class="mb-1 block text-sm font-medium text-gray-700">
+              关联账号 *
+            </label>
             <a-select
               v-model:value="formData.user_id"
               placeholder="请选择关联账号"
               class="w-full"
-              :loading="accountOptions.length === 0 && formData.type"
-            >
-              <a-select-option
-                v-for="account in accountOptions"
-                :key="account.value"
-                :value="account.value"
-              >
-                {{ account.label }}
-              </a-select-option>
-            </a-select>
+              show-search
+              option-filter-prop="label"
+              :loading="accountLoading"
+              :get-popup-container="getPopupContainer"
+              :options="accountOptions"
+            />
           </div>
 
           <div>
-            <label class="mb-1 block text-sm font-medium text-gray-700"
-              >状态</label
-            >
+            <label class="mb-1 block text-sm font-medium text-gray-700">
+              状态
+            </label>
             <a-switch
               v-model:checked="formData.enable"
               checked-children="启用"
@@ -646,55 +736,47 @@ onMounted(() => {
         </div>
       </div>
 
-      <!-- 路径配置 -->
       <div class="rounded-lg bg-gray-50 p-4">
         <h3 class="mb-4 flex items-center text-lg font-medium">
           <FileDocument class="mr-2" />
           路径配置
         </h3>
 
-        <!-- 源路径配置 -->
         <div class="mb-6">
-          <h4 class="text-md mb-3 font-medium">源路径配置</h4>
+          <h4 class="mb-3 text-base font-medium">源路径配置</h4>
 
-          <!-- 来源类型选择 -->
           <div class="mb-4 grid grid-cols-1 gap-4 md:grid-cols-2">
             <div>
-              <label class="mb-1 block text-sm font-medium text-gray-700"
-                >来源类型</label
-              >
+              <label class="mb-1 block text-sm font-medium text-gray-700">
+                来源类型
+              </label>
               <a-select
                 v-model:value="sourceType"
                 placeholder="请选择来源类型"
                 class="w-full"
+                :get-popup-container="getPopupContainer"
+                :options="sourceTypeOptions"
                 @change="onSourceTypeChange"
-              >
-                <a-select-option value="">我的网盘</a-select-option>
-                <a-select-option value="friend">好友分享</a-select-option>
-                <a-select-option value="group">群组分享</a-select-option>
-                <a-select-option value="link">链接分享</a-select-option>
-              </a-select>
+              />
             </div>
 
             <div v-if="sourceType === 'friend' || sourceType === 'group'">
               <label class="mb-1 block text-sm font-medium text-gray-700">
-                {{ sourceType === 'friend' ? '选择好友' : '选择群组' }}
+                {{ sourceType === 'friend' ? '分享好友' : '分享群组' }}
               </label>
               <a-select
                 v-model:value="sourceId"
-                :placeholder="`请选择${sourceType === 'friend' ? '好友' : '群组'}`"
+                :placeholder="
+                  sourceType === 'friend' ? '请选择分享好友' : '请选择分享群组'
+                "
                 class="w-full"
+                show-search
+                option-filter-prop="label"
+                :loading="sourceLoading"
+                :get-popup-container="getPopupContainer"
+                :options="sourceOptions"
                 @change="onSourceIdChange"
-                :loading="sourceOptions.length === 0 && sourceType"
-              >
-                <a-select-option
-                  v-for="option in sourceOptions"
-                  :key="option.value"
-                  :value="option.value"
-                >
-                  {{ option.label }}
-                </a-select-option>
-              </a-select>
+              />
             </div>
 
             <div v-if="sourceType === 'link'">
@@ -703,20 +785,21 @@ onMounted(() => {
               </label>
               <a-input
                 v-model:value="sourceId"
-                placeholder="请输入分享链接，如：https://pan.quark.cn/s/xxxxx 或 https://pan.quark.cn/s/xxxxx|password"
+                placeholder="请输入分享链接，支持 link 或 link|密码"
                 class="w-full"
                 @change="onSourceIdChange"
               />
               <div class="mt-1 text-xs text-gray-500">
-                支持格式：链接 或 链接|密码（如有密码）
+                示例：`https://pan.quark.cn/s/xxxxx` 或
+                `https://pan.quark.cn/s/xxxxx|1234`
               </div>
             </div>
           </div>
 
           <div>
-            <label class="mb-1 block text-sm font-medium text-gray-700"
-              >源路径 *</label
-            >
+            <label class="mb-1 block text-sm font-medium text-gray-700">
+              源路径 *
+            </label>
             <div class="flex gap-2">
               <a-input
                 v-model:value="formData.src_path"
@@ -724,20 +807,20 @@ onMounted(() => {
                 readonly
                 class="flex-1"
               />
-              <a-button @click="selectSourcePath" type="primary">
+              <a-button type="primary" @click="selectSourcePath">
                 选择路径
               </a-button>
             </div>
           </div>
         </div>
 
-        <!-- 目标路径配置 -->
         <div>
-          <h4 class="text-md mb-3 font-medium">目标路径配置</h4>
+          <h4 class="mb-3 text-base font-medium">目标路径配置</h4>
+
           <div>
-            <label class="mb-1 block text-sm font-medium text-gray-700"
-              >目标路径 *</label
-            >
+            <label class="mb-1 block text-sm font-medium text-gray-700">
+              目标路径 *
+            </label>
             <div class="flex gap-2">
               <a-input
                 v-model:value="formData.dst_path"
@@ -745,7 +828,7 @@ onMounted(() => {
                 readonly
                 class="flex-1"
               />
-              <a-button @click="selectTargetPath" type="primary">
+              <a-button type="primary" @click="selectTargetPath">
                 选择路径
               </a-button>
             </div>
@@ -753,7 +836,6 @@ onMounted(() => {
         </div>
       </div>
 
-      <!-- 同步设置 -->
       <div class="rounded-lg bg-gray-50 p-4">
         <h3 class="mb-4 flex items-center text-lg font-medium">
           <Play class="mr-2" />
@@ -762,80 +844,59 @@ onMounted(() => {
 
         <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
           <div>
-            <label class="mb-1 block text-sm font-medium text-gray-700"
-              >同步方式</label
-            >
-            <a-select v-model:value="formData.method" class="w-full">
-              <a-select-option
-                v-for="option in SYNC_METHOD_OPTIONS"
-                :key="option.value"
-                :value="option.value"
-              >
-                {{ option.label }}
-              </a-select-option>
-            </a-select>
+            <label class="mb-1 block text-sm font-medium text-gray-700">
+              同步方式
+            </label>
+            <a-select
+              v-model:value="formData.method"
+              class="w-full"
+              :get-popup-container="getPopupContainer"
+              :options="syncMethodOptions"
+            />
           </div>
 
           <div>
-            <label class="mb-1 block text-sm font-medium text-gray-700"
-              >递归速度</label
-            >
-            <a-select v-model:value="formData.speed" class="w-full">
-              <a-select-option
-                v-for="option in RECURSION_SPEED_OPTIONS"
-                :key="option.value"
-                :value="option.value"
-              >
-                {{ option.label }}
-              </a-select-option>
-            </a-select>
+            <label class="mb-1 block text-sm font-medium text-gray-700">
+              递归速度
+            </label>
+            <a-select
+              v-model:value="formData.speed"
+              class="w-full"
+              :get-popup-container="getPopupContainer"
+              :options="recursionSpeedOptions"
+            />
           </div>
 
           <div>
-            <label class="mb-1 block text-sm font-medium text-gray-700"
-              >排除规则模板</label
-            >
+            <label class="mb-1 block text-sm font-medium text-gray-700">
+              排除规则模板
+            </label>
             <a-select
               v-model:value="formData.exclude_template_id"
-              placeholder="选择排除规则模板"
+              placeholder="请选择排除规则模板"
               class="w-full"
               allow-clear
-            >
-              <a-select-option
-                v-for="option in exclusionRuleOptions"
-                :key="option.value"
-                :value="option.value"
-                :title="option.description"
-              >
-                {{ option.label }}
-              </a-select-option>
-            </a-select>
+              :get-popup-container="getPopupContainer"
+              :options="exclusionRuleSelectOptions"
+            />
           </div>
 
           <div>
-            <label class="mb-1 block text-sm font-medium text-gray-700"
-              >重命名规则模板</label
-            >
+            <label class="mb-1 block text-sm font-medium text-gray-700">
+              重命名规则模板
+            </label>
             <a-select
               v-model:value="formData.rename_template_id"
-              placeholder="选择重命名规则模板"
+              placeholder="请选择重命名规则模板"
               class="w-full"
               allow-clear
-            >
-              <a-select-option
-                v-for="option in renameRuleOptions"
-                :key="option.value"
-                :value="option.value"
-                :title="option.description"
-              >
-                {{ option.label }}
-              </a-select-option>
-            </a-select>
+              :get-popup-container="getPopupContainer"
+              :options="renameRuleSelectOptions"
+            />
           </div>
         </div>
       </div>
 
-      <!-- 定时设置 -->
       <div class="rounded-lg bg-gray-50 p-4">
         <h3 class="mb-4 flex items-center text-lg font-medium">
           <ClockOutline class="mr-2" />
@@ -844,28 +905,19 @@ onMounted(() => {
 
         <div class="space-y-4">
           <div>
-            <label class="mb-1 block text-sm font-medium text-gray-700"
-              >定时类型</label
-            >
+            <label class="mb-1 block text-sm font-medium text-gray-700">
+              定时类型
+            </label>
             <a-select
               v-model:value="formData.cron_type"
               placeholder="请选择定时类型"
               class="w-full"
+              :get-popup-container="getPopupContainer"
+              :options="cronTypeOptions"
               @change="updateCronExpression"
-            >
-              <a-select-option value="">手动执行</a-select-option>
-              <a-select-option value="daily">每天执行</a-select-option>
-              <a-select-option value="n_days">每N天执行</a-select-option>
-              <a-select-option value="hourly">每小时执行</a-select-option>
-              <a-select-option value="n_hours">每N小时执行</a-select-option>
-              <a-select-option value="n_minutes">每N分钟执行</a-select-option>
-              <a-select-option value="n_seconds">每N秒执行</a-select-option>
-              <a-select-option value="weekly">每周执行</a-select-option>
-              <a-select-option value="monthly">每月执行</a-select-option>
-            </a-select>
+            />
           </div>
 
-          <!-- 数值输入 -->
           <div v-if="needsValueInput" class="grid grid-cols-2 gap-4">
             <div>
               <label class="mb-1 block text-sm font-medium text-gray-700">
@@ -881,12 +933,11 @@ onMounted(() => {
             </div>
           </div>
 
-          <!-- 时间输入 -->
           <div v-if="needsTimeInput" class="grid grid-cols-2 gap-4">
             <div>
-              <label class="mb-1 block text-sm font-medium text-gray-700"
-                >小时</label
-              >
+              <label class="mb-1 block text-sm font-medium text-gray-700">
+                小时
+              </label>
               <a-input-number
                 v-model:value="formData.cron_hour"
                 :min="0"
@@ -896,9 +947,9 @@ onMounted(() => {
               />
             </div>
             <div>
-              <label class="mb-1 block text-sm font-medium text-gray-700"
-                >分钟</label
-              >
+              <label class="mb-1 block text-sm font-medium text-gray-700">
+                分钟
+              </label>
               <a-input-number
                 v-model:value="formData.cron_minute"
                 :min="0"
@@ -909,31 +960,23 @@ onMounted(() => {
             </div>
           </div>
 
-          <!-- 星期几选择 -->
           <div v-if="needsWeekdayInput">
-            <label class="mb-1 block text-sm font-medium text-gray-700"
-              >星期几</label
-            >
+            <label class="mb-1 block text-sm font-medium text-gray-700">
+              星期
+            </label>
             <a-select
               v-model:value="formData.cron_weekday"
               class="w-full"
+              :get-popup-container="getPopupContainer"
+              :options="weekdayOptions"
               @change="updateCronExpression"
-            >
-              <a-select-option :value="1">周一</a-select-option>
-              <a-select-option :value="2">周二</a-select-option>
-              <a-select-option :value="3">周三</a-select-option>
-              <a-select-option :value="4">周四</a-select-option>
-              <a-select-option :value="5">周五</a-select-option>
-              <a-select-option :value="6">周六</a-select-option>
-              <a-select-option :value="7">周日</a-select-option>
-            </a-select>
+            />
           </div>
 
-          <!-- 月几号选择 -->
           <div v-if="needsDayInput">
-            <label class="mb-1 block text-sm font-medium text-gray-700"
-              >每月几号</label
-            >
+            <label class="mb-1 block text-sm font-medium text-gray-700">
+              每月第几天
+            </label>
             <a-input-number
               v-model:value="formData.cron_day"
               :min="1"
@@ -943,7 +986,6 @@ onMounted(() => {
             />
           </div>
 
-          <!-- 显示生成的cron表达式 -->
           <div
             v-if="formData.cron_display"
             class="rounded border-l-4 border-blue-400 bg-blue-50 p-3"
@@ -952,32 +994,32 @@ onMounted(() => {
               <strong>执行计划：</strong>{{ formData.cron_display }}
             </p>
             <p class="mt-1 text-xs text-blue-600">
-              <strong>Cron表达式：</strong>{{ formData.cron }}
+              <strong>Cron 表达式：</strong>{{ formData.cron }}
             </p>
           </div>
         </div>
       </div>
 
-      <!-- 其他设置 -->
       <div class="rounded-lg bg-gray-50 p-4">
         <h3 class="mb-4 text-lg font-medium">其他设置</h3>
 
         <div>
-          <label class="mb-1 block text-sm font-medium text-gray-700"
-            >结束时间</label
-          >
+          <label class="mb-1 block text-sm font-medium text-gray-700">
+            结束时间
+          </label>
           <a-date-picker
             v-model:value="formData.end_time"
             show-time
-            placeholder="选择结束时间（可选）"
+            value-format="YYYY-MM-DD HH:mm:ss"
+            placeholder="请选择结束时间，可留空"
             class="w-full"
+            :get-popup-container="getPopupContainer"
           />
-          <p class="mt-1 text-xs text-gray-500">留空表示永不结束</p>
+          <p class="mt-1 text-xs text-gray-500">留空表示长期有效</p>
         </div>
       </div>
     </div>
 
-    <!-- 抽屉底部操作按钮 -->
     <template #footer>
       <div class="flex justify-end space-x-2">
         <a-button @click="handleClose">取消</a-button>
@@ -988,7 +1030,6 @@ onMounted(() => {
     </template>
   </a-drawer>
 
-  <!-- 文件选择器 -->
   <FileSelector
     v-model:visible="pathSelectionModalVisible"
     :drive-type="formData.type"
@@ -1010,19 +1051,3 @@ onMounted(() => {
     @cancel="handleFileSelectCancel"
   />
 </template>
-
-<style scoped>
-.animate-spin {
-  animation: spin 1s linear infinite;
-}
-
-@keyframes spin {
-  from {
-    transform: rotate(0deg);
-  }
-
-  to {
-    transform: rotate(360deg);
-  }
-}
-</style>

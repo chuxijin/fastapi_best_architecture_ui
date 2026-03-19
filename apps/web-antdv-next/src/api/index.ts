@@ -8,6 +8,7 @@ export * from './gongkao';
 export * from './job';
 export * from './knowledge-store';
 export * from './log';
+export * from './mall';
 export * from './monitor';
 export * from './plugin';
 export * from './role';

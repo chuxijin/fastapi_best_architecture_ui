@@ -2,7 +2,7 @@ import type { PaginationResult } from '#/types/pagination';
 
 import { requestClient } from './request';
 
-// ==================== 题库管理 API ====================
+// ==================== QBank APIs ====================
 
 export interface BankResult {
   id: number;
@@ -11,18 +11,20 @@ export interface BankResult {
   code: string;
   desc: null | string;
   cover_url: null | string;
-  square_cover_url: null | string;
-  detail: null | string;
-  diff_id: null | number;
+  difficulty: null | number | string;
+  bank_type: number;
+  scene_mask: number;
   parent_id: null | number;
   status: number;
   scope: number;
-  type: number; // 10=题库, 20=合集
-  q_count: number;
-  total_score: number;
+  q_count_cache: number;
+  total_score_cache: number | string;
   buy_count: number;
+  created_by: number;
+  updated_by: null | number;
   created_time: string;
   updated_time: null | string;
+  children?: BankResult[];
 }
 
 export interface BankParams {
@@ -31,11 +33,12 @@ export interface BankParams {
   code: string;
   desc?: null | string;
   cover_url?: null | string;
-  diff_id?: null | number;
+  difficulty?: null | number | string;
+  bank_type?: number;
+  scene_mask?: number;
   parent_id?: null | number;
   status?: number;
   scope?: number;
-  type?: number;
 }
 
 export interface BankQueryParams {
@@ -43,6 +46,8 @@ export interface BankQueryParams {
   status?: number;
   scope?: number;
   keyword?: string;
+  bank_type?: number;
+  parent_id?: number;
 }
 
 export interface DeleteBankParams {
@@ -50,9 +55,7 @@ export interface DeleteBankParams {
 }
 
 export async function getBankListApi(params?: BankQueryParams) {
-  return requestClient.get<BankResult[]>('/api/v1/qbank/banks', {
-    params,
-  });
+  return requestClient.get<BankResult[]>('/api/v1/qbank/banks', { params });
 }
 
 export async function getBankDetailApi(pk: number) {
@@ -71,8 +74,6 @@ export async function deleteBankApi(data: DeleteBankParams) {
   return requestClient.delete('/api/v1/qbank/banks', { data });
 }
 
-// ==================== 章节管理 API ====================
-
 export interface ChapterResult {
   id: number;
   bank_id: number;
@@ -81,7 +82,9 @@ export interface ChapterResult {
   level: number;
   sort_order: number;
   parent_id: null | number;
-  q_count: number;
+  is_trial: boolean;
+  status: 0 | 1;
+  q_count_cache: number;
   created_time: string;
   updated_time: null | string;
 }
@@ -97,6 +100,8 @@ export interface ChapterParams {
   level?: number;
   sort_order?: number;
   parent_id?: null | number;
+  is_trial?: boolean;
+  status?: 0 | 1;
 }
 
 export interface ChapterQueryParams {
@@ -129,169 +134,160 @@ export async function deleteChapterApi(data: DeleteChapterParams) {
   return requestClient.delete('/api/v1/qbank/chapters', { data });
 }
 
-// ==================== 题目管理 API ====================
-
-/**
- * 题型枚举
- */
 export type QuestionType =
   | 'fill'
   | 'judgement'
-  | 'material'
   | 'multiple'
   | 'shortAnswer'
   | 'single';
 
-/**
- * 难度枚举
- */
 export type DifficultyType = 'easy' | 'hard' | 'medium';
-
-/**
- * 用途枚举
- */
 export type UsageType = 'all' | 'exam' | 'practice';
 
-/**
- * 选项数据结构
- */
 export interface OptionData {
   code: string;
   content: string;
 }
 
-/**
- * 题目列表项（不含答案）
- */
 export interface QuestionListItem {
   id: number;
-  bank_id: number;
-  chapter_id: null | number;
-  chapter_name?: null | string;
-  type: QuestionType;
-  stem: string;
-  difficulty: DifficultyType;
-  score: number;
-  knowledge_point: null | string;
-  is_active: boolean;
-  review_status: number;
-  created_time: string;
-}
-
-export type QuestionResult = QuestionListItem;
-
-/**
- * 题目详情（不含答案）
- */
-export interface QuestionDetail {
-  id: number;
-  bank_id: number;
-  chapter_id: null | number;
   type: QuestionType;
   stem: string;
   options_data: null | Record<string, OptionData>;
   difficulty: DifficultyType;
-  score: number;
-  knowledge_point: null | string;
-  source: null | string;
-  year: null | number;
-  usage: UsageType;
-  is_active: boolean;
-  review_status: number;
-  created_by: number;
-  updated_by: null | number;
+  default_score: number | string;
+  knowledge_point: null | string[];
+  content_status: number;
   created_time: string;
   updated_time: null | string;
-  analysis?: QuestionAnalysisDetail;
-  analyses?: QuestionAnalysisDetail[];
-  materials?: any[];
+  bank_id: null | number;
+  chapter_id: null | number;
+  sort_order: number;
+  is_active: boolean;
+  score: null | number | string;
+  review_status: number;
+  bank_name?: null | string;
+  chapter_name?: null | string;
+}
+
+export type QuestionResult = QuestionListItem;
+
+export interface QuestionOptionItem {
+  id?: number;
+  option_code: string;
+  content_id?: number;
+  content: string;
+  sort_order: number;
+  is_active: boolean;
+}
+
+export interface QuestionDetail {
+  id: number;
+  type: QuestionType;
+  stem: string;
+  options_data: null | Record<string, OptionData>;
+  difficulty: DifficultyType;
+  default_score: number | string;
+  knowledge_point: null | string[];
+  content_status: number;
+  created_time: string;
+  updated_time: null | string;
+  bank_id: null | number;
+  chapter_id: null | number;
+  sort_order: number;
+  is_active: boolean;
+  score: null | number | string;
+  review_status: number;
+  bank_name?: null | string;
+  chapter_name?: null | string;
+  answer_data: null | Record<string, any>;
+  analysis_content: null | string;
+  analyses: QuestionAnalysisDetail[];
+  materials: Array<{ content: string; id: number }>;
+  material_ids: number[];
+}
+
+export interface QuestionCoreParam {
+  type: QuestionType;
+  stem: string;
+  difficulty?: DifficultyType;
+  default_score?: number;
+  knowledge_point?: null | string[];
+  content_status?: 0 | 10 | 20;
+}
+
+export interface QuestionPlacementParam {
+  bank_id: number;
+  chapter_id?: null | number;
+  sort_order?: number;
+  is_active?: boolean;
+  score?: null | number;
+  review_status?: 0 | 10 | 20;
+  scene_mask?: null | number;
+}
+
+export interface QuestionOptionParam {
+  option_code: string;
+  content: string;
+  sort_order?: number;
+  is_active?: boolean;
+}
+
+export interface QuestionParams {
+  core: QuestionCoreParam;
+  options?: QuestionOptionParam[];
+  placements: QuestionPlacementParam[];
+  analyses: QuestionAnalysisParams[];
   material_ids?: number[];
 }
 
-/**
- * 创建/更新题目参数
- */
-export interface QuestionParams {
-  bank_id: number;
-  chapter_id?: null | number;
-  type: QuestionType;
-  stem: string;
-  options_data?: null | Record<string, OptionData>;
-  difficulty?: DifficultyType;
-  score?: number;
-  knowledge_point?: null | string;
-  source?: null | string;
-  year?: null | number;
-  usage?: UsageType;
-  is_active?: boolean;
-  analyses?: QuestionAnalysisParams[];
-}
-
-/**
- * 题目查询参数
- */
 export interface QuestionQueryParams {
   bank_id?: number;
   chapter_id?: number;
   type?: QuestionType;
   difficulty?: DifficultyType;
+  content_status?: number;
   is_active?: boolean;
   review_status?: number;
   keyword?: string;
   page?: number;
   size?: number;
+  include_answer?: boolean;
 }
 
-/**
- * 删除题目参数
- */
 export interface DeleteQuestionParams {
   ids: number[];
 }
 
-/**
- * 获取题目列表
- */
 export async function getQuestionListApi(params: QuestionQueryParams) {
   return requestClient.get<PaginationResult<QuestionListItem>>(
     '/api/v1/qbank/questions',
-    { params },
+    {
+      params,
+    },
   );
 }
 
-/**
- * 获取题目详情（不含答案）
- */
 export async function getQuestionDetailApi(pk: number) {
   return requestClient.get<QuestionDetail>(`/api/v1/qbank/questions/${pk}`);
 }
 
-/**
- * 创建题目
- */
 export async function createQuestionApi(data: QuestionParams) {
   return requestClient.post('/api/v1/qbank/questions', data);
 }
 
-/**
- * 更新题目
- */
-export async function updateQuestionApi(pk: number, data: QuestionParams) {
+export async function updateQuestionApi(
+  pk: number,
+  data: Partial<QuestionParams>,
+) {
   return requestClient.put(`/api/v1/qbank/questions/${pk}`, data);
 }
 
-/**
- * 删除题目
- */
 export async function deleteQuestionApi(data: DeleteQuestionParams) {
   return requestClient.delete('/api/v1/qbank/questions', { data });
 }
 
-// ==================== 题目解析 API ====================
-
-/**
- * 答案数据结构
- */
+// ==================== 棰樼洰瑙ｆ瀽 API ====================
 export interface AnswerData {
   correct: string | string[];
   keywords?: string[];
@@ -312,18 +308,21 @@ export interface QuestionAnalysisDetail {
   created_time: string;
   updated_time: null | string;
   type?: string;
+  version_no?: number;
   is_default?: boolean;
+  status?: 0 | 10 | 20;
 }
 
 /**
  * 创建/更新解析参数
  */
 export interface QuestionAnalysisParams {
-  question_id?: number;
   answer_data: AnswerData;
   content: string;
   type?: string;
+  version_no?: number;
   is_default?: boolean;
+  status?: 0 | 10 | 20;
 }
 
 /**
@@ -332,32 +331,6 @@ export interface QuestionAnalysisParams {
 export async function getQuestionAnalysisApi(questionId: number) {
   return requestClient.get<QuestionAnalysisDetail>(
     `/api/v1/qbank/questions/${questionId}/analysis`,
-  );
-}
-
-/**
- * 创建题目解析
- */
-export async function createQuestionAnalysisApi(
-  questionId: number,
-  data: QuestionAnalysisParams,
-) {
-  return requestClient.post(`/api/v1/qbank/questions/${questionId}/analysis`, {
-    ...data,
-    question_id: questionId,
-  });
-}
-
-/**
- * 更新题目解析
- */
-export async function updateQuestionAnalysisApi(
-  questionId: number,
-  data: QuestionAnalysisParams,
-) {
-  return requestClient.put(
-    `/api/v1/qbank/questions/${questionId}/analysis`,
-    data,
   );
 }
 
@@ -374,51 +347,12 @@ export async function markAnalysisHelpfulApi(
   );
 }
 
-// ==================== 答题相关 API ====================
-
-/**
- * 提交答案参数
- */
-export interface SubmitAnswerParams {
-  question_id: number;
-  user_answer: string | string[];
-  answer_time?: number;
-}
-
-/**
- * 提交答案结果
- */
-export interface SubmitAnswerResult {
-  is_correct: boolean;
-  correct_answer: AnswerData;
-  score: number;
-}
-
-/**
- * 提交答案并判分
- */
-export async function submitAnswerApi(
-  questionId: number,
-  userAnswer: string | string[],
-  answerTime?: number,
-) {
-  return requestClient.post<SubmitAnswerResult>(
-    `/api/v1/qbank/questions/${questionId}/submit`,
-    {
-      question_id: questionId,
-      user_answer: userAnswer,
-      answer_time: answerTime,
-    },
-  );
-}
-
 // ==================== 题目统计 API ====================
 
 /**
  * 题目统计详情
  */
 export interface QuestionStatistics {
-  id: number;
   question_id: number;
   attempt_count: number;
   correct_count: number;
@@ -427,6 +361,7 @@ export interface QuestionStatistics {
   wrong_option_stats: null | Record<string, number>;
   collect_count: number;
   note_count: number;
+  report_count: number;
   last_updated: string;
 }
 
@@ -631,6 +566,7 @@ export async function redeemActcodeApi(data: KsRedeemCodeParams) {
  * 单条题目导入数据
  */
 export interface QuestionImportRow {
+  ID?: number | string;
   题目: string;
   题型: string;
   分数: number;
@@ -681,4 +617,83 @@ export async function batchImportQuestionsApi(data: BatchImportQuestionParams) {
     '/api/v1/qbank/questions/import',
     data,
   );
+}
+
+/**
+ * 智能解析结果
+ */
+export interface SmartExtractResult {
+  materials: any[];
+  questions: any[];
+  materials_count: number;
+  questions_count: number;
+  raw_md_length: number;
+}
+
+/**
+ * 智能提取题库文档(不入库)
+ */
+export async function smartExtractPdfApi(bankId: number, file: File) {
+  const formData = new FormData();
+  formData.append('bank_id', bankId.toString());
+  formData.append('file', file);
+
+  return requestClient.post<SmartExtractResult>(
+    '/api/v1/qbank/parse/smart-extract',
+    formData,
+    {
+      // AI处理时间极长，设置超时时间为30分钟
+      timeout: 1_800_000,
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    },
+  );
+}
+
+/**
+ * 提交并保存智能解析结果
+ */
+export async function smartCommitApi(
+  bankId: number,
+  materials: any[],
+  questions: any[],
+) {
+  return requestClient.post('/api/v1/qbank/parse/smart-commit', {
+    bank_id: bankId,
+    materials,
+    questions,
+  });
+}
+
+/**
+ * 仅解析 PDF 为 Markdown (第一阶段)
+ */
+export async function parsePdfToMdApi(file: File) {
+  const formData = new FormData();
+  formData.append('file', file);
+
+  return requestClient.post<{ markdown: string }>(
+    '/api/v1/qbank/parse/pdf',
+    formData,
+    {
+      timeout: 1_800_000,
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    },
+  );
+}
+
+/**
+ * 保存分段 Markdown 到服务器
+ */
+export async function saveSegmentsApi(
+  bankId: number,
+  segments: { content: string; name: string }[],
+) {
+  return requestClient.post('/api/v1/qbank/parse/save-segments', {
+    bank_id: bankId,
+    segments,
+  });
 }

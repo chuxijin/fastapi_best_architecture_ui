@@ -10,7 +10,7 @@ import { useRouter } from 'vue-router';
 import { Page, useVbenModal, VbenButton } from '@vben/common-ui';
 import { MaterialSymbolsAdd } from '@vben/icons';
 
-import { Image, message, TabPane, Tabs } from 'ant-design-vue';
+import { Image, message } from 'ant-design-vue';
 
 import { useVbenForm } from '#/adapter/form';
 import { useVbenVxeGrid } from '#/adapter/vxe-table';
@@ -24,7 +24,6 @@ import {
 } from '#/views/knowledge-store/resource/question-bank/data';
 
 const router = useRouter();
-const activeTab = ref('list');
 
 const formOptions: VbenFormProps = {
   collapsed: false,
@@ -69,6 +68,7 @@ const gridOptions: VxeTableGridOptions<BankResult> = {
           cat_id: formValues?.cat_id,
           status: formValues?.status,
           keyword: formValues?.keyword,
+          bank_type: formValues?.bank_type,
         });
       },
     },
@@ -76,6 +76,25 @@ const gridOptions: VxeTableGridOptions<BankResult> = {
 };
 
 const [Grid, gridApi] = useVbenVxeGrid({ formOptions, gridOptions });
+
+function toBankParams(
+  values: Partial<BankParams>,
+  base?: Partial<BankResult>,
+): BankParams {
+  return {
+    cat_id: Number(values.cat_id ?? base?.cat_id ?? 0),
+    name: values.name ?? base?.name ?? '',
+    code: values.code ?? base?.code ?? '',
+    desc: values.desc ?? base?.desc ?? null,
+    cover_url: values.cover_url ?? base?.cover_url ?? null,
+    difficulty: values.difficulty ?? base?.difficulty ?? null,
+    bank_type: Number(values.bank_type ?? base?.bank_type ?? 1),
+    scene_mask: Number(values.scene_mask ?? base?.scene_mask ?? 1),
+    parent_id: values.parent_id ?? base?.parent_id ?? null,
+    status: Number(values.status ?? base?.status ?? 1),
+    scope: Number(values.scope ?? base?.scope ?? 1),
+  };
+}
 
 function onRefresh() {
   gridApi.query();
@@ -99,7 +118,6 @@ function onActionClick({ code, row }: { code: string; row: BankResult }) {
       break;
     }
     case 'add': {
-      // 增加子题库：设置父级题库ID和分类
       modalApi.setData({ parent_id: row.id, cat_id: row.cat_id }).open();
       break;
     }
@@ -126,8 +144,8 @@ function onActionClick({ code, row }: { code: string; row: BankResult }) {
     }
     case 'edit': {
       router.push({
-        path: '/knowledge-store/resource/question-bank/edit',
-        query: { id: row.id },
+        path: `/knowledge-store/resource/question-bank/${row.id}/overview`,
+        query: { pageKey: `question-bank-workspace-${row.id}` },
       });
       break;
     }
@@ -173,10 +191,12 @@ function onActionClick({ code, row }: { code: string; row: BankResult }) {
     case 'toggle': {
       const newStatus = row.status === 1 ? 0 : 1;
       const action = newStatus === 1 ? '上架' : '下架';
-      updateBankApi(row.id, { ...row, status: newStatus }).then(() => {
-        message.success(`${action}题库成功: ${row.name}`);
-        onRefresh();
-      });
+      updateBankApi(row.id, toBankParams({ status: newStatus }, row)).then(
+        () => {
+          message.success(`${action}题库成功: ${row.name}`);
+          onRefresh();
+        },
+      );
       break;
     }
     case 'tools': {
@@ -212,14 +232,15 @@ const [Modal, modalApi] = useVbenModal({
     const { valid } = await formApi.validate();
     if (valid) {
       modalApi.lock();
-      const data = await formApi.getValues<BankParams>();
+      const values = await formApi.getValues<Partial<BankParams>>();
+      const payload = toBankParams(values, formData.value || undefined);
       try {
         if (formData.value?.id) {
-          await updateBankApi(formData.value.id, data);
-          message.success(`编辑题库成功: ${data.name}`);
+          await updateBankApi(formData.value.id, payload);
+          message.success(`编辑题库成功: ${payload.name}`);
         } else {
-          await createBankApi(data);
-          message.success(`添加题库成功: ${data.name}`);
+          await createBankApi(payload);
+          message.success(`添加题库成功: ${payload.name}`);
         }
         await modalApi.close();
         onRefresh();
@@ -230,13 +251,20 @@ const [Modal, modalApi] = useVbenModal({
   },
   onOpenChange(isOpen) {
     if (isOpen) {
-      const data = modalApi.getData<BankResult>();
+      const data = modalApi.getData<Partial<BankResult>>();
       formApi.resetForm();
-      if (data) {
-        formData.value = data;
+      if (data?.id) {
+        formData.value = data as BankResult;
         formApi.setValues(data);
       } else {
         formData.value = null;
+        formApi.setValues({
+          bank_type: data?.bank_type ?? 1,
+          cat_id: data?.cat_id,
+          parent_id: data?.parent_id ?? null,
+          scope: 1,
+          status: 1,
+        });
       }
     }
   },
@@ -245,16 +273,7 @@ const [Modal, modalApi] = useVbenModal({
 
 <template>
   <Page auto-content-height>
-    <Tabs v-model:active-key="activeTab" class="-mb-4">
-      <TabPane key="list" tab="题库列表" />
-      <TabPane key="recommend" tab="推荐题库" />
-      <TabPane key="correction" tab="错题矫正" />
-      <TabPane key="alias" tab="题型别名" />
-      <TabPane key="settings" tab="题库设置" />
-      <TabPane key="search" tab="题目搜索" />
-    </Tabs>
-
-    <Grid v-show="activeTab === 'list'" class="mt-0">
+    <Grid class="mt-0">
       <template #toolbar-actions>
         <VbenButton @click="() => modalApi.setData(null).open()">
           <MaterialSymbolsAdd class="size-5" />
@@ -287,8 +306,8 @@ const [Modal, modalApi] = useVbenModal({
               {{ row.desc || '暂无描述' }}
             </div>
             <div class="flex gap-4 text-sm">
-              <span>题目数: {{ row.q_count }}</span>
-              <span>总分: {{ row.total_score }}</span>
+              <span>题目数: {{ row.q_count_cache }}</span>
+              <span>总分: {{ row.total_score_cache }}</span>
               <span>购买数: {{ row.buy_count }}</span>
               <span>范围: {{ scopeMap[row.scope] }}</span>
               <span
@@ -316,35 +335,6 @@ const [Modal, modalApi] = useVbenModal({
         </div>
       </template>
     </Grid>
-
-    <div
-      v-show="activeTab === 'recommend'"
-      class="p-4 text-center text-gray-500"
-    >
-      推荐题库功能开发中...
-    </div>
-
-    <div
-      v-show="activeTab === 'correction'"
-      class="p-4 text-center text-gray-500"
-    >
-      错题矫正功能开发中...
-    </div>
-
-    <div v-show="activeTab === 'alias'" class="p-4 text-center text-gray-500">
-      题型别名功能开发中...
-    </div>
-
-    <div
-      v-show="activeTab === 'settings'"
-      class="p-4 text-center text-gray-500"
-    >
-      题库设置功能开发中...
-    </div>
-
-    <div v-show="activeTab === 'search'" class="p-4 text-center text-gray-500">
-      题目搜索功能开发中...
-    </div>
 
     <Modal :title="modalTitle">
       <Form />

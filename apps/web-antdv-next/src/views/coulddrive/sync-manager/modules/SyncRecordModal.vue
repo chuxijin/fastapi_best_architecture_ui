@@ -263,7 +263,8 @@ const taskItemGridOptions: VxeTableGridOptions = {
   exportConfig: {},
   toolbarConfig: {
     export: true,
-    refresh: { code: 'query' },
+    refresh: true,
+    refreshOptions: { code: 'query' },
     custom: true,
     zoom: true,
   },
@@ -453,7 +454,7 @@ function handleClose() {
 
 <template>
   <a-modal
-    :visible="visible"
+    :open="visible"
     :title="modalTitle"
     width="95%"
     :footer="null"

@@ -191,7 +191,8 @@ const [Grid, gridApi] = useVbenVxeGrid({
       chronological: false, // 不按时间顺序排序
     },
     toolbarConfig: {
-      refresh: { code: 'query' },
+      refresh: true,
+      refreshOptions: { code: 'query' },
       export: true,
       print: true,
       custom: true,

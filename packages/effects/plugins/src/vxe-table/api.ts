@@ -69,7 +69,7 @@ export class VxeGridApi<T extends Record<string, any> = any> {
 
   async query(params: Record<string, any> = {}) {
     try {
-      await this.grid.commitProxy('query', toRaw(params));
+      await this.commitProxy('query', params);
     } catch (error) {
       console.error('Error occurred while querying:', error);
     }
@@ -77,7 +77,7 @@ export class VxeGridApi<T extends Record<string, any> = any> {
 
   async reload(params: Record<string, any> = {}) {
     try {
-      await this.grid.commitProxy('reload', toRaw(params));
+      await this.commitProxy('reload', params);
     } catch (error) {
       console.error('Error occurred while reloading:', error);
     }
@@ -124,5 +124,36 @@ export class VxeGridApi<T extends Record<string, any> = any> {
   unmount() {
     this.isMounted = false;
     this.stateHandler.reset();
+  }
+
+  private async commitProxy(
+    code: 'query' | 'reload',
+    params: Record<string, any> = {},
+  ) {
+    await this.stateHandler.waitForCondition();
+
+    const grid = this.grid as VxeGridInstance<T> & {
+      $xegrid?: {
+        commitProxy?: (
+          code: 'query' | 'reload',
+          params?: Record<string, any>,
+        ) => Promise<unknown>;
+      };
+      commitProxy?: (
+        code: 'query' | 'reload',
+        params?: Record<string, any>,
+      ) => Promise<unknown>;
+    };
+    const target = grid.$xegrid ?? grid;
+    const commitProxy = target?.commitProxy;
+
+    if (!isFunction(commitProxy)) {
+      console.warn(
+        `[Vben Vxe Table]: grid.commitProxy is unavailable for ${code}.`,
+      );
+      return;
+    }
+
+    await commitProxy.call(target, code, toRaw(params));
   }
 }

@@ -14,6 +14,7 @@ import { message } from 'ant-design-vue';
 import { useVbenForm } from '#/adapter/form';
 import { useVbenVxeGrid } from '#/adapter/vxe-table';
 import { requestClient } from '#/api/request';
+import { renderMarkdownSafe } from '#/utils/markdown-renderer';
 
 interface Material {
   id: number;
@@ -40,7 +41,6 @@ const modalTitle = computed(() =>
   formData.value?.id ? '编辑材料' : '添加材料',
 );
 
-// 表单配置
 const formOptions: VbenFormProps = {
   collapsed: false,
   showCollapseButton: false,
@@ -83,7 +83,6 @@ const formOptions: VbenFormProps = {
   ],
 };
 
-// 表格配置
 const gridOptions: VxeTableGridOptions<Material> = {
   rowConfig: {
     keyField: 'id',
@@ -146,7 +145,6 @@ const gridOptions: VxeTableGridOptions<Material> = {
 
 const [Grid, gridApi] = useVbenVxeGrid({ formOptions, gridOptions });
 
-// 编辑表单
 const [MaterialForm, materialFormApi] = useVbenForm({
   wrapperClass: 'grid-cols-1',
   showDefaultActions: false,
@@ -206,7 +204,6 @@ const [MaterialForm, materialFormApi] = useVbenForm({
   ],
 });
 
-// 编辑弹窗
 const [Modal, modalApi] = useVbenModal({
   class: 'w-7/12',
   destroyOnClose: true,
@@ -256,14 +253,17 @@ const [Modal, modalApi] = useVbenModal({
   },
 });
 
-// 预览弹窗
 const previewData = ref<Material | null>(null);
 const [PreviewModal, previewModalApi] = useVbenModal({
   class: 'w-8/12',
   title: '材料预览',
-  footer: null,
+  footer: false,
   destroyOnClose: true,
 });
+
+const renderedMaterialContent = computed(() =>
+  renderMarkdownSafe(previewData.value?.content || ''),
+);
 
 onMounted(() => {
   // 初始化加载
@@ -304,24 +304,11 @@ async function handleDelete(row: Material) {
     message.error(error?.message || '删除失败');
   }
 }
-
-async function handleToggleActive(row: Material) {
-  try {
-    await requestClient.put(`/api/v1/qbank/materials/${row.id}`, {
-      ...row,
-      is_active: !row.is_active,
-    });
-    message.success(row.is_active ? '已禁用' : '已启用');
-    onRefresh();
-  } catch {
-    message.error('操作失败');
-  }
-}
 </script>
 
 <template>
-  <div class="h-full">
-    <Grid class="h-full">
+  <div class="flex h-full min-h-0 flex-col">
+    <Grid class="h-full min-h-0">
       <template #toolbar-actions>
         <VbenButton @click="handleAdd">
           <MaterialSymbolsAdd class="size-5" />
@@ -329,7 +316,6 @@ async function handleToggleActive(row: Material) {
         </VbenButton>
       </template>
 
-      <!-- 状态列插槽 -->
       <template #is_active_default="{ row }">
         <span
           class="inline-block rounded px-2 py-1 text-xs font-medium"
@@ -343,7 +329,6 @@ async function handleToggleActive(row: Material) {
         </span>
       </template>
 
-      <!-- 操作列插槽 -->
       <template #action_default="{ row }">
         <div class="flex items-center gap-2">
           <a class="text-blue-600 hover:text-blue-800" @click="handleEdit(row)"
@@ -361,15 +346,12 @@ async function handleToggleActive(row: Material) {
       </template>
     </Grid>
 
-    <!-- 编辑弹窗 -->
     <Modal :title="modalTitle">
       <MaterialForm />
     </Modal>
 
-    <!-- 预览弹窗 -->
     <PreviewModal>
       <div v-if="previewData" class="space-y-6">
-        <!-- 基本信息 -->
         <div class="rounded-lg bg-gray-50 p-4">
           <h4 class="text-md mb-4 font-semibold">基本信息</h4>
           <div class="grid grid-cols-1 gap-4 md:grid-cols-4">
@@ -391,9 +373,7 @@ async function handleToggleActive(row: Material) {
               <label class="mb-1 block text-sm font-medium text-gray-700"
                 >年份</label
               >
-              <p class="text-sm text-gray-900">
-                {{ previewData.year || '-' }}
-              </p>
+              <p class="text-sm text-gray-900">{{ previewData.year || '-' }}</p>
             </div>
             <div>
               <label class="mb-1 block text-sm font-medium text-gray-700"
@@ -406,14 +386,12 @@ async function handleToggleActive(row: Material) {
           </div>
         </div>
 
-        <!-- 材料内容 -->
         <div class="rounded-lg bg-gray-50 p-4">
           <h4 class="text-md mb-4 font-semibold">材料内容</h4>
           <div
-            class="max-h-96 overflow-y-auto whitespace-pre-wrap rounded border bg-white p-4 text-sm text-gray-900"
-          >
-            {{ previewData.content }}
-          </div>
+            class="markdown-content max-h-96 overflow-y-auto rounded border bg-white p-4 text-sm text-gray-900"
+            v-html="renderedMaterialContent"
+          ></div>
         </div>
       </div>
       <template #footer>
@@ -429,3 +407,16 @@ async function handleToggleActive(row: Material) {
     </PreviewModal>
   </div>
 </template>
+
+<style scoped>
+:deep(.markdown-content p) {
+  margin: 0.5em 0;
+}
+
+:deep(.markdown-content img),
+:deep(.markdown-image) {
+  max-width: 100%;
+  height: auto;
+  border-radius: 4px;
+}
+</style>

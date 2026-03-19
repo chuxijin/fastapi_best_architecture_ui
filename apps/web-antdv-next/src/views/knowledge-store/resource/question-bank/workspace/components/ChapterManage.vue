@@ -44,7 +44,7 @@ const gridOptions: VxeTableGridOptions<ChapterTreeResult> = {
     keyField: 'id',
     isHover: true,
   },
-  height: '100%',
+  height: 'auto',
   toolbarConfig: {
     refresh: { code: 'query' },
     custom: true,
@@ -133,7 +133,7 @@ const [Form, formApi] = useVbenForm({
   schema: formSchema,
 });
 
-const formData = ref<ChapterTreeResult | null>(null);
+const formData = ref<null | Partial<ChapterTreeResult>>(null);
 
 const modalTitle = computed(() => {
   return formData.value?.id ? '编辑章节' : '添加章节';
@@ -146,15 +146,24 @@ const [Modal, modalApi] = useVbenModal({
     const { valid } = await formApi.validate();
     if (valid) {
       modalApi.lock();
-      const data = await formApi.getValues<ChapterParams>();
-      data.bank_id = props.bankId;
+      const values = await formApi.getValues<Partial<ChapterParams>>();
+      const payload: ChapterParams = {
+        bank_id: props.bankId,
+        name: values.name ?? '',
+        code: values.code ?? null,
+        level: values.level ?? formData.value?.level ?? 1,
+        sort_order: values.sort_order ?? formData.value?.sort_order ?? 0,
+        parent_id: values.parent_id ?? formData.value?.parent_id ?? null,
+        is_trial: values.is_trial ?? formData.value?.is_trial ?? false,
+        status: values.status ?? formData.value?.status ?? 1,
+      };
       try {
         if (formData.value?.id) {
-          await updateChapterApi(formData.value.id, data);
-          message.success(`编辑章节成功: ${data.name}`);
+          await updateChapterApi(formData.value.id, payload);
+          message.success(`编辑章节成功: ${payload.name}`);
         } else {
-          await createChapterApi(data);
-          message.success(`添加章节成功: ${data.name}`);
+          await createChapterApi(payload);
+          message.success(`添加章节成功: ${payload.name}`);
         }
         await modalApi.close();
         onRefresh();
@@ -165,7 +174,7 @@ const [Modal, modalApi] = useVbenModal({
   },
   onOpenChange(isOpen) {
     if (isOpen) {
-      const data = modalApi.getData<ChapterTreeResult>();
+      const data = modalApi.getData<Partial<ChapterTreeResult>>();
       formApi.resetForm();
       if (data) {
         formData.value = data;
@@ -179,8 +188,8 @@ const [Modal, modalApi] = useVbenModal({
 </script>
 
 <template>
-  <div class="h-full">
-    <Grid class="h-full">
+  <div class="flex h-full min-h-0 flex-col">
+    <Grid class="h-full min-h-0">
       <template #toolbar-actions>
         <VbenButton
           @click="() => modalApi.setData({ bank_id: bankId, level: 1 }).open()"

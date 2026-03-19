@@ -1140,3 +1140,143 @@ export async function uploadGkResourceFileApi(file: File, categoryId: number) {
     headers: { 'Content-Type': 'multipart/form-data' },
   });
 }
+
+// ==================== 公考内容管理 ====================
+export interface GkContentParams {
+  title?: string;
+  category_id?: number;
+  tag?: string;
+  is_pinned?: boolean;
+  is_public?: boolean;
+  is_published?: boolean;
+  page?: number;
+  size?: number;
+}
+
+export interface GkContentResult {
+  id: number;
+  title: string;
+  slug: string;
+  content_json?: Record<string, any>;
+  content_html?: string;
+  summary?: string;
+  cover_image?: string;
+  category_id?: number;
+  tags?: string[];
+  is_pinned: boolean;
+  is_public: boolean;
+  is_published: boolean;
+  publish_time?: string;
+  extra?: Record<string, any>;
+  view_count: number;
+  sort_order: number;
+  created_by: number;
+  updated_by?: number;
+  created_time: string;
+  updated_time?: string;
+}
+
+export interface GkContentListResult {
+  id: number;
+  title: string;
+  slug: string;
+  summary?: string;
+  cover_image?: string;
+  category_id?: number;
+  tags?: string[];
+  is_pinned: boolean;
+  is_public: boolean;
+  is_published: boolean;
+  publish_time?: string;
+  view_count: number;
+  created_by: number;
+  created_time: string;
+}
+
+export interface GkContentPaginationResponse {
+  items: GkContentListResult[];
+  total: number;
+  page: number;
+  size: number;
+  total_pages: number;
+}
+
+export interface CreateGkContentParams {
+  title: string;
+  slug: string;
+  content_json?: Record<string, any>;
+  content_html?: string;
+  summary?: string;
+  cover_image?: string;
+  category_id?: number;
+  tags?: string[];
+  is_pinned?: boolean;
+  is_public?: boolean;
+  is_published?: boolean;
+  publish_time?: string;
+  extra?: Record<string, any>;
+}
+
+export interface UpdateGkContentParams {
+  title?: string;
+  slug?: string;
+  content_json?: Record<string, any>;
+  content_html?: string;
+  summary?: string;
+  cover_image?: string;
+  category_id?: number;
+  tags?: string[];
+  is_pinned?: boolean;
+  is_public?: boolean;
+  is_published?: boolean;
+  publish_time?: string;
+  extra?: Record<string, any>;
+  sort_order?: number;
+}
+
+// 获取内容列表
+export async function getGkContentListApi(params?: GkContentParams) {
+  return requestClient.get<GkContentPaginationResponse>('/api/v1/gk/content', {
+    params,
+  });
+}
+
+// 获取内容详情
+export async function getGkContentDetailApi(id: number) {
+  return requestClient.get<GkContentResult>(`/api/v1/gk/content/${id}`);
+}
+
+// 通过别名获取内容详情
+export async function getGkContentBySlugApi(slug: string) {
+  return requestClient.get<GkContentResult>(`/api/v1/gk/content/slug/${slug}`);
+}
+
+// 获取标签列表
+export async function getGkContentTagsApi(limit = 50) {
+  return requestClient.get<string[]>('/api/v1/gk/content/tags', {
+    params: { limit },
+  });
+}
+
+// 创建内容
+export async function createGkContentApi(data: CreateGkContentParams) {
+  return requestClient.post('/api/v1/gk/content', data);
+}
+
+// 更新内容
+export async function updateGkContentApi(
+  id: number,
+  data: UpdateGkContentParams,
+) {
+  return requestClient.put(`/api/v1/gk/content/${id}`, data);
+}
+
+// 删除内容
+export async function deleteGkContentApi(ids: number[]) {
+  return requestClient.delete('/api/v1/gk/content', { data: { ids } });
+}
+
+// 增加浏览量
+export async function incrementGkContentViewApi(id: number) {
+  return requestClient.post(`/api/v1/gk/content/${id}/view`);
+}

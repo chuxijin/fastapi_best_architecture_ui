@@ -61,7 +61,7 @@ export const schema: VbenFormSchema[] = [
     },
   },
   {
-    component: 'WangEditor',
+    component: 'TiptapEditor',
     fieldName: 'original',
     label: '原文',
     componentProps: {
@@ -69,7 +69,7 @@ export const schema: VbenFormSchema[] = [
     },
   },
   {
-    component: 'WangEditor',
+    component: 'TiptapEditor',
     fieldName: 'summary',
     label: '主要内容',
     componentProps: {

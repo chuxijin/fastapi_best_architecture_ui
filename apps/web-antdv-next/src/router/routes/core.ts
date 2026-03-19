@@ -7,7 +7,8 @@ import { $t } from '#/locales';
 
 const BasicLayout = () => import('#/layouts/basic.vue');
 const AuthPageLayout = () => import('#/layouts/auth.vue');
-/** 全局404页面 */
+
+/** 全局 404 页面 */
 const fallbackNotFoundRoute: RouteRecordRaw = {
   component: () => import('#/views/_core/fallback/not-found.vue'),
   meta: {
@@ -22,11 +23,6 @@ const fallbackNotFoundRoute: RouteRecordRaw = {
 
 /** 基本路由，这些路由是必须存在的 */
 const coreRoutes: RouteRecordRaw[] = [
-  /**
-   * 根路由
-   * 使用基础布局，作为所有页面的父级容器，子级就不必配置BasicLayout。
-   * 此路由必须存在，且不应修改
-   */
   {
     component: BasicLayout,
     meta: {
@@ -38,14 +34,16 @@ const coreRoutes: RouteRecordRaw[] = [
     redirect: preferences.app.defaultHomePath,
     children: [
       {
-        name: 'KnowledgeStoreQuestionBankEdit',
-        path: 'knowledge-store/resource/question-bank/edit',
+        name: 'KnowledgeStoreQuestionBankWorkspace',
+        path: 'knowledge-store/resource/question-bank/:id/:tab?',
         component: () =>
-          import('#/views/knowledge-store/resource/question-bank/edit/index.vue'),
+          import('#/views/knowledge-store/resource/question-bank/workspace/index.vue'),
         meta: {
-          title: '题库详情管理',
+          title: '题库工作台',
           hideInMenu: true,
           hideInTab: false,
+          fullPathKey: false,
+          activeMenu: '/knowledge-store/resource/question-bank',
         },
       },
     ],

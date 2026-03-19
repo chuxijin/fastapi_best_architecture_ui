@@ -65,7 +65,7 @@ export function useColumns(
       width: 80,
     },
     {
-      field: 'q_count',
+      field: 'q_count_cache',
       title: '题目数',
       width: 100,
     },

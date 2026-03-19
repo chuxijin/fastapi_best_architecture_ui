@@ -64,6 +64,7 @@
     "catalog": "pnpx codemod pnpm/catalog"
   },
   "dependencies": {
+    "@codemirror/lang-sql": "^6.10.0",
     "marked": "^15.0.12",
     "vditor": "^3.11.2",
     "vue-codemirror6": "^1.4.1"

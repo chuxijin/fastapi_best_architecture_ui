@@ -99,6 +99,9 @@ const Image = defineAsyncComponent(() => import('antdv-next/dist/image/index'));
 const PreviewGroup = defineAsyncComponent(() =>
   import('antdv-next/dist/image/index').then((res) => res.ImagePreviewGroup),
 );
+const TiptapEditor = defineAsyncComponent(
+  () => import('../../components/TiptapEditor/index.vue'),
+);
 
 const withDefaultPlaceholder = <T extends Component>(
   component: T,
@@ -517,6 +520,7 @@ export type ComponentType =
   | 'Switch'
   | 'Textarea'
   | 'TimePicker'
+  | 'TiptapEditor'
   | 'TreeSelect'
   | 'Upload'
   | BaseFormComponentType;
@@ -579,6 +583,7 @@ async function initComponentAdapter() {
     Space,
     Switch,
     Textarea: withDefaultPlaceholder(Textarea, 'input'),
+    TiptapEditor,
     TimePicker,
     TreeSelect: withDefaultPlaceholder(TreeSelect, 'select'),
     Upload: withPreviewUpload(),

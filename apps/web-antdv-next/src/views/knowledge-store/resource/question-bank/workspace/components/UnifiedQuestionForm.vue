@@ -27,7 +27,7 @@ import {
 import { getQuestionDetailApi } from '#/api';
 import { requestClient } from '#/api/request';
 import MediaPicker from '#/components/MediaPicker.vue';
-import WangEditor from '#/components/WangEditor/index.vue';
+import TiptapEditor from '#/components/TiptapEditor/index.vue';
 
 import ShortAnswerEditor from './ShortAnswerEditor.vue';
 
@@ -45,6 +45,7 @@ interface Props {
   questionType: QuestionType;
   chapterOptions: Array<{ label: string; value: number }>;
   editId?: null | number;
+  prefillData?: any;
 }
 
 interface QuestionOption {
@@ -133,6 +134,45 @@ onMounted(() => {
 
 // ==================== 共享：解析内容 ====================
 const analysisContent = ref<string>('');
+
+function toOptionsData(
+  source: any,
+): null | Record<string, { code: string; content: string }> {
+  if (!source) return null;
+
+  const data = source.options_data;
+  if (data && typeof data === 'object' && !Array.isArray(data)) {
+    const entries = Object.entries(data)
+      .map(([key, value]: [string, any]) => {
+        const code = value?.code || value?.option_code || key;
+        const content = value?.content || value?.content_ref?.content || '';
+        return [code, { code, content }] as const;
+      })
+      .filter(([, item]) => item.content !== '');
+    if (entries.length > 0) {
+      return Object.fromEntries(entries);
+    }
+  }
+
+  if (Array.isArray(source.options) && source.options.length > 0) {
+    const entries = source.options
+      .map((item: any, idx: number) => {
+        const code =
+          item?.option_code ||
+          item?.code ||
+          optionLabels[idx] ||
+          String(idx + 1);
+        const content = item?.content || item?.content_ref?.content || '';
+        return [code, { code, content }] as const;
+      })
+      .filter(([, item]) => item.content !== '');
+    if (entries.length > 0) {
+      return Object.fromEntries(entries);
+    }
+  }
+
+  return null;
+}
 
 // ==================== Media Picker 媒体选择器 ====================
 const showMediaPicker = ref(false);
@@ -368,38 +408,86 @@ async function submit() {
 // ==================== 数据加载 ====================
 async function loadQuestionData(questionId: number) {
   try {
-    const detail = await getQuestionDetailApi(questionId);
+    const detail = (await getQuestionDetailApi(questionId)) as any;
+    const detailOptionsData = toOptionsData(detail);
+    const prefillOptionsData = toOptionsData(props.prefillData);
+    const merged = {
+      ...detail,
+      options_data: detailOptionsData ?? prefillOptionsData ?? null,
+      answer_data: detail.answer_data ?? props.prefillData?.answer_data ?? null,
+      analysis_content:
+        detail.analysis_content ?? props.prefillData?.analysis_content ?? '',
+      analyses:
+        Array.isArray(detail.analyses) && detail.analyses.length > 0
+          ? detail.analyses
+          : Array.isArray(props.prefillData?.analyses)
+            ? props.prefillData.analyses
+            : [],
+    };
+
+    const normalizedKnowledgePoint = Array.isArray(merged.knowledge_point)
+      ? merged.knowledge_point
+          .map((item: any) => {
+            if (typeof item === 'string' || typeof item === 'number') {
+              return String(item);
+            }
+            if (item && typeof item === 'object') {
+              return (
+                item.name ||
+                item.label ||
+                item.title ||
+                item.code ||
+                item.id ||
+                ''
+              );
+            }
+            return '';
+          })
+          .filter(Boolean)
+          .join('、')
+      : merged.knowledge_point || '';
+    const fallbackAnalysis =
+      (Array.isArray(merged.analyses)
+        ? merged.analyses.find((item: any) => item?.is_default) ||
+          merged.analyses[0]
+        : undefined) ||
+      (merged.answer_data || merged.analysis_content
+        ? {
+            answer_data: merged.answer_data || null,
+            content: merged.analysis_content || '',
+          }
+        : undefined);
 
     // 填充共享数据
     formData.value = {
-      bank_id: detail.bank_id,
-      type: detail.type,
-      usage: detail.usage || 'all',
-      difficulty: detail.difficulty || 'medium',
-      score: detail.score,
-      chapter_id: detail.chapter_id ?? undefined,
-      stem: detail.stem,
-      knowledge_point: detail.knowledge_point || '',
-      source: detail.source || '',
-      year: detail.year ?? undefined,
-      is_active: detail.is_active ?? true,
+      bank_id: merged.bank_id,
+      type: merged.type,
+      usage: merged.usage || 'all',
+      difficulty: merged.difficulty || 'medium',
+      score: merged.score,
+      chapter_id: merged.chapter_id ?? undefined,
+      stem: merged.stem,
+      knowledge_point: normalizedKnowledgePoint,
+      source: merged.source || '',
+      year: merged.year ?? undefined,
+      is_active: merged.is_active ?? true,
     };
 
     // 加载关联材料
-    if (detail.material_ids && Array.isArray(detail.material_ids)) {
-      selectedMaterialIds.value = detail.material_ids;
-    } else if (detail.materials && Array.isArray(detail.materials)) {
-      selectedMaterialIds.value = detail.materials.map((m: any) => m.id);
+    if (merged.material_ids && Array.isArray(merged.material_ids)) {
+      selectedMaterialIds.value = merged.material_ids;
+    } else if (merged.materials && Array.isArray(merged.materials)) {
+      selectedMaterialIds.value = merged.materials.map((m: any) => m.id);
     }
 
     // 加载解析内容
-    analysisContent.value = detail.analysis?.content || '';
+    analysisContent.value = fallbackAnalysis?.content || '';
 
     // 根据题型填充专用数据
     switch (props.questionType) {
       case 'fill': {
-        if (detail.analysis && detail.analysis.answer_data) {
-          const answers = detail.analysis.answer_data.correct;
+        if (fallbackAnalysis && fallbackAnalysis.answer_data) {
+          const answers = fallbackAnalysis.answer_data.correct;
           if (Array.isArray(answers)) {
             blankAnswers.value = answers.map((ans: string, index: number) => ({
               blank_number: index + 1,
@@ -410,8 +498,8 @@ async function loadQuestionData(questionId: number) {
         break;
       }
       case 'judgement': {
-        if (detail.analysis && detail.analysis.answer_data) {
-          const correct = detail.analysis.answer_data.correct;
+        if (fallbackAnalysis && fallbackAnalysis.answer_data) {
+          const correct = fallbackAnalysis.answer_data.correct;
           judgmentAnswer.value = correct === 'A' ? 'true' : 'false';
         }
         break;
@@ -420,18 +508,28 @@ async function loadQuestionData(questionId: number) {
       case 'multiple':
       // fall through
       case 'single': {
-        choiceType.value = detail.type as any;
-        if (detail.options_data) {
-          options.value = Object.values(detail.options_data).map(
-            (opt: any) => ({
-              label: opt.code,
-              content: opt.content || '',
-              is_correct: false,
-            }),
+        choiceType.value = merged.type as any;
+        if (merged.options_data && typeof merged.options_data === 'object') {
+          options.value = Object.entries(merged.options_data).map(
+            ([optionKey, optRaw]: [string, any]) => {
+              const opt = optRaw || {};
+              return {
+                label: opt.code || optionKey,
+                content: opt.content || '',
+                is_correct: false,
+              };
+            },
           );
+        } else {
+          options.value = [
+            { label: 'A', content: '', is_correct: false },
+            { label: 'B', content: '', is_correct: false },
+            { label: 'C', content: '', is_correct: false },
+            { label: 'D', content: '', is_correct: false },
+          ];
         }
-        if (detail.analysis && detail.analysis.answer_data) {
-          const correct = detail.analysis.answer_data.correct;
+        if (fallbackAnalysis && fallbackAnalysis.answer_data) {
+          const correct = fallbackAnalysis.answer_data.correct;
           selectedAnswer.value = Array.isArray(correct) ? correct : [correct];
           options.value.forEach((opt) => {
             opt.is_correct = selectedAnswer.value.includes(opt.label);
@@ -443,11 +541,11 @@ async function loadQuestionData(questionId: number) {
       case 'shortAnswer': {
         // 🔥 新格式：从 analyses 数组加载（每条记录是一个版本）
         if (
-          detail.analyses &&
-          Array.isArray(detail.analyses) &&
-          detail.analyses.length > 0
+          merged.analyses &&
+          Array.isArray(merged.analyses) &&
+          merged.analyses.length > 0
         ) {
-          shortAnswerVersions.value = detail.analyses.map((a: any) => ({
+          shortAnswerVersions.value = merged.analyses.map((a: any) => ({
             type: a.type || 'official',
             answer: a.answer_data?.correct || '',
             analysis: a.content || '',
@@ -456,19 +554,19 @@ async function loadQuestionData(questionId: number) {
         }
         // 兼容旧格式：answer_data.versions
         else if (
-          detail.analysis &&
-          detail.analysis.answer_data &&
-          detail.analysis.answer_data.versions &&
-          Array.isArray(detail.analysis.answer_data.versions) &&
-          detail.analysis.answer_data.versions.length > 0
+          fallbackAnalysis &&
+          fallbackAnalysis.answer_data &&
+          fallbackAnalysis.answer_data.versions &&
+          Array.isArray(fallbackAnalysis.answer_data.versions) &&
+          fallbackAnalysis.answer_data.versions.length > 0
         ) {
-          shortAnswerVersions.value = detail.analysis.answer_data.versions;
+          shortAnswerVersions.value = fallbackAnalysis.answer_data.versions;
         } else {
           // 最旧格式：单条解析
           let ans = '';
-          if (detail.analysis && detail.analysis.answer_data) {
-            const keywords = detail.analysis.answer_data.keywords;
-            const correct = detail.analysis.answer_data.correct;
+          if (fallbackAnalysis && fallbackAnalysis.answer_data) {
+            const keywords = fallbackAnalysis.answer_data.keywords;
+            const correct = fallbackAnalysis.answer_data.correct;
             // 处理 correct 可能是 string | string[]
             const correctStr = Array.isArray(correct)
               ? correct.join('\n')
@@ -479,9 +577,9 @@ async function loadQuestionData(questionId: number) {
           }
           shortAnswerVersions.value = [
             {
-              type: detail.analysis?.type || 'official',
+              type: fallbackAnalysis?.type || 'official',
               answer: ans,
-              analysis: detail.analysis?.content || '',
+              analysis: fallbackAnalysis?.content || '',
               is_default: true,
             },
           ];
@@ -592,7 +690,7 @@ defineExpose({
             从媒体库选择
           </Button>
         </div>
-        <WangEditor v-model="formData.stem" :height="150" />
+        <TiptapEditor v-model="formData.stem" :height="150" />
       </Col>
 
       <!-- 关联材料 -->
@@ -645,7 +743,7 @@ defineExpose({
                 <MaterialSymbolsDelete class="size-4" />
               </Button>
             </div>
-            <WangEditor v-model="option.content" :height="100" />
+            <TiptapEditor v-model="option.content" :height="100" />
           </div>
         </Col>
 
@@ -770,7 +868,7 @@ defineExpose({
             从媒体库选择
           </Button>
         </div>
-        <WangEditor v-model="analysisContent" :height="150" />
+        <TiptapEditor v-model="analysisContent" :height="150" />
       </Col>
 
       <!-- 扩展信息 -->

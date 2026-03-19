@@ -5,7 +5,7 @@ import { MaterialSymbolsAdd, MaterialSymbolsDelete } from '@vben/icons';
 
 import { AutoComplete, Button, message, Tag, Tooltip } from 'ant-design-vue';
 
-import WangEditor from '#/components/WangEditor/index.vue';
+import TiptapEditor from '#/components/TiptapEditor/index.vue';
 
 interface ShortAnswerVersion {
   type: string;
@@ -110,11 +110,11 @@ function setDefault(index: number) {
       <div class="flex gap-4">
         <div class="flex-1">
           <div class="mb-1 text-xs text-gray-500">参考答案：</div>
-          <WangEditor v-model="version.answer" :height="200" />
+          <TiptapEditor v-model="version.answer" :height="200" />
         </div>
         <div class="flex-1">
           <div class="mb-1 text-xs text-gray-500">解析：</div>
-          <WangEditor v-model="version.analysis" :height="200" />
+          <TiptapEditor v-model="version.analysis" :height="200" />
         </div>
       </div>
     </div>

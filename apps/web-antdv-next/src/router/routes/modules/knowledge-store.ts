@@ -38,14 +38,13 @@ const routes: RouteRecordRaw[] = [
             },
           },
           {
-            name: 'KnowledgeStoreQuestionBankEdit',
-            path: '/knowledge-store/resource/question-bank/edit',
+            name: 'KnowledgeStoreQuestionReview',
+            path: '/knowledge-store/resource/question-bank/review',
             component: () =>
-              import('#/views/knowledge-store/resource/question-bank/edit/index.vue'),
+              import('#/views/knowledge-store/resource/question-bank/review/index.vue'),
             meta: {
-              title: '编辑题库',
-              hideInMenu: true,
-              activeMenu: '/knowledge-store/resource/question-bank',
+              title: '题目审核',
+              icon: 'mdi:clipboard-text-search-outline',
             },
           },
           {

@@ -84,7 +84,7 @@ export const schema: VbenFormSchema[] = [
     },
   },
   {
-    component: 'WangEditor',
+    component: 'TiptapEditor',
     fieldName: 'left_content',
     label: '左栏内容（文段）',
     formItemClass: 'col-span-1',
@@ -93,7 +93,7 @@ export const schema: VbenFormSchema[] = [
     },
   },
   {
-    component: 'WangEditor',
+    component: 'TiptapEditor',
     fieldName: 'right_content',
     label: '右栏内容（解析）',
     formItemClass: 'col-span-1',

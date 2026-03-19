@@ -42,9 +42,7 @@ export function useCronScheduler(formData: Ref<CronFormLike>) {
       case 'n_hours': {
         return 23;
       }
-      case 'n_minutes': {
-        return 59;
-      }
+      case 'n_minutes':
       case 'n_seconds': {
         return 59;
       }
@@ -108,19 +106,20 @@ export function useCronScheduler(formData: Ref<CronFormLike>) {
           formData.value.cron_type = 'daily';
           formData.value.cron_hour = Number.parseInt(hour);
           formData.value.cron_minute = Number.parseInt(minute);
-          formData.value.cron_display = `每天${hour.padStart(2, '0')}:${minute.padStart(2, '0')}执行`;
+          formData.value.cron_display = `每天 ${hour.padStart(2, '0')}:${minute.padStart(2, '0')} 执行`;
           return;
         }
 
         if (day.includes('/') && month === '*' && weekday === '*') {
           const dayMatch = day.match(/^\*\/(\d+)$/);
           const dayValue = dayMatch?.[1];
+
           if (dayValue) {
             formData.value.cron_type = 'n_days';
             formData.value.cron_value = Number.parseInt(dayValue);
             formData.value.cron_hour = Number.parseInt(hour);
             formData.value.cron_minute = Number.parseInt(minute);
-            formData.value.cron_display = `每${dayValue}天${hour.padStart(2, '0')}:${minute.padStart(2, '0')}执行`;
+            formData.value.cron_display = `每 ${dayValue} 天 ${hour.padStart(2, '0')}:${minute.padStart(2, '0')} 执行`;
             return;
           }
         }
@@ -146,10 +145,11 @@ export function useCronScheduler(formData: Ref<CronFormLike>) {
         ) {
           const hourMatch = hour.match(/^\*\/(\d+)$/);
           const hourValue = hourMatch?.[1];
+
           if (hourValue) {
             formData.value.cron_type = 'n_hours';
             formData.value.cron_value = Number.parseInt(hourValue);
-            formData.value.cron_display = `每${hourValue}小时执行`;
+            formData.value.cron_display = `每 ${hourValue} 小时执行`;
             return;
           }
         }
@@ -163,10 +163,11 @@ export function useCronScheduler(formData: Ref<CronFormLike>) {
         ) {
           const minuteMatch = minute.match(/^\*\/(\d+)$/);
           const minuteValue = minuteMatch?.[1];
+
           if (minuteValue) {
             formData.value.cron_type = 'n_minutes';
             formData.value.cron_value = Number.parseInt(minuteValue);
-            formData.value.cron_display = `每${minuteValue}分钟执行`;
+            formData.value.cron_display = `每 ${minuteValue} 分钟执行`;
             return;
           }
         }
@@ -182,8 +183,7 @@ export function useCronScheduler(formData: Ref<CronFormLike>) {
           formData.value.cron_hour = Number.parseInt(hour);
           formData.value.cron_minute = Number.parseInt(minute);
           formData.value.cron_weekday = Number.parseInt(weekday);
-          const weekdayText = getWeekdayText(Number.parseInt(weekday));
-          formData.value.cron_display = `每${weekdayText}${hour.padStart(2, '0')}:${minute.padStart(2, '0')}执行`;
+          formData.value.cron_display = `每周 ${getWeekdayText(Number.parseInt(weekday))} ${hour.padStart(2, '0')}:${minute.padStart(2, '0')} 执行`;
           return;
         }
 
@@ -198,10 +198,12 @@ export function useCronScheduler(formData: Ref<CronFormLike>) {
           formData.value.cron_hour = Number.parseInt(hour);
           formData.value.cron_minute = Number.parseInt(minute);
           formData.value.cron_day = Number.parseInt(day);
-          formData.value.cron_display = `每月${day}号${hour.padStart(2, '0')}:${minute.padStart(2, '0')}执行`;
+          formData.value.cron_display = `每月 ${day} 号 ${hour.padStart(2, '0')}:${minute.padStart(2, '0')} 执行`;
           return;
         }
-      } else if (parts.length === 6) {
+      }
+
+      if (parts.length === 6) {
         const [second, minute, hour, day, month, weekday] = parts as [
           string,
           string,
@@ -221,20 +223,21 @@ export function useCronScheduler(formData: Ref<CronFormLike>) {
         ) {
           const secondMatch = second.match(/^\*\/(\d+)$/);
           const secondValue = secondMatch?.[1];
+
           if (secondValue) {
             formData.value.cron_type = 'n_seconds';
             formData.value.cron_value = Number.parseInt(secondValue);
-            formData.value.cron_display = `每${secondValue}秒执行`;
+            formData.value.cron_display = `每 ${secondValue} 秒执行`;
             return;
           }
         }
       }
 
       formData.value.cron_type = '';
-      formData.value.cron_display = `自定义: ${cronExpr}`;
+      formData.value.cron_display = `自定义：${cronExpr}`;
     } catch {
       formData.value.cron_type = '';
-      formData.value.cron_display = `自定义: ${cronExpr}`;
+      formData.value.cron_display = `自定义：${cronExpr}`;
     }
   }
 
@@ -254,7 +257,7 @@ export function useCronScheduler(formData: Ref<CronFormLike>) {
       }
       case 'daily': {
         formData.value.cron = `${minute} ${hour} * * *`;
-        formData.value.cron_display = `每天${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}执行`;
+        formData.value.cron_display = `每天 ${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')} 执行`;
         break;
       }
       case 'hourly': {
@@ -264,32 +267,32 @@ export function useCronScheduler(formData: Ref<CronFormLike>) {
       }
       case 'monthly': {
         formData.value.cron = `${minute} ${hour} ${day} * *`;
-        formData.value.cron_display = `每月${day}号${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}执行`;
+        formData.value.cron_display = `每月 ${day} 号 ${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')} 执行`;
         break;
       }
       case 'n_days': {
         formData.value.cron = `${minute} ${hour} */${value} * *`;
-        formData.value.cron_display = `每${value}天${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}执行`;
+        formData.value.cron_display = `每 ${value} 天 ${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')} 执行`;
         break;
       }
       case 'n_hours': {
         formData.value.cron = `0 */${value} * * *`;
-        formData.value.cron_display = `每${value}小时执行`;
+        formData.value.cron_display = `每 ${value} 小时执行`;
         break;
       }
       case 'n_minutes': {
         formData.value.cron = `*/${value} * * * *`;
-        formData.value.cron_display = `每${value}分钟执行`;
+        formData.value.cron_display = `每 ${value} 分钟执行`;
         break;
       }
       case 'n_seconds': {
         formData.value.cron = `*/${value} * * * * *`;
-        formData.value.cron_display = `每${value}秒执行`;
+        formData.value.cron_display = `每 ${value} 秒执行`;
         break;
       }
       case 'weekly': {
         formData.value.cron = `${minute} ${hour} * * ${weekday}`;
-        formData.value.cron_display = `每${getWeekdayText(weekday)}${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}执行`;
+        formData.value.cron_display = `每周 ${getWeekdayText(weekday)} ${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')} 执行`;
         break;
       }
       default: {

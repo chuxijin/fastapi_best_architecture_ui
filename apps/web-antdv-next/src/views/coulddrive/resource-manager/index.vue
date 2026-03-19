@@ -117,7 +117,8 @@ const gridOptions: VxeTableGridOptions = {
   toolbarConfig: {
     export: true,
     print: true,
-    refresh: { code: 'query' },
+    refresh: true,
+    refreshOptions: { code: 'query' },
     custom: true,
     zoom: true,
   },
