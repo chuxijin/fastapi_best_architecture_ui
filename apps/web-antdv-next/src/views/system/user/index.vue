@@ -112,6 +112,23 @@ function onRefresh() {
   gridApi.query();
 }
 
+function getRoleList(row: SysUserResult): SysRoleResult[] {
+  if (!Array.isArray(row.roles)) {
+    return [];
+  }
+  return row.roles;
+}
+
+function getRoleTagColor(role: SysRoleResult | undefined): string {
+  if (!role) {
+    return 'default';
+  }
+  if (role.status === 1) {
+    return 'purple';
+  }
+  return 'default';
+}
+
 function onActionClick({ code, row }: OnActionClickParams<SysUserResult>) {
   switch (code) {
     case 'delete': {
@@ -326,27 +343,37 @@ onMounted(() => {
         <span v-else>未绑定</span>
       </template>
       <template #roles="{ row }">
-        <span v-if="row.roles.length === 1">
-          <a-tag color="purple">
-            {{ row.roles[0]?.name }}
+        <span v-if="getRoleList(row).length === 1">
+          <a-tag :color="getRoleTagColor(getRoleList(row)[0])">
+            {{ getRoleList(row)[0]?.name }}
           </a-tag>
         </span>
-        <span v-else-if="row.roles.length > 1">
+        <span v-else-if="getRoleList(row).length > 1">
           <a-popover
             placement="topLeft"
             :styles="{ root: { maxWidth: '20%' } }"
           >
             <template #content>
-              <a-tag v-for="role in row.roles" :key="role.name" color="purple">
+              <a-tag
+                v-for="role in getRoleList(row)"
+                :key="role.id"
+                :color="getRoleTagColor(role)"
+              >
                 {{ role.name }}
               </a-tag>
             </template>
-            <a-tag v-for="role in row.roles" :key="role.name" color="purple">
-              {{ role.name }}
+            <a-tag :color="getRoleTagColor(getRoleList(row)[0])">
+              {{ getRoleList(row)[0]?.name }}
+            </a-tag>
+            <a-tag :color="getRoleTagColor(getRoleList(row)[1])">
+              {{ getRoleList(row)[1]?.name }}
+            </a-tag>
+            <a-tag v-if="getRoleList(row).length > 2" color="blue">
+              +{{ getRoleList(row).length - 2 }}
             </a-tag>
           </a-popover>
         </span>
-        <span v-else>未绑定</span>
+        <span v-else>无生效角色</span>
       </template>
     </Grid>
     <editModal title="修改用户">

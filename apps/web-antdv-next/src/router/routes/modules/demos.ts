@@ -21,6 +21,14 @@ const routes: RouteRecordRaw[] = [
         path: '/demos/ant-design',
         component: () => import('#/views/demos/antd/index.vue'),
       },
+      {
+        meta: {
+          title: 'Halo Editor',
+        },
+        name: 'HaloEditorDemo',
+        path: '/demos/halo-editor',
+        component: () => import('#/views/demos/editor/index.vue'),
+      },
     ],
   },
 ];

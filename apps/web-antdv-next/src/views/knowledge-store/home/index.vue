@@ -1,4 +1,6 @@
 <script lang="ts" setup>
+import { onBeforeUnmount, ref, shallowRef } from 'vue';
+
 import { VbenCountToAnimator } from '@vben/common-ui';
 import {
   SvgBellIcon,
@@ -6,6 +8,15 @@ import {
   SvgCardIcon,
   SvgDownloadIcon,
 } from '@vben/icons';
+
+import { Button, Modal } from 'ant-design-vue';
+
+import {
+  createJiaEditor,
+  DEFAULT_JIA_EDITOR_CONTENT,
+  JiaEditor,
+  type VueEditor,
+} from '#/components/JiaEditor';
 
 interface StatItem {
   icon: any;
@@ -118,14 +129,73 @@ const operationTools: OperationTool[] = [
     link: '进入',
   },
 ];
+
+// ===== 编辑器相关 =====
+const editorVisible = ref(false);
+const editorLoading = ref(false);
+const editor = shallowRef<VueEditor>();
+const editorStatus = ref('已切换到最新 JiaEditor，内置 HTML / Markdown 编辑块');
+
+async function openEditor() {
+  editorVisible.value = true;
+
+  if (editor.value) {
+    return;
+  }
+
+  editorLoading.value = true;
+  editorStatus.value = '正在初始化最新 JiaEditor...';
+
+  try {
+    editor.value = createJiaEditor(DEFAULT_JIA_EDITOR_CONTENT);
+    editorStatus.value = '最新 JiaEditor 已就绪，内置 HTML / Markdown 编辑块';
+  } catch (e) {
+    editorStatus.value = `JiaEditor 加载失败: ${e}`;
+    console.error('[JiaEditor] Init failed:', e);
+  } finally {
+    editorLoading.value = false;
+  }
+}
+
+onBeforeUnmount(() => {
+  editor.value?.destroy();
+});
 </script>
 
 <template>
   <div class="p-5">
-    <div class="mb-4">
-      <h2 class="text-2xl font-semibold">知识店铺首页</h2>
-      <p class="mt-1 text-muted-foreground">实时统计看板</p>
+    <div class="mb-4 flex items-center justify-between">
+      <div>
+        <h2 class="text-2xl font-semibold">知识店铺首页</h2>
+        <p class="mt-1 text-muted-foreground">实时统计看板与最新 JiaEditor 联调页</p>
+      </div>
+      <Button type="primary" @click="openEditor">
+        打开 JiaEditor
+      </Button>
     </div>
+
+    <Modal
+      v-model:open="editorVisible"
+      title="JiaEditor 测试台"
+      :width="1000"
+      :footer="null"
+      destroy-on-close
+    >
+      <div v-if="editorStatus" class="mb-2 text-sm text-gray-500">
+        {{ editorStatus }}
+      </div>
+      <div v-if="editorLoading" class="flex items-center justify-center py-20">
+        正在加载编辑器...
+      </div>
+      <div
+        v-else-if="editor"
+        class="overflow-hidden rounded-lg border border-gray-200"
+        style="min-height: 400px"
+      >
+        <JiaEditor :editor="editor" locale="zh-CN" />
+      </div>
+      <div v-else class="py-20 text-center text-red-500">JiaEditor 加载失败</div>
+    </Modal>
 
     <div class="rounded-lg border bg-card p-6 shadow-sm">
       <div class="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">

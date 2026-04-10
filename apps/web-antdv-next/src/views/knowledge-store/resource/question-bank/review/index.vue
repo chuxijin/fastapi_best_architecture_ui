@@ -338,7 +338,7 @@ async function loadKnowledgeCategoryOptions() {
   loadingKnowledgeCategoryOptions.value = true;
   try {
     const tree = await getSysCategoryTreeApi({
-      app_code: 'gongkao',
+      app_code: 'youanshang',
       type: 'knowledge_point',
       status: true,
     });

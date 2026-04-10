@@ -70,6 +70,15 @@ export const EXPIRED_TYPE_LABEL_MAP = {
   1: '定时',
 } as const;
 
+export const RESOURCE_TYPE_OPTIONS = [
+  { label: '课程', value: '课程' },
+  { label: '电子书', value: '电子书' },
+  { label: '笔记', value: '笔记' },
+  { label: '软件', value: '软件' },
+  { label: '真题', value: '真题' },
+  { label: '其他', value: '其他' },
+] as const;
+
 // 表格列配置
 export const RESOURCE_TABLE_COLUMNS: TableColumnsType = [
   {
@@ -490,69 +499,42 @@ export function useResourceColumns(
   ];
 }
 
-// 递归扁平化分类树的函数
-function flattenCategoryTree(categories: any[]): any[] {
-  const flattened: any[] = [];
-
-  function traverse(nodes: any[]) {
-    for (const node of nodes) {
-      flattened.push(node);
-      if (node.children && node.children.length > 0) {
-        traverse(node.children);
-      }
-    }
-  }
-
-  traverse(categories);
-  return flattened;
-}
-
 // 动态获取分类选项的函数
 export async function getCategoryOptions() {
   try {
-    const categoryResponse = await getSysCategoryTreeApi();
+    const categoryResponse = await getSysCategoryTreeApi({
+      app_code: 'youanshang',
+      type: 'resource_exam',
+      status: true,
+    });
 
     // 兼容返回值：优先取数组，否则尝试 .data
     const categories = Array.isArray(categoryResponse)
       ? categoryResponse
       : (categoryResponse as any)?.data || [];
 
-    // 扁平化整个分类树
-    const flattenedCategories = flattenCategoryTree(categories);
+    const buildTree = (nodes: any[]): any[] =>
+      (nodes || []).map((node) => ({
+        ...node,
+        label: node.name,
+        value: node.id,
+        children:
+          Array.isArray(node.children) && node.children.length > 0
+            ? buildTree(node.children)
+            : undefined,
+      }));
 
-    // 提取资源类型选项
-    const resourceTypeOptions = flattenedCategories
-      .filter((cat) => cat.type === 'resource_type' && !!cat.status)
-      .map((cat) => ({ label: cat.name, value: cat.name }));
-
-    // 构建分类树（仅包含领域和科目）
-    function buildTree(nodes: any[], parentId: null | number = null): any[] {
-      return nodes
-        .filter(
-          (node) =>
-            node.parent_id === parentId &&
-            (node.type === 'domain' || node.type === 'subject'),
-        )
-        .map((node) => ({
-          ...node,
-          label: node.name,
-          value: node.id, // TreeSelect 使用 ID 作为 value
-          children: buildTree(nodes, node.id),
-        }));
-    }
-
-    const categoryTree = buildTree(flattenedCategories);
+    const categoryTree = buildTree(categories);
 
     return {
-      resourceTypeOptions,
-      allCategories: flattenedCategories,
+      resourceTypeOptions: [...RESOURCE_TYPE_OPTIONS],
+      allCategories: categories,
       categoryTree,
     };
   } catch (error) {
     console.error('获取分类选项失败:', error);
     return {
-      domainOptions: [],
-      resourceTypeOptions: [],
+      resourceTypeOptions: [...RESOURCE_TYPE_OPTIONS],
       allCategories: [],
       categoryTree: [],
     };
@@ -566,8 +548,6 @@ export function createResourceFormSchema(categoryOptions?: {
 }): VbenFormSchema[] {
   const categoryTree = categoryOptions?.categoryTree || [];
   const resourceTypeOptions = categoryOptions?.resourceTypeOptions || [];
-
-  // 工具：从本地分类树按领域名称构造科目下拉
 
   return [
     {

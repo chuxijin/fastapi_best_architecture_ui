@@ -4,6 +4,7 @@ import { computed } from 'vue';
 
 import { getDriveTypeColor, getDriveTypeLabel } from '#/api';
 
+import { RESOURCE_TYPE_OPTIONS } from '../data';
 import ResourceFileUploader from './ResourceFileUploader.vue';
 
 const props = defineProps<{
@@ -22,7 +23,6 @@ const props = defineProps<{
   onCopyShare?: (data: any) => Promise<void>;
   onImageError?: (e: Event) => void;
   onUrlTypeChange?: (urlType: string) => void;
-  // resourceTypeOptions?: Array<{ label: string; value: string }>; // 用硬编码替代
   tempModes?: Array<{ label: string; value: number }>;
 }>();
 
@@ -38,16 +38,6 @@ const driveTypeClass = computed(() => {
   if (color === 'orange') return 'bg-orange-100 text-orange-800';
   return 'bg-gray-100 text-gray-800';
 });
-
-// 硬编码资源类型选项
-const resourceTypeOptions = [
-  { label: '课程', value: '课程' },
-  { label: '电子书', value: '电子书' },
-  { label: '笔记', value: '笔记' },
-  { label: '软件', value: '软件' },
-  { label: '真题', value: '真题' },
-  { label: '其他', value: '其他' },
-];
 
 // 处理账号变更，自动设置网盘类型
 function onAccountChange(userId: number) {
@@ -143,7 +133,7 @@ function onUploadSuccess(result: any) {
           </label>
           <a-select
             v-model:value="formData.resource_type"
-            :options="resourceTypeOptions"
+            :options="RESOURCE_TYPE_OPTIONS"
             placeholder="请选择资源类型"
             class="w-full"
             allow-clear

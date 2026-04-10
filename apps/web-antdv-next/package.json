@@ -28,6 +28,7 @@
   "dependencies": {
     "@codemirror/view": "^6.39.16",
     "@floating-ui/dom": "^1.7.6",
+    "@halo-dev/richtext-editor": "link:../../../../richtext-editor",
     "@iconify-json/lucide": "^1.2.95",
     "@iconify/vue": "catalog:",
     "@tinymce/tinymce-vue": "^6.3.0",
@@ -88,8 +89,8 @@
     "@vueuse/core": "catalog:",
     "@wangeditor/editor": "^5.1.23",
     "@wangeditor/editor-for-vue": "^5.1.12",
-    "ant-design-vue": "catalog:",
-    "antdv-next": "catalog:",
+    "ant-design-vue": "4.2.6",
+    "antdv-next": "1.1.0",
     "croner": "catalog:",
     "dayjs": "catalog:",
     "floating-vue": "^5.2.2",

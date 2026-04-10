@@ -61,6 +61,7 @@ export function useColumns(
       title: '状态',
       cellRender: {
         name: 'CellTag',
+        options: getDictOptions(DictEnum.SYS_STATUS),
       },
       width: 100,
     },

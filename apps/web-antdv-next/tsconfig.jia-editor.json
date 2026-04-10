@@ -1,0 +1,13 @@
+{
+  "$schema": "https://json.schemastore.org/tsconfig",
+  "extends": "./tsconfig.json",
+  "include": [
+    "src/components/JiaEditor/index.ts",
+    "src/components/JiaEditor/plugins/**/*.ts",
+    "src/components/JiaEditor/plugins/**/*.vue",
+    "src/stubs/**/*.ts",
+    "src/views/demos/editor/index.vue",
+    "src/views/knowledge-store/home/index.vue",
+    "src/editor-plugins/hybrid-edit-block/**/*.ts"
+  ]
+}

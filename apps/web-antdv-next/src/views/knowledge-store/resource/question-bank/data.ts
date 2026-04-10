@@ -2,6 +2,12 @@ import type { VbenFormSchema } from '#/adapter/form';
 import type { OnActionClickFn, VxeGridProps } from '#/adapter/vxe-table';
 import type { BankResult } from '#/api';
 
+const QUESTION_BANK_CATEGORY_TREE_PARAMS = {
+  app_code: 'youanshang',
+  type: 'product_catalog',
+  status: true,
+} as const;
+
 export const querySchema: VbenFormSchema[] = [
   {
     component: 'Input',
@@ -18,7 +24,7 @@ export const querySchema: VbenFormSchema[] = [
       allowClear: true,
       api: async () => {
         const { getSysCategoryTreeApi } = await import('#/api');
-        return getSysCategoryTreeApi({});
+        return getSysCategoryTreeApi(QUESTION_BANK_CATEGORY_TREE_PARAMS);
       },
       class: 'w-full',
       labelField: 'name',
@@ -179,7 +185,7 @@ export const formSchema: VbenFormSchema[] = [
       allowClear: true,
       api: async () => {
         const { getSysCategoryTreeApi } = await import('#/api');
-        return getSysCategoryTreeApi({});
+        return getSysCategoryTreeApi(QUESTION_BANK_CATEGORY_TREE_PARAMS);
       },
       class: 'w-full',
       labelField: 'name',

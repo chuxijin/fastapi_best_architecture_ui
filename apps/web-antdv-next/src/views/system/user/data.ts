@@ -74,7 +74,7 @@ export function useColumns(
     },
     {
       field: 'roles',
-      title: '角色',
+      title: '生效角色',
       width: 200,
       showOverflow: 'ellipsis',
       slots: { default: 'roles' },
@@ -263,7 +263,7 @@ export function useEditSchema(roleSelectOptions: any): VbenFormSchema[] {
         },
       },
       fieldName: 'roles',
-      label: '角色',
+      label: '角色（生效）',
       rules: 'selectRequired',
     },
   ];
@@ -326,7 +326,7 @@ export function useAddSchema(roleSelectOptions: any): VbenFormSchema[] {
         },
       },
       fieldName: 'roles',
-      label: '角色',
+      label: '角色（生效）',
       rules: 'selectRequired',
     },
   ];

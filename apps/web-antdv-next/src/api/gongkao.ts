@@ -1,4 +1,4 @@
-import { requestClient } from './request';
+﻿import { requestClient } from './request';
 
 // ==================== 公考词语管理 ====================
 export interface GkCiyuParams {
@@ -68,9 +68,7 @@ export interface UpdateGkCiyuParams {
 
 // 获取词语列表（分页）
 export async function getGkCiyuListApi(params?: GkCiyuParams) {
-  return requestClient.get<GkCiyuPaginationResponse>('/api/v1/gk/ciyu', {
-    params,
-  });
+  return requestClient.get<GkCiyuPaginationResponse>('/api/v1/gk/ciyu', { params });
 }
 
 // 获取词语详情
@@ -154,9 +152,7 @@ export interface UpdateGkJingyanParams {
 
 // 获取经验列表
 export async function getGkJingyanListApi(params?: GkJingyanParams) {
-  return requestClient.get<GkJingyanPaginationResponse>('/api/v1/gk/jingyan', {
-    params,
-  });
+  return requestClient.get<GkJingyanPaginationResponse>('/api/v1/gk/jingyan', { params });
 }
 
 // 获取经验详情
@@ -172,7 +168,7 @@ export async function createGkJingyanApi(data: CreateGkJingyanParams) {
 // 更新经验
 export async function updateGkJingyanApi(
   id: number,
-  data: UpdateGkJingyanParams,
+  data: UpdateGkJingyanParams
 ) {
   return requestClient.put(`/api/v1/gk/jingyan/${id}`, data);
 }
@@ -388,9 +384,7 @@ export interface GkGangweiPaginationResponse {
 
 // 获取岗位列表（分页）
 export async function getGkGangweiListApi(params?: GkGangweiParams) {
-  return requestClient.get<GkGangweiPaginationResponse>('/api/v1/gk/gangwei', {
-    params,
-  });
+  return requestClient.get<GkGangweiPaginationResponse>('/api/v1/gk/gangwei', { params });
 }
 
 // 获取岗位详情
@@ -406,7 +400,7 @@ export async function createGkGangweiApi(data: CreateGkGangweiParams) {
 // 更新岗位
 export async function updateGkGangweiApi(
   id: number,
-  data: UpdateGkGangweiParams,
+  data: UpdateGkGangweiParams
 ) {
   return requestClient.put(`/api/v1/gk/gangwei/${id}`, data);
 }
@@ -604,9 +598,7 @@ export interface UpdateGkShipingParams {
 
 // 获取时评列表
 export async function getGkShipingListApi(params?: GkShipingParams) {
-  return requestClient.get<GkShipingPaginationResponse>('/api/v1/gk/shiping', {
-    params,
-  });
+  return requestClient.get<GkShipingPaginationResponse>('/api/v1/gk/shiping', { params });
 }
 
 // 获取时评详情
@@ -622,7 +614,7 @@ export async function createGkShipingApi(data: CreateGkShipingParams) {
 // 更新时评
 export async function updateGkShipingApi(
   id: number,
-  data: UpdateGkShipingParams,
+  data: UpdateGkShipingParams
 ) {
   return requestClient.put(`/api/v1/gk/shiping/${id}`, data);
 }
@@ -677,9 +669,7 @@ export interface UpdateGkShizhenParams {
 
 // 获取时政列表
 export async function getGkShizhenListApi(params?: GkShizhenParams) {
-  return requestClient.get<GkShizhenPaginationResponse>('/api/v1/gk/shizhen', {
-    params,
-  });
+  return requestClient.get<GkShizhenPaginationResponse>('/api/v1/gk/shizhen', { params });
 }
 
 // 获取时政详情
@@ -695,7 +685,7 @@ export async function createGkShizhenApi(data: CreateGkShizhenParams) {
 // 更新时政
 export async function updateGkShizhenApi(
   id: number,
-  data: UpdateGkShizhenParams,
+  data: UpdateGkShizhenParams
 ) {
   return requestClient.put(`/api/v1/gk/shizhen/${id}`, data);
 }
@@ -776,7 +766,7 @@ export interface UpdateGkZhentiQuestionParams {
 
 // 获取真题列表
 export async function getGkZhentiQuestionListApi(
-  params?: GkZhentiQuestionParams,
+  params?: GkZhentiQuestionParams
 ) {
   return requestClient.get<GkZhentiQuestionPaginationResponse>(
     '/api/v1/gk/zhenti/question',
@@ -793,7 +783,7 @@ export async function getGkZhentiQuestionDetailApi(id: number) {
 
 // 创建真题
 export async function createGkZhentiQuestionApi(
-  data: CreateGkZhentiQuestionParams,
+  data: CreateGkZhentiQuestionParams
 ) {
   return requestClient.post('/api/v1/gk/zhenti/question', data);
 }
@@ -801,7 +791,7 @@ export async function createGkZhentiQuestionApi(
 // 更新真题
 export async function updateGkZhentiQuestionApi(
   id: number,
-  data: UpdateGkZhentiQuestionParams,
+  data: UpdateGkZhentiQuestionParams
 ) {
   return requestClient.put(`/api/v1/gk/zhenti/question/${id}`, data);
 }
@@ -871,7 +861,7 @@ export interface UpdateGkZhentiMaterialParams {
 
 // 获取材料列表
 export async function getGkZhentiMaterialListApi(
-  params?: GkZhentiMaterialParams,
+  params?: GkZhentiMaterialParams
 ) {
   return requestClient.get<GkZhentiMaterialPaginationResponse>(
     '/api/v1/gk/zhenti/material',
@@ -888,7 +878,7 @@ export async function getGkZhentiMaterialDetailApi(id: number) {
 
 // 创建材料
 export async function createGkZhentiMaterialApi(
-  data: CreateGkZhentiMaterialParams,
+  data: CreateGkZhentiMaterialParams
 ) {
   return requestClient.post('/api/v1/gk/zhenti/material', data);
 }
@@ -896,7 +886,7 @@ export async function createGkZhentiMaterialApi(
 // 更新材料
 export async function updateGkZhentiMaterialApi(
   id: number,
-  data: UpdateGkZhentiMaterialParams,
+  data: UpdateGkZhentiMaterialParams
 ) {
   return requestClient.put(`/api/v1/gk/zhenti/material/${id}`, data);
 }
@@ -954,7 +944,7 @@ export async function getGkZhentiAnswersByQuestionApi(questionId: number) {
 
 // 创建答案
 export async function createGkZhentiAnswerApi(
-  data: CreateGkZhentiAnswerParams,
+  data: CreateGkZhentiAnswerParams
 ) {
   return requestClient.post('/api/v1/gk/zhenti/answer', data);
 }
@@ -962,7 +952,7 @@ export async function createGkZhentiAnswerApi(
 // 更新答案
 export async function updateGkZhentiAnswerApi(
   id: number,
-  data: UpdateGkZhentiAnswerParams,
+  data: UpdateGkZhentiAnswerParams
 ) {
   return requestClient.put(`/api/v1/gk/zhenti/answer/${id}`, data);
 }
@@ -1022,9 +1012,7 @@ export async function getGkCategoryListApi(params?: GkCategoryParams) {
 
 // 获取分类树
 export async function getGkCategoryTreeApi(params?: GkCategoryParams) {
-  return requestClient.get<GkCategoryResult[]>('/api/v1/gk/category/tree', {
-    params,
-  });
+  return requestClient.get<GkCategoryResult[]>('/api/v1/gk/category/tree', { params });
 }
 
 // 获取分类详情
@@ -1040,7 +1028,7 @@ export async function createGkCategoryApi(data: CreateGkCategoryParams) {
 // 更新分类
 export async function updateGkCategoryApi(
   id: number,
-  data: UpdateGkCategoryParams,
+  data: UpdateGkCategoryParams
 ) {
   return requestClient.put(`/api/v1/gk/category/${id}`, data);
 }
@@ -1091,9 +1079,7 @@ export interface UpdateGkGuanmeiParams {
 
 // 获取官媒学言语列表
 export async function getGkGuanmeiListApi(params?: GkGuanmeiParams) {
-  return requestClient.get<GkGuanmeiPaginationResponse>('/api/v1/gk/guanmei', {
-    params,
-  });
+  return requestClient.get<GkGuanmeiPaginationResponse>('/api/v1/gk/guanmei', { params });
 }
 
 // 获取官媒学言语详情
@@ -1109,7 +1095,7 @@ export async function createGkGuanmeiApi(data: CreateGkGuanmeiParams) {
 // 更新官媒学言语
 export async function updateGkGuanmeiApi(
   id: number,
-  data: UpdateGkGuanmeiParams,
+  data: UpdateGkGuanmeiParams
 ) {
   return requestClient.put(`/api/v1/gk/guanmei/${id}`, data);
 }
@@ -1236,47 +1222,49 @@ export interface UpdateGkContentParams {
 
 // 获取内容列表
 export async function getGkContentListApi(params?: GkContentParams) {
-  return requestClient.get<GkContentPaginationResponse>('/api/v1/gk/content', {
-    params,
-  });
+  return requestClient.get<GkContentPaginationResponse>('/api/v1/content/list', { params });
 }
 
 // 获取内容详情
 export async function getGkContentDetailApi(id: number) {
-  return requestClient.get<GkContentResult>(`/api/v1/gk/content/${id}`);
+  return requestClient.get<GkContentResult>(`/api/v1/content/${id}`);
 }
 
 // 通过别名获取内容详情
 export async function getGkContentBySlugApi(slug: string) {
-  return requestClient.get<GkContentResult>(`/api/v1/gk/content/slug/${slug}`);
+  return requestClient.get<GkContentResult>(`/api/v1/content/slug/${slug}`);
 }
 
 // 获取标签列表
 export async function getGkContentTagsApi(limit = 50) {
-  return requestClient.get<string[]>('/api/v1/gk/content/tags', {
+  return requestClient.get<string[]>('/api/v1/content/tags', {
     params: { limit },
   });
 }
 
 // 创建内容
 export async function createGkContentApi(data: CreateGkContentParams) {
-  return requestClient.post('/api/v1/gk/content', data);
+  return requestClient.post('/api/v1/content', { ...data, app_code: 'gongkao' });
 }
 
 // 更新内容
 export async function updateGkContentApi(
   id: number,
-  data: UpdateGkContentParams,
+  data: UpdateGkContentParams
 ) {
-  return requestClient.put(`/api/v1/gk/content/${id}`, data);
+  return requestClient.put(`/api/v1/content/${id}`, data);
 }
 
 // 删除内容
 export async function deleteGkContentApi(ids: number[]) {
-  return requestClient.delete('/api/v1/gk/content', { data: { ids } });
+  return requestClient.delete('/api/v1/content', { params: { pk: ids } });
 }
 
 // 增加浏览量
 export async function incrementGkContentViewApi(id: number) {
-  return requestClient.post(`/api/v1/gk/content/${id}/view`);
+  return requestClient.post(`/api/v1/content/${id}/view`);
 }
+
+
+
+

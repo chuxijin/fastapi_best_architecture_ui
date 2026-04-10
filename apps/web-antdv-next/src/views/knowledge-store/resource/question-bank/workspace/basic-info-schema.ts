@@ -1,5 +1,11 @@
 import type { VbenFormSchema } from '#/adapter/form';
 
+const QUESTION_BANK_CATEGORY_TREE_PARAMS = {
+  app_code: 'youanshang',
+  type: 'product_catalog',
+  status: true,
+} as const;
+
 export const basicInfoSchema: VbenFormSchema[] = [
   {
     component: 'Input',
@@ -25,7 +31,7 @@ export const basicInfoSchema: VbenFormSchema[] = [
       allowClear: true,
       api: async () => {
         const { getSysCategoryTreeApi } = await import('#/api');
-        return getSysCategoryTreeApi({});
+        return getSysCategoryTreeApi(QUESTION_BANK_CATEGORY_TREE_PARAMS);
       },
       childrenField: 'children',
       class: 'w-full',
