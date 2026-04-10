@@ -1,4 +1,4 @@
-<script setup lang="ts">
+﻿<script setup lang="ts">
 import type {
   BankResult,
   ChapterTreeResult,
@@ -34,7 +34,7 @@ import {
   getSysCategoryTreeApi,
   updateQuestionApi,
 } from '#/api';
-import TiptapEditor from '#/components/TiptapEditor/index.vue';
+import HaloEditorWrapper from '#/components/HaloEditor/HaloEditorWrapper.vue';
 
 import { questionTypeMap } from '../workspace/components/question-data';
 
@@ -1044,7 +1044,7 @@ onMounted(() => {
         :destroy-on-hidden="true"
         :mask-closable="false"
       >
-        <TiptapEditor v-model="stemEditorContent" :height="320" />
+        <HaloEditorWrapper v-model="stemEditorContent" :height="320" />
         <template #footer>
           <div class="flex items-center justify-end gap-2">
             <Button @click="stemEditorOpen = false">取消</Button>
@@ -1115,7 +1115,7 @@ onMounted(() => {
         :destroy-on-hidden="true"
         :mask-closable="false"
       >
-        <TiptapEditor v-model="analysisEditorContent" :height="320" />
+        <HaloEditorWrapper v-model="analysisEditorContent" :height="320" />
         <template #footer>
           <div class="flex items-center justify-end gap-2">
             <Button @click="analysisEditorOpen = false">取消</Button>
@@ -1171,7 +1171,7 @@ onMounted(() => {
         :destroy-on-hidden="true"
         :mask-closable="false"
       >
-        <TiptapEditor v-model="optionEditorContent" :height="260" />
+        <HaloEditorWrapper v-model="optionEditorContent" :height="260" />
         <template #footer>
           <div class="flex items-center justify-end gap-2">
             <Button @click="optionEditorOpen = false">取消</Button>
@@ -1184,3 +1184,6 @@ onMounted(() => {
     </div>
   </Page>
 </template>
+
+
+

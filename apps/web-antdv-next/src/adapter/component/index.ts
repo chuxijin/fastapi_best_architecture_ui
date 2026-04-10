@@ -35,72 +35,66 @@ import { isEmpty } from '@vben/utils';
 
 import { message, Modal, notification } from 'antdv-next';
 
-const AutoComplete = defineAsyncComponent(
-  () => import('antdv-next/dist/auto-complete/index'),
+type AntdvModule = typeof import('antdv-next');
+
+const loadAntdv = () => import('antdv-next') as Promise<AntdvModule>;
+
+const AutoComplete = defineAsyncComponent(() =>
+  loadAntdv().then((res) => res.AutoComplete),
 );
-const Button = defineAsyncComponent(
-  () => import('antdv-next/dist/button/index'),
+const Button = defineAsyncComponent(() => loadAntdv().then((res) => res.Button));
+const Checkbox = defineAsyncComponent(() =>
+  loadAntdv().then((res) => res.Checkbox),
 );
-const Checkbox = defineAsyncComponent(
-  () => import('antdv-next/dist/checkbox/index'),
+const CheckboxGroup = defineAsyncComponent(() =>
+  loadAntdv().then((res) => res.CheckboxGroup),
 );
-const CheckboxGroup = defineAsyncComponent(
-  () => import('antdv-next/dist/checkbox/Group'),
+const DatePicker = defineAsyncComponent(() =>
+  loadAntdv().then((res) => res.DatePicker),
 );
-const DatePicker = defineAsyncComponent(
-  () => import('antdv-next/dist/date-picker/index'),
+const Divider = defineAsyncComponent(() =>
+  loadAntdv().then((res) => res.Divider),
 );
-const Divider = defineAsyncComponent(
-  () => import('antdv-next/dist/divider/index'),
-);
-const Input = defineAsyncComponent(() => import('antdv-next/dist/input/index'));
-const InputNumber = defineAsyncComponent(
-  () => import('antdv-next/dist/input-number/index'),
+const Input = defineAsyncComponent(() => loadAntdv().then((res) => res.Input));
+const InputNumber = defineAsyncComponent(() =>
+  loadAntdv().then((res) => res.InputNumber),
 );
 const InputPassword = defineAsyncComponent(() =>
-  import('antdv-next/dist/input/index').then((res) => res.InputPassword),
+  loadAntdv().then((res) => res.InputPassword),
 );
-const Mentions = defineAsyncComponent(
-  () => import('antdv-next/dist/mentions/index'),
+const Mentions = defineAsyncComponent(() =>
+  loadAntdv().then((res) => res.Mentions),
 );
-const Radio = defineAsyncComponent(() => import('antdv-next/dist/radio/index'));
+const Radio = defineAsyncComponent(() => loadAntdv().then((res) => res.Radio));
 const RadioGroup = defineAsyncComponent(() =>
-  import('antdv-next/dist/radio/index').then((res) => res.RadioGroup),
+  loadAntdv().then((res) => res.RadioGroup),
 );
 const RangePicker = defineAsyncComponent(() =>
-  import('antdv-next/dist/date-picker/index').then(
-    (res) => res.DateRangePicker,
-  ),
+  loadAntdv().then((res) => res.DateRangePicker),
 );
-const Rate = defineAsyncComponent(() => import('antdv-next/dist/rate/index'));
-const Select = defineAsyncComponent(
-  () => import('antdv-next/dist/select/index'),
+const Rate = defineAsyncComponent(() => loadAntdv().then((res) => res.Rate));
+const Select = defineAsyncComponent(() => loadAntdv().then((res) => res.Select));
+const Space = defineAsyncComponent(() => loadAntdv().then((res) => res.Space));
+const Switch = defineAsyncComponent(() => loadAntdv().then((res) => res.Switch));
+const Textarea = defineAsyncComponent(() =>
+  loadAntdv().then((res) => res.TextArea),
 );
-const Space = defineAsyncComponent(() => import('antdv-next/dist/space/index'));
-const Switch = defineAsyncComponent(
-  () => import('antdv-next/dist/switch/index'),
+const TimePicker = defineAsyncComponent(() =>
+  loadAntdv().then((res) => res.TimePicker),
 );
-const Textarea = defineAsyncComponent(
-  () => import('antdv-next/dist/input/TextArea'),
+const TreeSelect = defineAsyncComponent(() =>
+  loadAntdv().then((res) => res.TreeSelect),
 );
-const TimePicker = defineAsyncComponent(
-  () => import('antdv-next/dist/time-picker/index'),
+const Cascader = defineAsyncComponent(() =>
+  loadAntdv().then((res) => res.Cascader),
 );
-const TreeSelect = defineAsyncComponent(
-  () => import('antdv-next/dist/tree-select/index'),
-);
-const Cascader = defineAsyncComponent(
-  () => import('antdv-next/dist/cascader/index'),
-);
-const Upload = defineAsyncComponent(
-  () => import('antdv-next/dist/upload/index'),
-);
-const Image = defineAsyncComponent(() => import('antdv-next/dist/image/index'));
+const Upload = defineAsyncComponent(() => loadAntdv().then((res) => res.Upload));
+const Image = defineAsyncComponent(() => loadAntdv().then((res) => res.Image));
 const PreviewGroup = defineAsyncComponent(() =>
-  import('antdv-next/dist/image/index').then((res) => res.ImagePreviewGroup),
+  loadAntdv().then((res) => res.ImagePreviewGroup),
 );
-const TiptapEditor = defineAsyncComponent(
-  () => import('../../components/TiptapEditor/index.vue'),
+const HaloEditorWrapper = defineAsyncComponent(
+  () => import('../../components/HaloEditor/HaloEditorWrapper.vue'),
 );
 
 const withDefaultPlaceholder = <T extends Component>(
@@ -520,7 +514,7 @@ export type ComponentType =
   | 'Switch'
   | 'Textarea'
   | 'TimePicker'
-  | 'TiptapEditor'
+  | 'HaloEditorWrapper'
   | 'TreeSelect'
   | 'Upload'
   | BaseFormComponentType;
@@ -583,7 +577,7 @@ async function initComponentAdapter() {
     Space,
     Switch,
     Textarea: withDefaultPlaceholder(Textarea, 'input'),
-    TiptapEditor,
+    HaloEditorWrapper,
     TimePicker,
     TreeSelect: withDefaultPlaceholder(TreeSelect, 'select'),
     Upload: withPreviewUpload(),

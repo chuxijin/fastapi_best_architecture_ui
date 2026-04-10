@@ -2,6 +2,7 @@ import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import { defineConfig } from '@vben/vite-config';
+import Icons from 'unplugin-icons/vite';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
@@ -10,6 +11,9 @@ export default defineConfig(async (): Promise<any> => {
   return {
     application: {},
     vite: {
+      plugins: [
+        Icons({ compiler: 'vue3' }),
+      ],
       optimizeDeps: {
         exclude: ['@v-c/util', '@v-c/tabs', 'antdv-next', '@v-c/dropdown', '@v-c/menu', '@v-c/select'],
       },
@@ -21,8 +25,12 @@ export default defineConfig(async (): Promise<any> => {
             find: /^antdv-next$/,
             replacement: resolve(
               __dirname,
-              '../../node_modules/.pnpm/antdv-next@1.1.0_vue@3.5.28_typescript@5.9.3_/node_modules/antdv-next/dist/antd.esm.js',
+              'node_modules/antdv-next/dist/antd.esm.js',
             ),
+          },
+          {
+            find: '@HaloEditor',
+            replacement: resolve(__dirname, 'src/components/HaloEditor'),
           },
           {
             find: '@halo-dev/api-client',

@@ -1,4 +1,4 @@
-import type { VbenFormSchema } from '#/adapter/form';
+﻿import type { VbenFormSchema } from '#/adapter/form';
 import type { OnActionClickFn, VxeGridProps } from '#/adapter/vxe-table';
 import type { GkShizhenResult } from '#/api';
 
@@ -61,7 +61,7 @@ export const schema: VbenFormSchema[] = [
     },
   },
   {
-    component: 'TiptapEditor',
+    component: 'HaloEditorWrapper',
     fieldName: 'original',
     label: '原文',
     componentProps: {
@@ -69,7 +69,7 @@ export const schema: VbenFormSchema[] = [
     },
   },
   {
-    component: 'TiptapEditor',
+    component: 'HaloEditorWrapper',
     fieldName: 'summary',
     label: '主要内容',
     componentProps: {
@@ -77,3 +77,4 @@ export const schema: VbenFormSchema[] = [
     },
   },
 ];
+

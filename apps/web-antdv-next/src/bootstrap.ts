@@ -9,6 +9,8 @@ import '@vben/styles/antdv-next';
 
 import { useTitle } from '@vueuse/core';
 import Antd from 'antdv-next';
+import FloatingVue from 'floating-vue';
+import 'floating-vue/dist/style.css';
 
 import { $t, setupI18n } from '#/locales';
 
@@ -16,6 +18,7 @@ import { initComponentAdapter } from './adapter/component';
 import { initSetupVbenForm } from './adapter/form';
 import App from './app.vue';
 import { router } from './router';
+import { registerHaloGlobalStubs } from './stubs/halo-globals';
 
 async function bootstrap(namespace: string) {
   // 初始化组件适配器
@@ -34,6 +37,8 @@ async function bootstrap(namespace: string) {
   // });
 
   const app = createApp(App);
+
+  registerHaloGlobalStubs(app);
 
   // 注册v-loading指令
   registerLoadingDirective(app, {
@@ -56,6 +61,7 @@ async function bootstrap(namespace: string) {
 
   // 全局加载 antdv
   app.use(Antd);
+  app.use(FloatingVue);
 
   // 配置路由及路由守卫
   app.use(router);

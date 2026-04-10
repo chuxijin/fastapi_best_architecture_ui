@@ -1,4 +1,4 @@
-<script lang="ts" setup>
+﻿<script lang="ts" setup>
 import type { VbenFormProps } from '@vben/common-ui';
 
 import type {
@@ -32,7 +32,7 @@ import {
   getGkContentListApi,
   updateGkContentApi,
 } from '#/api/gongkao';
-import TiptapEditor from '#/components/TiptapEditor/index.vue';
+import HaloEditorWrapper from '#/components/HaloEditor/HaloEditorWrapper.vue';
 
 import { querySchema, useColumns } from './data';
 
@@ -575,7 +575,7 @@ onMounted(() => {
 
           <div class="form-item">
             <label class="form-label">内容</label>
-            <TiptapEditor
+            <HaloEditorWrapper
               v-model="contentHtml"
               v-model:json-value="contentJson"
               :height="500"
@@ -754,3 +754,5 @@ onMounted(() => {
   }
 }
 </style>
+
+

@@ -1,4 +1,4 @@
-import type { VbenFormSchema } from '#/adapter/form';
+﻿import type { VbenFormSchema } from '#/adapter/form';
 import type { OnActionClickFn, VxeGridProps } from '#/adapter/vxe-table';
 import type { GkGuanmeiResult } from '#/api';
 
@@ -84,7 +84,7 @@ export const schema: VbenFormSchema[] = [
     },
   },
   {
-    component: 'TiptapEditor',
+    component: 'HaloEditorWrapper',
     fieldName: 'left_content',
     label: '左栏内容（文段）',
     formItemClass: 'col-span-1',
@@ -93,7 +93,7 @@ export const schema: VbenFormSchema[] = [
     },
   },
   {
-    component: 'TiptapEditor',
+    component: 'HaloEditorWrapper',
     fieldName: 'right_content',
     label: '右栏内容（解析）',
     formItemClass: 'col-span-1',
@@ -102,3 +102,4 @@ export const schema: VbenFormSchema[] = [
     },
   },
 ];
+

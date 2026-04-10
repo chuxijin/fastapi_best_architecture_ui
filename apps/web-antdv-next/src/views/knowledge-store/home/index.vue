@@ -12,11 +12,12 @@ import {
 import { Button, Modal } from 'ant-design-vue';
 
 import {
-  createJiaEditor,
-  DEFAULT_JIA_EDITOR_CONTENT,
-  JiaEditor,
-  type VueEditor,
-} from '#/components/JiaEditor';
+  RichTextEditor as HaloEditor,
+  ExtensionsKit,
+  VueEditor,
+} from '#/components/HaloEditor';
+
+const DEFAULT_CONTENT = '<p>Hello! 这是一个基础版 HaloEditor，可先直接输入和编辑内容。</p>';
 
 interface StatItem {
   icon: any;
@@ -134,7 +135,7 @@ const operationTools: OperationTool[] = [
 const editorVisible = ref(false);
 const editorLoading = ref(false);
 const editor = shallowRef<VueEditor>();
-const editorStatus = ref('已切换到最新 JiaEditor，内置 HTML / Markdown 编辑块');
+const editorStatus = ref('已切换到最新 JiaEditor，当前为精简稳定模式');
 
 async function openEditor() {
   editorVisible.value = true;
@@ -144,11 +145,50 @@ async function openEditor() {
   }
 
   editorLoading.value = true;
-  editorStatus.value = '正在初始化最新 JiaEditor...';
+  editorStatus.value = '正在初始化最新 JiaEditor 精简稳定模式...';
 
   try {
-    editor.value = createJiaEditor(DEFAULT_JIA_EDITOR_CONTENT);
-    editorStatus.value = '最新 JiaEditor 已就绪，内置 HTML / Markdown 编辑块';
+    editor.value = new VueEditor({
+      content: DEFAULT_CONTENT,
+      extensions: [
+        ExtensionsKit.configure({
+          codeBlock: {
+            languages: [
+              { label: 'Auto', value: 'auto' },
+              { label: 'None', value: 'none' },
+              { label: 'Plain Text', value: 'plaintext' },
+              { label: 'ABAP', value: 'abap' },
+              { label: 'ActionScript', value: 'actionscript' },
+              { label: 'Ada', value: 'ada' },
+              { label: 'Angular HTML', value: 'angular' },
+              { label: 'Angular TypeScript', value: 'angular-ts' },
+              { label: 'Bash', value: 'bash' },
+              { label: 'C', value: 'c' },
+              { label: 'C++', value: 'cpp' },
+              { label: 'C#', value: 'csharp' },
+              { label: 'CSS', value: 'css' },
+              { label: 'Dart', value: 'dart' },
+              { label: 'Go', value: 'go' },
+              { label: 'HTML', value: 'xml' },
+              { label: 'Java', value: 'java' },
+              { label: 'JavaScript', value: 'javascript' },
+              { label: 'JSON', value: 'json' },
+              { label: 'Kotlin', value: 'kotlin' },
+              { label: 'Markdown', value: 'markdown' },
+              { label: 'PHP', value: 'php' },
+              { label: 'Python', value: 'python' },
+              { label: 'Ruby', value: 'ruby' },
+              { label: 'Rust', value: 'rust' },
+              { label: 'SQL', value: 'sql' },
+              { label: 'Swift', value: 'swift' },
+              { label: 'TypeScript', value: 'typescript' },
+              { label: 'YAML', value: 'yaml' },
+            ]
+          }
+        })
+      ],
+    });
+    editorStatus.value = '最新 HaloEditor 已就绪，已加载全部内置原生丰富插件功能';
   } catch (e) {
     editorStatus.value = `JiaEditor 加载失败: ${e}`;
     console.error('[JiaEditor] Init failed:', e);
@@ -192,9 +232,9 @@ onBeforeUnmount(() => {
         class="overflow-hidden rounded-lg border border-gray-200"
         style="min-height: 400px"
       >
-        <JiaEditor :editor="editor" locale="zh-CN" />
+        <HaloEditor :editor="editor" locale="zh-CN" />
       </div>
-      <div v-else class="py-20 text-center text-red-500">JiaEditor 加载失败</div>
+      <div v-else class="py-20 text-center text-red-500">HaloEditor 加载失败</div>
     </Modal>
 
     <div class="rounded-lg border bg-card p-6 shadow-sm">

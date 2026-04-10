@@ -1,4 +1,4 @@
-import type { Locale } from 'antdv-next/dist/locale/index';
+import type { ConfigProviderProps } from 'antdv-next';
 
 import type { App } from 'vue';
 
@@ -13,11 +13,12 @@ import {
 } from '@vben/locales';
 import { preferences } from '@vben/preferences';
 
-import antdEnLocale from 'antdv-next/dist/locale/en_US';
-import antdDefaultLocale from 'antdv-next/dist/locale/zh_CN';
 import dayjs from 'dayjs';
 
-const antdLocale = ref<Locale>(antdDefaultLocale);
+type AntdvLocale = NonNullable<ConfigProviderProps['locale']>;
+
+const antdLocale = ref<AntdvLocale>({} as AntdvLocale);
+let antdLocalesCache: null | Record<string, AntdvLocale> = null;
 
 const modules = import.meta.glob('./langs/**/*.json');
 
@@ -86,13 +87,25 @@ async function loadDayjsLocale(lang: SupportedLanguagesType) {
  * @param lang
  */
 async function loadAntdLocale(lang: SupportedLanguagesType) {
+  if (!antdLocalesCache) {
+    const localesModule = await import('antdv-next/dist/antd-with-locales.esm.js');
+    antdLocalesCache = localesModule.locales;
+  }
+
+  const fallbackLocale =
+    antdLocalesCache?.zh_CN ?? antdLocalesCache?.en_US ?? ({} as AntdvLocale);
+
   switch (lang) {
     case 'en-US': {
-      antdLocale.value = antdEnLocale;
+      antdLocale.value = antdLocalesCache?.en_US ?? fallbackLocale;
       break;
     }
     case 'zh-CN': {
-      antdLocale.value = antdDefaultLocale;
+      antdLocale.value = antdLocalesCache?.zh_CN ?? fallbackLocale;
+      break;
+    }
+    default: {
+      antdLocale.value = fallbackLocale;
       break;
     }
   }

@@ -1,4 +1,4 @@
-<script setup lang="ts">
+﻿<script setup lang="ts">
 import type { DifficultyType, FileInfo, QuestionType } from '#/api';
 
 import { onMounted, ref, watch } from 'vue';
@@ -27,7 +27,7 @@ import {
 import { getQuestionDetailApi } from '#/api';
 import { requestClient } from '#/api/request';
 import MediaPicker from '#/components/MediaPicker.vue';
-import TiptapEditor from '#/components/TiptapEditor/index.vue';
+import HaloEditorWrapper from '#/components/HaloEditor/HaloEditorWrapper.vue';
 
 import ShortAnswerEditor from './ShortAnswerEditor.vue';
 
@@ -690,7 +690,7 @@ defineExpose({
             从媒体库选择
           </Button>
         </div>
-        <TiptapEditor v-model="formData.stem" :height="150" />
+        <HaloEditorWrapper v-model="formData.stem" :height="150" />
       </Col>
 
       <!-- 关联材料 -->
@@ -743,7 +743,7 @@ defineExpose({
                 <MaterialSymbolsDelete class="size-4" />
               </Button>
             </div>
-            <TiptapEditor v-model="option.content" :height="100" />
+            <HaloEditorWrapper v-model="option.content" :height="100" />
           </div>
         </Col>
 
@@ -868,7 +868,7 @@ defineExpose({
             从媒体库选择
           </Button>
         </div>
-        <TiptapEditor v-model="analysisContent" :height="150" />
+        <HaloEditorWrapper v-model="analysisContent" :height="150" />
       </Col>
 
       <!-- 扩展信息 -->
@@ -954,3 +954,6 @@ defineExpose({
   border-radius: 6px;
 }
 </style>
+
+
+

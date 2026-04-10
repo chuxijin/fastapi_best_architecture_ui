@@ -4,6 +4,7 @@
   "compilerOptions": {
     "paths": {
       "#/*": ["./src/*"],
+      "@HaloEditor/*": ["./src/components/HaloEditor/*"],
       "@halo-dev/api-client": ["./src/stubs/halo-api-client.ts"],
       "@halo-dev/components": ["./src/stubs/halo-components.ts"],
       "@halo-dev/ui-shared": ["./src/stubs/halo-ui-shared.ts"],
