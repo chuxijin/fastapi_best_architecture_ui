@@ -29,7 +29,7 @@ const formSchema = computed((): VbenFormSchema[] => {
 });
 
 function handleSubmit(value: Recordable<any>) {
-  console.log('reset email:', value);
+  void value;
 }
 </script>
 

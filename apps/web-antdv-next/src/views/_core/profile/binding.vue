@@ -17,6 +17,7 @@ import {
 
 const bindings = ref<string[]>([]);
 const loading = ref<boolean>(false);
+const actionLoadingSource = ref<null | string>(null);
 
 const securityOptions = computed<
   {
@@ -52,6 +53,7 @@ const getBindings = async () => {
 };
 
 const OAuth2Binding = async (ob: OAuth2BindingParams) => {
+  actionLoadingSource.value = ob.source;
   try {
     switch (ob.source) {
       case 'Github': {
@@ -70,6 +72,7 @@ const OAuth2Binding = async (ob: OAuth2BindingParams) => {
     }
   } catch (error) {
     console.error(error);
+    actionLoadingSource.value = null;
   }
 };
 
@@ -78,12 +81,15 @@ function deleteConfirm(ob: OAuth2BindingParams) {
     icon: 'warning',
     content: '确认解绑此账号吗？',
   }).then(async () => {
+    actionLoadingSource.value = ob.source;
     try {
       await deleteOAuth2Binding({ source: ob.source });
       message.success($t('ui.actionMessage.deleteSuccess'));
       await getBindings();
     } catch (error) {
       console.error(error);
+    } finally {
+      actionLoadingSource.value = null;
     }
   });
 }
@@ -126,11 +132,17 @@ onMounted(() => {
         <a-button
           v-if="!item.status"
           type="primary"
+          :loading="actionLoadingSource === item.source"
           @click="OAuth2Binding({ source: item.source })"
         >
           绑定
         </a-button>
-        <a-button v-else danger @click="deleteConfirm({ source: item.source })">
+        <a-button
+          v-else
+          danger
+          :loading="actionLoadingSource === item.source"
+          @click="deleteConfirm({ source: item.source })"
+        >
           解绑
         </a-button>
       </div>

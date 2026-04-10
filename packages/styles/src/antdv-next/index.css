@@ -36,7 +36,17 @@
 
 .ant-message-notice-content,
 .ant-notification-notice {
-  @apply dark:border-border/60 dark:border;
+  &:is(.dark *) {
+    border-color: hsl(var(--border) / 60%);
+    border-width: 1px;
+  }
+}
+
+/* Tailwind v4 utilities payload before antd css-in-js width defaults */
+.ant-input-number.w-full,
+.ant-input-number-affix-wrapper.w-full,
+.ant-input-number-group-wrapper.w-full {
+  width: 100%;
 }
 
 .form-valid-error {
