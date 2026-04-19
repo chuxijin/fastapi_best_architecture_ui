@@ -1,29 +1,33 @@
-﻿<script lang="ts" setup>
-import type { VbenFormProps } from '@vben/common-ui';
-
-import type {
-  OnActionClickParams,
-  VxeTableGridOptions,
-} from '#/adapter/vxe-table';
+<script lang="ts" setup>
 import type { CreateGkContentParams, GkContentListResult } from '#/api';
 import type { SysCategoryTreeResult } from '#/api/category';
 
-import { computed, onMounted, ref } from 'vue';
+import { computed, onMounted, ref, createVNode } from 'vue';
+import { useRouter } from 'vue-router';
 
 import { Page, useVbenModal, VbenButton } from '@vben/common-ui';
-import { MaterialSymbolsAdd } from '@vben/icons';
+import { MaterialSymbolsAdd, AntDesignMoreOutlined as MoreOutlined, AntDesignEyeOutlined as EyeOutlined, AntDesignReloadOutlined as ReloadOutlined, AntDesignExclamationCircleOutlined as ExclamationCircleOutlined } from '@vben/icons';
 import { $t } from '@vben/locales';
 
 import {
+  Button as AButton,
   Cascader,
   DatePicker,
+  Dropdown,
   Input,
   InputNumber,
+  List,
+  Menu,
+  MenuItem,
+  MenuDivider,
   message,
+  Pagination,
+  Select,
   Switch,
+  Tag,
+  Modal as AntModal
 } from 'ant-design-vue';
 
-import { useVbenVxeGrid } from '#/adapter/vxe-table';
 import { getSysCategoryTreeApi } from '#/api/category';
 import {
   createGkContentApi,
@@ -33,8 +37,6 @@ import {
   updateGkContentApi,
 } from '#/api/gongkao';
 import HaloEditorWrapper from '#/components/HaloEditor/HaloEditorWrapper.vue';
-
-import { querySchema, useColumns } from './data';
 
 interface FormContentData extends CreateGkContentParams {
   id?: number;
@@ -55,44 +57,73 @@ interface HaloContentMeta {
   use_raw_content: boolean;
 }
 
-const formOptions: VbenFormProps = {
-  collapsed: true,
-  showCollapseButton: true,
-  submitButtonOptions: {
-    content: $t('common.form.query'),
-  },
-  schema: querySchema,
-};
+const listData = ref<GkContentListResult[]>([]);
+const isLoading = ref(false);
+const totalCount = ref(0);
+const searchParams = ref({
+  page: 1,
+  size: 20,
+  title: '',
+  is_published: undefined as boolean | undefined,
+});
 
-const gridOptions: VxeTableGridOptions<GkContentListResult> = {
-  rowConfig: {
-    keyField: 'id',
-  },
-  checkboxConfig: {
-    highlight: true,
-  },
-  height: 'auto',
-  toolbarConfig: {
-    refresh: true,
-    refreshOptions: { code: 'query' },
-    custom: true,
-    zoom: true,
-  },
-  columns: useColumns(onActionClick),
-  proxyConfig: {
-    ajax: {
-      query: async ({ page }, formValues) => {
-        return await getGkContentListApi({
-          page: page.currentPage,
-          size: page.pageSize,
-          ...formValues,
-        });
-      },
+async function loadData() {
+  isLoading.value = true;
+  try {
+    const res = await getGkContentListApi(searchParams.value);
+    listData.value = res.items || [];
+    totalCount.value = res.total || 0;
+  } catch (error) {
+    console.error(error);
+  } finally {
+    isLoading.value = false;
+  }
+}
+
+function onRefresh() {
+  loadData();
+}
+
+function handleDelete(item: GkContentListResult) {
+  AntModal.confirm({
+    title: '确定要删除此内容吗？',
+    icon: createVNode(ExclamationCircleOutlined),
+    content: `将删除《${item.title}》`,
+    okText: '确定',
+    okType: 'danger',
+    cancelText: '取消',
+    async onOk() {
+      try {
+        await deleteGkContentApi([item.id]);
+        message.success($t('ui.actionMessage.deleteSuccess', [item.title]));
+        onRefresh();
+      } catch (error) {
+        console.error('Delete failed:', error);
+      }
     },
-  },
-};
+  });
+}
+const router = useRouter();
 
-const [Grid, gridApi] = useVbenVxeGrid({ formOptions, gridOptions });
+function handleEdit(item: GkContentListResult) {
+  router.push({
+    path: `/gongkao/content/editor/${item.id}`,
+    query: { pageKey: `gongkao-editor-${item.id}` }
+  });
+}
+async function togglePublish(item: GkContentListResult, status: boolean) {
+  try {
+    const detail = await getGkContentDetailApi(item.id);
+    await updateGkContentApi(item.id, { 
+      ...detail,
+      is_published: status 
+    });
+    message.success(status ? '已发布' : '已取消发布');
+    onRefresh();
+  } catch (error) {
+    console.error('Publish update failed:', error);
+  }
+}
 
 const formData = ref<FormContentData>(createDefaultFormData());
 const contentHtml = ref('');
@@ -187,9 +218,7 @@ function resetForm() {
   tagInput.value = '';
 }
 
-function onRefresh() {
-  gridApi.query();
-}
+
 
 const [Modal, modalApi] = useVbenModal({
   destroyOnClose: true,
@@ -266,25 +295,6 @@ const [Modal, modalApi] = useVbenModal({
     haloMeta.value = normalizedMeta;
   },
 });
-
-function onActionClick({
-  code,
-  row,
-}: OnActionClickParams<GkContentListResult>) {
-  switch (code) {
-    case 'delete': {
-      deleteGkContentApi([row.id]).then(() => {
-        message.success($t('ui.actionMessage.deleteSuccess', [row.title]));
-        onRefresh();
-      });
-      break;
-    }
-    case 'edit': {
-      modalApi.setData({ id: row.id }).open();
-      break;
-    }
-  }
-}
 
 function addTag() {
   const tag = tagInput.value.trim();
@@ -380,210 +390,119 @@ async function loadCategories() {
 
 onMounted(() => {
   loadCategories();
+  loadData();
 });
 </script>
 
 <template>
   <Page auto-content-height>
-    <Grid>
-      <template #toolbar-actions>
-        <VbenButton @click="() => modalApi.setData(null).open()">
-          <MaterialSymbolsAdd class="size-5" />
-          新增内容
-        </VbenButton>
-      </template>
-    </Grid>
-
-    <Modal :title="modalTitle" class="w-[1200px]">
-      <div class="content-form">
-        <div class="form-section">
-          <div class="section-title">基础信息</div>
-
-          <div class="form-grid">
-            <div class="form-item form-item-span-2">
-              <label class="form-label">标题 *</label>
-              <Input
-                v-model:value="formData.title"
-                placeholder="请输入标题"
-                size="large"
-              />
-            </div>
-
-            <div class="form-item">
-              <label class="form-label">别名 (slug) *</label>
-              <div class="slug-field">
-                <Input
-                  v-model:value="formData.slug"
-                  placeholder="请输入 slug，或点击右侧自动生成"
-                  :maxlength="16"
-                  allow-clear
-                />
-                <a-button type="primary" @click.stop="handleGenerateSlug">
-                  自动生成
-                </a-button>
-              </div>
-            </div>
-
-            <div class="form-item">
-              <label class="form-label">分类</label>
-              <Cascader
-                v-model:value="selectedCategoryPath"
-                :options="categoryTree"
-                placeholder="请选择分类"
-                change-on-select
-                style="width: 100%"
-                :get-popup-container="getPopupContainer"
-                :show-search="{
-                  filter: (inputValue, path) =>
-                    path.some((option) =>
-                      String(option.label)
-                        .toLowerCase()
-                        .includes(inputValue.toLowerCase()),
-                    ),
-                }"
-                @change="handleCategoryChange"
-              />
-            </div>
-          </div>
+    <div class="halo-list-container">
+      <div class="halo-toolbar">
+        <div class="toolbar-left">
+          <Input.Search
+            v-model:value="searchParams.title"
+            placeholder="搜索文章标题..."
+            allow-clear
+            style="width: 260px"
+            @search="() => { searchParams.page = 1; loadData() }"
+          />
+          <Select
+            v-model:value="searchParams.is_published"
+            placeholder="所有状态"
+            allow-clear
+            style="width: 140px"
+            @change="() => { searchParams.page = 1; loadData() }"
+          >
+            <Select.Option :value="undefined">全部</Select.Option>
+            <Select.Option :value="true">已发布</Select.Option>
+            <Select.Option :value="false">草稿</Select.Option>
+          </Select>
+          <AButton @click="onRefresh" class="refresh-btn">
+            <template #icon><ReloadOutlined /></template>
+          </AButton>
         </div>
-
-        <div class="form-section">
-          <div class="section-title">摘要与标签</div>
-
-          <div class="form-item">
-            <label class="form-label">摘要</label>
-            <Input.TextArea
-              v-model:value="formData.summary"
-              placeholder="文章摘要，可选"
-              :auto-size="{ minRows: 2, maxRows: 5 }"
-              show-count
-            />
-          </div>
-
-          <div class="form-item">
-            <label class="form-label">封面图 URL</label>
-            <Input
-              v-model:value="formData.cover_image"
-              placeholder="https://example.com/cover.jpg"
-              allow-clear
-            />
-          </div>
-
-          <div class="form-item">
-            <label class="form-label">标签</label>
-            <div class="tag-editor">
-              <span v-for="tag in formData.tags" :key="tag" class="tag-item">
-                {{ tag }}
-                <span class="tag-remove" @click="removeTag(tag)">×</span>
-              </span>
-              <input
-                v-model="tagInput"
-                class="tag-input"
-                placeholder="输入标签后回车"
-                @keydown.enter.prevent="addTag"
-              />
-            </div>
-          </div>
-        </div>
-
-        <div class="form-section">
-          <div class="section-title">文章元数据（Halo）</div>
-
-          <div class="form-grid">
-            <div class="form-item">
-              <label class="form-label">内容类型</label>
-              <Input
-                v-model:value="haloMeta.content_type"
-                placeholder="例如：news / policy / guide"
-                allow-clear
-              />
-            </div>
-
-            <div class="form-item">
-              <label class="form-label">业务日期</label>
-              <DatePicker
-                v-model:value="haloMeta.daily_date"
-                value-format="YYYY-MM-DD"
-                placeholder="选择日期，可选"
-                style="width: 100%"
-                :get-popup-container="getPopupContainer"
-              />
-            </div>
-
-            <div class="form-item">
-              <label class="form-label">目录深度</label>
-              <InputNumber
-                v-model:value="haloMeta.toc_depth"
-                :min="0"
-                :max="6"
-                style="width: 100%"
-              />
-            </div>
-
-            <div class="form-item">
-              <label class="form-label">行为开关</label>
-              <div class="meta-switches">
-                <div class="control-item">
-                  <label>启用目录</label>
-                  <Switch v-model:checked="haloMeta.enable_toc" />
-                </div>
-                <div class="control-item">
-                  <label>启用评论</label>
-                  <Switch v-model:checked="haloMeta.enable_comment" />
-                </div>
-                <div class="control-item">
-                  <label>原始内容模式</label>
-                  <Switch v-model:checked="haloMeta.use_raw_content" />
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div class="form-section">
-          <div class="section-title">发布设置</div>
-
-          <div class="form-row form-controls">
-            <div class="control-item">
-              <label>发布</label>
-              <Switch v-model:checked="formData.is_published" />
-            </div>
-            <div class="control-item">
-              <label>公开</label>
-              <Switch v-model:checked="formData.is_public" />
-            </div>
-            <div class="control-item">
-              <label>置顶</label>
-              <Switch v-model:checked="formData.is_pinned" />
-            </div>
-            <div class="control-item control-item-date">
-              <label>发布时间</label>
-              <DatePicker
-                v-model:value="formData.publish_time"
-                show-time
-                value-format="YYYY-MM-DD HH:mm:ss"
-                placeholder="选择发布时间"
-                style="width: 220px"
-                :get-popup-container="getPopupContainer"
-              />
-            </div>
-          </div>
-        </div>
-
-        <div class="form-section">
-          <div class="section-title">正文内容</div>
-
-          <div class="form-item">
-            <label class="form-label">内容</label>
-            <HaloEditorWrapper
-              v-model="contentHtml"
-              v-model:json-value="contentJson"
-              :height="500"
-            />
-          </div>
+        <div class="toolbar-right">
+          <VbenButton type="primary" @click="() => router.push({ path: '/gongkao/content/editor/new', query: { pageKey: 'gongkao-editor-new' } })">
+            <MaterialSymbolsAdd class="size-5" />
+            新建文章
+          </VbenButton>
         </div>
       </div>
-    </Modal>
+
+      <div class="halo-list-body">
+        <List
+          :loading="isLoading"
+          :data-source="listData"
+          item-layout="horizontal"
+          class="custom-halo-list"
+        >
+          <template #renderItem="{ item }">
+            <List.Item class="halo-list-item" @click="handleEdit(item)">
+              <div class="item-content-flex">
+                <div class="item-main-info">
+                  <div class="item-title-wrapper">
+                    <span class="item-title">{{ item.title }}</span>
+                    <span v-if="item.is_published" class="status-dot published" title="已发布"></span>
+                    <span v-else class="status-dot draft" title="草稿"></span>
+                    <Tag v-if="item.is_pinned" color="orange" size="small" class="ml-2">置顶</Tag>
+                  </div>
+                  <div class="item-meta-wrapper">
+                    <span class="meta-slug">/{{ item.slug }}</span>
+                    <span class="meta-divider" v-if="item.tags && item.tags.length">·</span>
+                    <span class="meta-tags" v-if="item.tags && item.tags.length">
+                      <Tag v-for="tag in item.tags" :key="tag" class="small-tag">{{ tag }}</Tag>
+                    </span>
+                  </div>
+                </div>
+                
+                <div class="item-side-info" @click.stop>
+                  <div class="side-stats hidden md:flex">
+                    <span class="stat-item" title="浏览量">
+                      <EyeOutlined class="icon" />{{ item.view_count || 0 }}
+                    </span>
+                    <span class="stat-item date-item">
+                      {{ item.created_time?.split('T')[0] || item.created_time || '未知时间' }}
+                    </span>
+                  </div>
+                  
+                  <div class="side-actions">
+                    <AButton type="link" size="small" @click.stop="handleEdit(item)">编辑</AButton>
+                    <Dropdown placement="bottomRight" :trigger="['click']">
+                      <template #overlay>
+                        <Menu>
+                          <MenuItem v-if="!item.is_published" key="publish" @click="togglePublish(item, true)">发布内容</MenuItem>
+                          <MenuItem v-if="item.is_published" key="unpublish" @click="togglePublish(item, false)">转为草稿</MenuItem>
+                          <MenuDivider />
+                          <MenuItem key="delete">
+                            <span class="text-red-500" @click="handleDelete(item)">删除内容</span>
+                          </MenuItem>
+                        </Menu>
+                      </template>
+                      <AButton type="text" size="small" class="more-btn" @click.prevent>
+                        <MoreOutlined />
+                      </AButton>
+                    </Dropdown>
+                  </div>
+                </div>
+              </div>
+            </List.Item>
+          </template>
+        </List>
+      </div>
+
+      <div class="halo-pagination">
+        <Pagination
+          v-model:current="searchParams.page"
+          v-model:page-size="searchParams.size"
+          :total="totalCount"
+          show-size-changer
+          :show-total="(total) => `共 ${total} 条`"
+          @change="loadData"
+        />
+      </div>
+    </div>
+
+    
   </Page>
 </template>
 
@@ -594,91 +513,264 @@ onMounted(() => {
   gap: 18px;
 }
 
-.form-section {
+
+
+/* HALO STYLE CSS */
+.halo-list-container {
   display: flex;
   flex-direction: column;
-  gap: 14px;
-  padding: 16px;
-  background: #fafafa;
-  border: 1px solid #f0f0f0;
-  border-radius: 10px;
-}
-
-.section-title {
-  font-size: 14px;
-  font-weight: 600;
-  color: #1f1f1f;
-}
-
-.form-grid {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 16px;
+  background-color: transparent;
 }
-
-.form-row {
+.halo-toolbar {
   display: flex;
-  gap: 16px;
-  align-items: flex-start;
+  justify-content: space-between;
+  align-items: center;
+  background: white;
+  padding: 14px 20px;
+  border-radius: 8px;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03);
+  border: 1px solid #f0f0f0;
 }
-
-.form-item {
+.toolbar-left, .toolbar-right {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+.refresh-btn {
+  color: #666;
+  border-color: #d9d9d9;
+}
+.halo-list-body {
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03);
+  border: 1px solid #f0f0f0;
+  overflow: hidden;
+}
+.custom-halo-list .ant-list-item {
+  padding: 16px 20px !important;
+  border-bottom: 1px solid #f0f0f0;
+  transition: all 0.2s;
+  cursor: pointer;
+}
+.custom-halo-list .ant-list-item:hover {
+  background-color: #fcfcfc;
+}
+.item-content-flex {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+}
+.item-main-info {
   display: flex;
   flex-direction: column;
   gap: 6px;
-}
-
-.form-item-span-2 {
-  grid-column: span 2;
-}
-
-.form-label {
-  font-size: 13px;
-  font-weight: 500;
-  color: #333;
-}
-
-.slug-field {
-  display: flex;
-  gap: 8px;
-  align-items: center;
-}
-
-.slug-field :deep(.ant-input-affix-wrapper),
-.slug-field :deep(.ant-input) {
   flex: 1;
 }
-
-.form-controls {
+.item-title-wrapper {
   display: flex;
-  flex-wrap: wrap;
-  gap: 24px;
   align-items: center;
-  padding: 12px 16px;
-  background: #fff;
-  border: 1px solid #f0f0f0;
-  border-radius: 8px;
-}
-
-.control-item {
-  display: flex;
   gap: 8px;
+}
+.item-title {
+  font-size: 15px;
+  font-weight: 500;
+  color: #1f1f1f;
+  transition: color 0.2s;
+}
+.custom-halo-list .ant-list-item:hover .item-title {
+  color: #1677ff;
+}
+.status-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  display: inline-block;
+  margin-top: 2px;
+}
+.status-dot.published {
+  background-color: #52c41a;
+  box-shadow: 0 0 0 2px rgba(82, 196, 26, 0.1);
+}
+.status-dot.draft {
+  background-color: #d9d9d9;
+}
+.item-meta-wrapper {
+  display: flex;
   align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: #8c8c8c;
+}
+.meta-slug {
+  font-family: SFMono-Regular, Consolas, "Liberation Mono", Menlo, Courier, monospace;
+}
+.meta-divider {
+  color: #e8e8e8;
+}
+.small-tag {
+  border: none;
+  background-color: #f5f5f5;
+  color: #8c8c8c;
+  font-size: 12px;
+  line-height: 18px;
+  padding: 0 6px;
+}
+.item-side-info {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+}
+.side-stats {
+  display: flex;
+  gap: 16px;
+  align-items: center;
+  color: #8c8c8c;
   font-size: 13px;
 }
-
-.control-item-date {
-  margin-left: auto;
+.stat-item {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.stat-item .icon {
+  font-size: 14px;
+}
+.date-item {
+  min-width: 80px;
+  justify-content: flex-end;
+}
+.side-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  opacity: 0.6;
+  transition: opacity 0.2s;
+}
+.custom-halo-list .ant-list-item:hover .side-actions {
+  opacity: 1;
+}
+.more-btn {
+  color: #8c8c8c;
+}
+.more-btn:hover {
+  color: #1f1f1f;
+  background: #f5f5f5;
+}
+.halo-pagination {
+  display: flex;
+  justify-content: flex-end;
+  padding: 16px;
+  background: white;
+  border-top: 1px solid #f0f0f0;
 }
 
-.meta-switches {
+
+
+.editor-main-area {
+  flex: 1;
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.03);
   display: flex;
-  flex-wrap: wrap;
+  flex-direction: column;
+  padding: 40px 60px;
+  min-height: 100%;
+}
+
+.title-input {
+  font-size: 38px;
+  font-weight: 700;
+  color: #1a1a1a;
+  border: none;
+  border-bottom: 2px solid transparent;
+  outline: none;
+  background: transparent;
+  width: 100%;
+  padding-bottom: 12px;
+  margin-bottom: 24px;
+  transition: border-color 0.3s;
+}
+.title-input::placeholder {
+  color: #d1d5db;
+}
+.title-input:focus {
+  border-bottom-color: #f0f0f0;
+}
+
+.halo-wrapper-container {
+  flex: 1;
+  min-height: 500px;
+}
+
+.editor-side-panel {
+  width: 340px;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
   gap: 16px;
-  padding: 10px 12px;
-  background: #fff;
-  border: 1px solid #d9d9d9;
-  border-radius: 6px;
+  overflow-y: auto;
+  max-height: 85vh;
+  padding-right: 8px; /* For scrollbar breathing room */
+}
+
+/* Scrollbar beautification */
+.custom-scrollbar::-webkit-scrollbar {
+  width: 6px;
+}
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background-color: #d9d9d9;
+  border-radius: 10px;
+}
+
+.side-card {
+  background: white;
+  border-radius: 12px;
+  padding: 20px;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.02);
+  border: 1px solid #edf2f7;
+}
+
+.card-title {
+  font-size: 13px;
+  font-weight: 700;
+  color: #595959;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  margin-bottom: 16px;
+  border-bottom: 1px solid #f0f0f0;
+  padding-bottom: 8px;
+}
+
+.setting-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+.setting-row:last-child {
+  margin-bottom: 0;
+}
+
+.setting-stacked {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 16px;
+}
+.setting-stacked:last-child {
+  margin-bottom: 0;
+}
+
+.setting-label {
+  font-size: 13px;
+  color: #8c8c8c;
+  font-weight: 500;
 }
 
 .tag-editor {
@@ -686,73 +778,13 @@ onMounted(() => {
   flex-wrap: wrap;
   gap: 6px;
   align-items: center;
-  min-height: 36px;
+  min-height: 38px;
   padding: 6px 10px;
   background: #fff;
   border: 1px solid #d9d9d9;
   border-radius: 6px;
 }
 
-.tag-item {
-  display: inline-flex;
-  gap: 4px;
-  align-items: center;
-  padding: 2px 10px;
-  font-size: 12px;
-  color: #1677ff;
-  background: #e6f4ff;
-  border: 1px solid #91caff;
-  border-radius: 4px;
-}
-
-.tag-remove {
-  font-size: 14px;
-  line-height: 1;
-  cursor: pointer;
-  opacity: 0.6;
-}
-
-.tag-remove:hover {
-  opacity: 1;
-}
-
-.tag-input {
-  flex: 1;
-  min-width: 100px;
-  font-size: 13px;
-  outline: none;
-  background: transparent;
-  border: none;
-}
-
-@media (max-width: 900px) {
-  .form-grid {
-    grid-template-columns: 1fr;
-  }
-
-  .form-item-span-2 {
-    grid-column: span 1;
-  }
-
-  .slug-field {
-    flex-direction: column;
-    align-items: stretch;
-  }
-
-  .form-controls {
-    flex-direction: column;
-    align-items: flex-start;
-  }
-
-  .meta-switches {
-    flex-direction: column;
-    width: 100%;
-  }
-
-  .control-item-date {
-    margin-left: 0;
-  }
-}
 </style>
 
 

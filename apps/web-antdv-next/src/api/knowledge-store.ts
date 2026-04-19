@@ -1,5 +1,8 @@
 import type { PaginationResult } from '#/types/pagination';
 
+import { useAppConfig } from '@vben/hooks';
+import { useAccessStore } from '@vben/stores';
+
 import { requestClient } from './request';
 
 // ==================== QBank APIs ====================
@@ -619,81 +622,175 @@ export async function batchImportQuestionsApi(data: BatchImportQuestionParams) {
   );
 }
 
+// ==================== 流式 / 文件上传辅助 ====================
+
 /**
- * 智能解析结果
+ * 获取统一的认证请求头（与 requestClient 保持一致）
  */
-export interface SmartExtractResult {
-  materials: any[];
-  questions: any[];
-  materials_count: number;
-  questions_count: number;
-  raw_md_length: number;
+function getAuthHeaders(): Record<string, string> {
+  const accessStore = useAccessStore();
+  const token = accessStore.accessToken;
+  return token ? { Authorization: `Bearer ${token}` } : {};
 }
 
 /**
- * 智能提取题库文档(不入库)
+ * 获取 API baseURL（与 requestClient 保持一致）
  */
-export async function smartExtractPdfApi(bankId: number, file: File) {
+function getApiBaseUrl(): string {
+  const { apiURL } = useAppConfig(import.meta.env, import.meta.env.PROD);
+  return apiURL;
+}
+
+// ==================== 智能导入流水线 API（SSE 流式） ====================
+
+/**
+ * 智能导入流水线结果
+ */
+export interface PipelineResult {
+  excel_url: string;
+  md_url?: string;
+  md_length: number;
+  questions_count: number;
+  segments_count: number;
+  warnings_count: number;
+  questions?: any[];
+}
+
+/**
+ * 智能导入流水线 SSE 事件
+ */
+export type PipelineEvent =
+  | { type: 'done'; excel_url: string; md_length: number; md_url?: string; questions_count: number; segments_count: number; warnings_count: number; questions?: any[] }
+  | { type: 'error'; message: string }
+  | { type: 'progress'; batch_index: number; total_batches: number; total_questions_count: number }
+  | { type: 'stage'; message: string; stage: string };
+
+/**
+ * 发起智能导入流水线请求（SSE 流式）
+ *
+ * :param file: PDF 或 MD 文件
+ * :param bankId: 题库 ID
+ * :param onEvent: SSE 事件回调
+ * :return:
+ */
+export async function pipelineParseApi(
+  file: File,
+  bankId: number,
+  onEvent: (event: PipelineEvent) => void,
+): Promise<void> {
   const formData = new FormData();
   formData.append('bank_id', bankId.toString());
   formData.append('file', file);
 
-  return requestClient.post<SmartExtractResult>(
-    '/api/v1/qbank/parse/smart-extract',
-    formData,
-    {
-      // AI处理时间极长，设置超时时间为30分钟
-      timeout: 1_800_000,
-      headers: {
-        'Content-Type': 'multipart/form-data',
-      },
-    },
-  );
-}
-
-/**
- * 提交并保存智能解析结果
- */
-export async function smartCommitApi(
-  bankId: number,
-  materials: any[],
-  questions: any[],
-) {
-  return requestClient.post('/api/v1/qbank/parse/smart-commit', {
-    bank_id: bankId,
-    materials,
-    questions,
+  const baseUrl = getApiBaseUrl();
+  const response = await fetch(`${baseUrl}/api/v1/qbank/parse/pipeline`, {
+    method: 'POST',
+    headers: getAuthHeaders(),
+    body: formData,
   });
+
+  if (!response.ok) {
+    throw new Error(`请求失败: HTTP ${response.status}`);
+  }
+
+  const reader = response.body?.getReader();
+  if (!reader) {
+    throw new Error('无法读取响应流');
+  }
+
+  const decoder = new TextDecoder();
+  let buffer = '';
+
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+
+    buffer += decoder.decode(value, { stream: true });
+    const lines = buffer.split('\n');
+    buffer = lines.pop() || '';
+
+    for (const line of lines) {
+      if (!line.trim()) continue;
+      const dataStr = line.startsWith('data: ')
+        ? line.slice(6)
+        : line;
+      if (dataStr === '[DONE]') continue;
+
+      try {
+        const event = JSON.parse(dataStr) as PipelineEvent;
+        onEvent(event);
+      } catch {
+        // 忽略非 JSON 行
+      }
+    }
+  }
+}
+
+// ==================== Excel 导入 API ====================
+
+/**
+ * Excel 导入结果
+ */
+export interface ExcelImportResult {
+  total: number;
+  success_count: number;
+  fail_count: number;
+  dedup_count?: number;
+  materials_count?: number;
 }
 
 /**
- * 仅解析 PDF 为 Markdown (第一阶段)
+ * Excel 文件导入题目
+ *
+ * :param file: Excel 文件
+ * :param bankId: 题库 ID
+ * :return:
  */
-export async function parsePdfToMdApi(file: File) {
+export async function importExcelQuestionsApi(
+  file: File,
+  bankId: number,
+): Promise<ExcelImportResult> {
   const formData = new FormData();
+  formData.append('bank_id', bankId.toString());
   formData.append('file', file);
 
-  return requestClient.post<{ markdown: string }>(
-    '/api/v1/qbank/parse/pdf',
-    formData,
-    {
-      timeout: 1_800_000,
-      headers: {
-        'Content-Type': 'multipart/form-data',
-      },
-    },
-  );
+  const baseUrl = getApiBaseUrl();
+  const response = await fetch(`${baseUrl}/api/v1/qbank/questions/import-excel`, {
+    method: 'POST',
+    headers: getAuthHeaders(),
+    body: formData,
+  });
+
+  const json = await response.json();
+  if (json.code === 200) {
+    return json.data as ExcelImportResult;
+  }
+  throw new Error(json.msg || '导入失败');
+}
+
+// ==================== 文件下载 API ====================
+
+/**
+ * 下载导入模板
+ */
+export async function downloadImportTemplateApi(): Promise<Blob> {
+  const baseUrl = getApiBaseUrl();
+  const response = await fetch(`${baseUrl}/api/v1/qbank/questions/import-template`, {
+    headers: getAuthHeaders(),
+  });
+  return response.blob();
 }
 
 /**
- * 保存分段 Markdown 到服务器
+ * 下载流水线生成的文件
+ *
+ * :param urlPath: 文件路径（如 excel_url / md_url）
+ * :return:
  */
-export async function saveSegmentsApi(
-  bankId: number,
-  segments: { content: string; name: string }[],
-) {
-  return requestClient.post('/api/v1/qbank/parse/save-segments', {
-    bank_id: bankId,
-    segments,
+export async function downloadPipelineFileApi(urlPath: string): Promise<Blob> {
+  const baseUrl = getApiBaseUrl();
+  const response = await fetch(`${baseUrl}${urlPath}`, {
+    headers: getAuthHeaders(),
   });
+  return response.blob();
 }

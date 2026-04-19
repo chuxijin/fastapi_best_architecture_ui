@@ -68,7 +68,7 @@ const reviewStatusMap: Record<number, { color: string; label: string }> = {
 const formOptions: VbenFormProps = {
   collapsed: false,
   showCollapseButton: false,
-  wrapperClass: 'grid-cols-1 md:grid-cols-4',
+  wrapperClass: 'grid-cols-6',
   submitButtonOptions: {
     content: '查询',
   },

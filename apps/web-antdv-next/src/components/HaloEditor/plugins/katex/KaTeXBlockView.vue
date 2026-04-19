@@ -39,10 +39,11 @@ function onEditorChange(e: Event) {
 <template>
   <node-view-wrapper
     class="katex-block-container"
-    :class="{ 'katex-block-fullscreen': fullscreen }"
+    :class="{ 'katex-block-fullscreen': fullscreen, 'border-none': !props.editor.isEditable }"
+    :style="!props.editor.isEditable ? 'border: none; margin-top: 0;' : ''"
     as="div"
   >
-    <div class="katex-block-nav">
+    <div class="katex-block-nav" v-if="props.editor.isEditable">
       <div class="katex-block-nav-start">
         <div>KaTeX 公式</div>
         <a
@@ -64,8 +65,8 @@ function onEditorChange(e: Event) {
         </div>
       </div>
     </div>
-    <div class="katex-block-editor-panel">
-      <div class="katex-block-code">
+    <div :class="[props.editor.isEditable ? 'katex-block-editor-panel' : '']">
+      <div class="katex-block-code" v-if="props.editor.isEditable">
         <textarea
           :value="content"
           style="width: 100%; height: 100%; outline: none; padding: 10px; resize: none; font-family: monospace; border: none; background: #fdfdfd;"

@@ -230,6 +230,26 @@ export const formSchema: VbenFormSchema[] = [
     label: '所属父题库',
   },
   {
+    component: 'ApiSelect',
+    componentProps: {
+      allowClear: true,
+      api: async () => {
+        const { getBankListApi } = await import('#/api');
+        // 只选择有可能作为源的题库（或选择所有）
+        const data = await getBankListApi({ bank_type: 1 });
+        return data.map((item: any) => ({
+          label: item.name,
+          value: item.id,
+        }));
+      },
+      class: 'w-full',
+      placeholder: '无（独立管理篇章）',
+    },
+    fieldName: 'chapter_source_bank_id',
+    label: '篇章共享来源',
+    help: '如果选择其他题库，则本科目下建立的任何篇章或导入时新建的目录都会挂载到所选题目上实现篇章复用。',
+  },
+  {
     component: 'Textarea',
     componentProps: {
       placeholder: '请输入题库描述',

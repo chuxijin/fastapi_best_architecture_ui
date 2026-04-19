@@ -17,6 +17,7 @@ const props = withDefaults(
     modelValue?: string;
     placeholder?: string;
     value?: string;
+    editable?: boolean;
   }>(),
   {
     jsonValue: undefined,
@@ -24,6 +25,7 @@ const props = withDefaults(
     value: undefined,
     height: 400,
     placeholder: '请输入内容...',
+    editable: true,
   },
 );
 
@@ -49,6 +51,7 @@ const initEditor = () => {
   if (editor.value) return;
 
   editor.value = new VueEditor({
+    editable: props.editable,
     content: useJsonValue.value
       ? (props.jsonValue ?? '')
       : currentValue.value || '',
@@ -106,20 +109,15 @@ initEditor();
 watch([currentValue, () => props.jsonValue], ([val, jsonValue]) => {
   if (!editor.value) return;
 
-  if (useJsonValue.value) {
-    if (!jsonValue) {
-      if (!editor.value.isEmpty) {
-        editor.value.commands.setContent('', { emitUpdate: false });
-      }
-      return;
-    }
-
+  // 如果明确启用了 JSON 模式并且 JSON 数据有内容，优先走 JSON 回填
+  if (useJsonValue.value && jsonValue) {
     if (JSON.stringify(editor.value.getJSON()) !== JSON.stringify(jsonValue)) {
       editor.value.commands.setContent(jsonValue, { emitUpdate: false });
     }
     return;
   }
 
+  // 否则降级走 HTML 数据源回填逻辑（防 json = null 时直接清空黑板）
   if (editor.value.getHTML() !== val) {
     editor.value.commands.setContent(val || '', { emitUpdate: false });
   }
@@ -148,10 +146,18 @@ const contentHeight = computed(() =>
 <style scoped>
 .legacy-halo-bridge {
   background-color: #fff;
-}
-.legacy-halo-bridge :deep(.halo-rich-text-editor) {
-  height: 100%;
   display: flex;
   flex-direction: column;
+}
+.legacy-halo-bridge :deep(.halo-rich-text-editor) {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+.legacy-halo-bridge :deep(.halo-rich-text-editor .ProseMirror) {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
 }
 </style>

@@ -1,7 +1,13 @@
 <script setup lang="ts">
 import type { UploadFile, UploadProps } from 'ant-design-vue';
-import type { BatchImportQuestionResult, QuestionImportRow } from '#/api';
-import { ref } from 'vue';
+import type {
+  BatchImportQuestionResult,
+  ExcelImportResult,
+  PipelineEvent,
+  PipelineResult,
+  QuestionImportRow,
+} from '#/api';
+import { ref, computed, toRaw } from 'vue';
 
 import { VbenButton } from '@vben/common-ui';
 import {
@@ -17,24 +23,27 @@ import {
   Card,
   message,
   Table,
-  Select as ASelect,
-  Form as AForm,
-  FormItem as AFormItem,
-  Modal as AModal,
-  Textarea as ATextarea,
-  Input as AInput,
-  Popconfirm as APopconfirm,
-  InputNumber as AInputNumber,
+  Progress,
+  Steps,
+  Step,
+  Drawer,
+  Modal,
+  Input,
+  Select,
+  Tag,
 } from 'ant-design-vue';
 
 import {
   batchImportQuestionsApi,
-  smartExtractPdfApi,
-  smartCommitApi,
-  parsePdfToMdApi,
-  saveSegmentsApi,
+  downloadImportTemplateApi,
+  downloadPipelineFileApi,
+  importExcelQuestionsApi,
+  pipelineParseApi,
 } from '#/api';
-import type { SmartExtractResult } from '#/api';
+
+import { VxeTable, VxeColumn } from 'vxe-table';
+import 'vxe-pc-ui/lib/style.css';
+import 'vxe-table/lib/style.css';
 
 interface Props {
   bankId: number;
@@ -42,294 +51,245 @@ interface Props {
 
 const props = defineProps<Props>();
 
-// --- 通用配置 (章节选择/输入) ---
-const targetChapter = ref<string | undefined>(undefined);
-const isStreamingProgress = ref(false); // 是否处于流式生成状态
-// 目前后端暂无独立章节列表接口，可以先由用户手动输入，
-// 后续如果有了 /api/v1/question-bank/chapters，可以动态加载 options
-const chapterOptions = ref<{ value: string; label: string }[]>([]);
-
-// --- 状态管理 ---
-const activeImportTab = ref('pdf');
+// ============ 通用状态 ============
+const activeImportTab = ref('pipeline');
 const importResult = ref<BatchImportQuestionResult | null>(null);
 const showResultDrawer = ref(false);
 
-// CSV
-const csvFileList = ref<UploadFile[]>([]);
-const csvUploading = ref(false);
+// ============ Tab 1: 智能导入流水线 ============
+const pipelineFileList = ref<UploadFile[]>([]);
+const pipelineRunning = ref(false);
+const pipelineStage = ref(''); // 当前阶段
+const pipelineMessage = ref(''); // 当前阶段消息
+const pipelineProgress = ref(0); // AI 批次进度百分比
+const pipelineLogs = ref<{ message: string; type: string }[]>([]);
+const pipelineResult = ref<PipelineResult | null>(null);
+const pipelineError = ref('');
 
-// JSON
-const jsonFileList = ref<UploadFile[]>([]);
-const jsonUploading = ref(false);
-
-// PDF/MD
-const pdfFileList = ref<UploadFile[]>([]);
-const mdFileList = ref<UploadFile[]>([]);
-const extracting = ref(false);
-const pdfCommitting = ref(false);
-const smartExtractData = ref<SmartExtractResult | null>(null);
-const parsedMdResult = ref(''); // 存储 PDF 解析出的 Markdown结果
-
-// --- 切片管理 ---
-interface MdSegment {
-  name: string;
-  startLine: number;
-  endLine: number;
-}
-const segments = ref<MdSegment[]>([]);
-const addSegment = () => {
-  const lastEnd =
-    segments.value.length > 0
-      ? segments.value[segments.value.length - 1]?.endLine || 0
-      : 0;
-  segments.value.push({
-    name: `未命名分片_${segments.value.length + 1}`,
-    startLine: lastEnd + 1,
-    endLine: lastEnd + 50, // 默认给50行
-  });
+// 阶段映射为 Steps 步骤
+const stageStepMap: Record<string, number> = {
+  parse: 0,
+  parse_done: 0,
+  segment: 1,
+  segment_done: 1,
+  ai_extract: 2,
+  ai_extract_done: 2,
+  excel: 3,
 };
-const removeSegment = (index: number) => segments.value.splice(index, 1);
+const currentStep = computed(() => {
+  if (pipelineResult.value) return 4; // 全部完成
+  return stageStepMap[pipelineStage.value] ?? -1;
+});
 
-// 获取分片具体文本
-const getSegmentContent = (seg: MdSegment) => {
-  const lines = parsedMdResult.value.split('\n');
-  return lines.slice(seg.startLine - 1, seg.endLine).join('\n');
-};
-
-// 将分片发送到 MD 导入页
-function sendSegmentToExtraction(seg: MdSegment) {
-  const content = getSegmentContent(seg);
-  // 模拟上传一个 .md 文件到 mdFileList
-  const blob = new Blob([content], { type: 'text/markdown' });
-  const file = new File([blob], `${seg.name}.md`, { type: 'text/markdown' });
-  mdFileList.value = [file as any];
-  activeImportTab.value = 'md';
-  message.success(
-    `已将分片 [${seg.name}] 发送至 MD 导入页，点击“解析 MD”即可开始抽取。`,
-  );
-}
-
-// 下载分片到本地
-function downloadSegment(seg: MdSegment) {
-  const content = getSegmentContent(seg);
-  const blob = new Blob([content], { type: 'text/markdown' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = `${seg.name}.md`;
-  a.click();
-  URL.revokeObjectURL(url);
-  message.success(`分片 [${seg.name}] 已开始下载`);
-}
-
-// 批量保存分片到服务器
-const savingToServer = ref(false);
-async function handleSaveSegmentsToServer() {
-  if (segments.value.length === 0) {
-    message.warning('请先添加并定义分片');
-    return;
-  }
-  savingToServer.value = true;
-  const hide = message.loading('正在同步分片到服务器...', 0);
-  try {
-    const data = segments.value.map((seg) => ({
-      name: seg.name,
-      content: getSegmentContent(seg),
-    }));
-    const res = await saveSegmentsApi(props.bankId, data);
-    hide();
-    message.success(`成功保存 ${res.count} 个分片至服务器目录: ${res.path}`);
-  } catch (e: any) {
-    hide();
-    message.error('保存失败: ' + e.message);
-  } finally {
-    savingToServer.value = false;
-  }
-}
-
-// --- 文件选择校验 ---
-const beforePdfUpload: UploadProps['beforeUpload'] = (file) => {
-  pdfFileList.value = [file as any];
-  return false;
-};
-const beforeMdUpload: UploadProps['beforeUpload'] = (file) => {
-  mdFileList.value = [file as any];
-  return false;
-};
-const beforeJsonUpload: UploadProps['beforeUpload'] = (file) => {
-  jsonFileList.value = [file as any];
-  return false;
-};
-const beforeCsvUpload: UploadProps['beforeUpload'] = (file) => {
-  csvFileList.value = [file as any];
+const beforePipelineUpload: UploadProps['beforeUpload'] = (file) => {
+  pipelineFileList.value = [file as any];
   return false;
 };
 
-// --- 重大逻辑实现 ---
+function resetPipeline() {
+  pipelineRunning.value = false;
+  pipelineStage.value = '';
+  pipelineMessage.value = '';
+  pipelineProgress.value = 0;
+  pipelineLogs.value = [];
+  pipelineResult.value = null;
+  pipelineError.value = '';
+}
 
-/**
- * AI 智能识别 (处理 PDF 或 MD)
- */
-async function handleExtract(type: 'pdf' | 'md') {
-  const list = type === 'pdf' ? pdfFileList : mdFileList;
-  if (list.value.length === 0) {
+async function handleRunPipeline() {
+  if (pipelineFileList.value.length === 0) {
     message.error('请先选择文件');
     return;
   }
 
-  extracting.value = true;
-  smartExtractData.value = null;
-  const hideLoading = message.loading('AI 正在智能解析试卷中...', 0);
+  resetPipeline();
+  pipelineRunning.value = true;
+
+  // 脱去 Ant Design Vue 包装和 Vue Proxy，重建纯净 File 对象
+  const rawItem = toRaw(pipelineFileList.value[0]) as any;
+  const originFile = toRaw(rawItem.originFileObj || rawItem);
+  const cleanFile = new File([originFile], originFile.name || 'document.pdf', {
+    type: originFile.type || 'application/pdf',
+  });
 
   try {
-    const file = list.value[0] as any as File;
-
-    if (type === 'pdf') {
-      // --- 第一阶段：仅 PDF 转 Markdown ---
-      const result = await parsePdfToMdApi(file);
-      parsedMdResult.value = result.markdown;
-      message.success(
-        'PDF 解析 Markdown 成功！你可以复制下方内容到 MD 导入标签页进行题目提取。',
-      );
-      hideLoading();
-      extracting.value = false;
-    } else {
-      // --- 第二阶段：Markdown 提取题目 (支持流式) ---
-      isStreamingProgress.value = true;
-      smartExtractData.value = {
-        materials: [],
-        questions: [],
-        questions_count: 0,
-        materials_count: 0,
-      } as any;
-
-      // 为了同时支持普通返回和未来马上要加的 SSE，这里做兼容
-      // 理论上我们会改为用原生 fetch 调取后端 SSE，如果还是用旧接口则退化为一次性返回
-      hideLoading();
-      message.info('AI 开始流式抽取题目，请稍候...');
-
-      // 此处我们将使用原生 Fetch 来实现 SSE 逐题渲染
-      const token =
-        localStorage.getItem('access_token') ||
-        sessionStorage.getItem('access_token');
-      const formData = new FormData();
-      formData.append('bank_id', props.bankId.toString());
-      formData.append('file', file);
-
-      const response = await fetch('/api/v1/qbank/parse/smart-extract-stream', {
-        method: 'POST',
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-        body: formData,
-      });
-
-      if (!response.ok) {
-        // Fallback to normal if stream endpoint doesn't exist yet
-        const result = await smartExtractPdfApi(props.bankId, file);
-        if (targetChapter.value) {
-          result.questions.forEach(
-            (q: any) => (q.chapter_name = targetChapter.value),
-          );
-        }
-        smartExtractData.value = result;
-        extracting.value = false;
-        isStreamingProgress.value = false;
-        message.success(`解析完成！共发现题数: ${result.questions_count}`);
-        return;
+    await pipelineParseApi(cleanFile, props.bankId, (event: PipelineEvent) => {
+      if (event.type === 'stage') {
+        pipelineStage.value = event.stage;
+        pipelineMessage.value = event.message || '';
+        pipelineLogs.value.push({ message: event.message, type: 'stage' });
+      } else if (event.type === 'progress') {
+        const pct = Math.round(
+          (event.batch_index / event.total_batches) * 100,
+        );
+        pipelineProgress.value = pct;
+        pipelineMessage.value = `AI 提取中 ${event.batch_index}/${event.total_batches} 批，已识别 ${event.total_questions_count} 题`;
+      } else if (event.type === 'done') {
+        pipelineResult.value = {
+          excel_url: event.excel_url,
+          md_url: event.md_url,
+          questions_count: event.questions_count,
+          warnings_count: event.warnings_count,
+          md_length: event.md_length,
+          segments_count: event.segments_count,
+          questions: event.questions,
+        };
+        pipelineLogs.value.push({
+          message: `✅ 完成！共 ${event.questions_count} 题，${event.warnings_count} 条告警`,
+          type: 'done',
+        });
+      } else if (event.type === 'error') {
+        pipelineError.value = event.message;
+        pipelineLogs.value.push({
+          message: `❌ ${event.message}`,
+          type: 'error',
+        });
       }
-
-      // --- 核心流式读取逻辑 ---
-      const reader = response.body?.getReader();
-      const decoder = new TextDecoder();
-      let buffer = '';
-
-      while (reader) {
-        const { done, value } = await reader.read();
-        if (done) break;
-
-        buffer += decoder.decode(value, { stream: true });
-        // 按行切割 JSON (NDJSON)
-        const lines = buffer.split('\n');
-        buffer = lines.pop() || ''; // 最后一行可能不完整，保留到 buffer
-
-        for (const line of lines) {
-          if (!line.trim()) continue;
-          try {
-            // 兼容 SSE 格式 'data: {...}'
-            const dataStr = line.startsWith('data: ')
-              ? line.replace('data: ', '')
-              : line;
-            if (dataStr === '[DONE]' || dataStr.includes('event: end'))
-              continue;
-
-            const parsedChunk = JSON.parse(dataStr);
-            const chunkQuestions = parsedChunk.questions || [];
-            if (chunkQuestions.length > 0) {
-              chunkQuestions.forEach((q: any) => {
-                q._isEditing = false;
-                if (targetChapter.value) q.chapter_name = targetChapter.value;
-                smartExtractData.value!.questions.push(q);
-              });
-              smartExtractData.value!.questions_count =
-                smartExtractData.value!.questions.length;
-            }
-          } catch (e) {
-            console.warn('流式解析 JSON 行失败', e, line);
-          }
-        }
-      }
-      extracting.value = false;
-      isStreamingProgress.value = false;
-      message.success(
-        `解析抽取完成！共捕获 ${smartExtractData.value!.questions.length} 道题目`,
-      );
-    }
-  } catch (error: any) {
-    extracting.value = false;
-    isStreamingProgress.value = false;
-    hideLoading();
-    message.error(error.message || 'AI 智能解析失败');
+    });
+  } catch (e: any) {
+    pipelineError.value = e.message || '流水线执行失败';
   } finally {
-    extracting.value = false;
+    pipelineRunning.value = false;
   }
 }
 
-/**
- * PDF/MD 识别后的“确认入库”
- */
-async function handleSmartCommit() {
-  if (!smartExtractData.value) return;
-  pdfCommitting.value = true;
-  const hide = message.loading('正在提交题库数据...', 0);
+function triggerBlobDownload(blob: Blob, filename: string) {
+  const blobUrl = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = blobUrl;
+  a.download = filename;
+  a.click();
+  URL.revokeObjectURL(blobUrl);
+  message.success('文件已开始下载');
+}
+
+async function handleDownloadExcel() {
+  if (!pipelineResult.value) return;
   try {
-    // 提交前再次强制覆盖章节（万一用户在中途修改了 targetChapter）
-    if (targetChapter.value) {
-      smartExtractData.value.questions.forEach((q: any) => {
-        q.chapter_name = targetChapter.value;
-      });
+    const urlPath = `/api/v1/qbank/parse/pipeline/download?filename=${encodeURIComponent(pipelineResult.value.excel_url)}`;
+    const blob = await downloadPipelineFileApi(urlPath);
+    const filename = pipelineResult.value.excel_url.split('/').pop() || 'export.xlsx';
+    triggerBlobDownload(blob, filename);
+  } catch {
+    message.error('下载失败');
+  }
+}
+
+const isPipelineImporting = ref(false);
+const isPreviewVisible = ref(false);
+
+function showPipelinePreview() {
+  isPreviewVisible.value = true;
+}
+
+async function importPipelineQuestions() {
+  if (!pipelineResult.value?.questions?.length) return;
+  isPipelineImporting.value = true;
+  const hide = message.loading('正在直接导入...', 0);
+  try {
+    const formattedQuestions: QuestionImportRow[] = pipelineResult.value.questions.map((q: any) => ({
+      题目: q.stem || q.题目,
+      题型: q.type || q.题型,
+      分数: q.score || q.分数 || 1,
+      难度: q.difficulty || q.难度 || '中等',
+      选项A: q.options_data?.A?.content || q.选项A,
+      选项B: q.options_data?.B?.content || q.选项B,
+      选项C: q.options_data?.C?.content || q.选项C,
+      选项D: q.options_data?.D?.content || q.选项D,
+      答案: q.answer_data?.correct || q.答案,
+      解析: q.analysis_content || q.解析 || '',
+      一级目录: q.chapter_name || q.一级目录,
+      材料编号: q.material_id || q.材料编号 || '',
+    }));
+
+    const result = await batchImportQuestionsApi({
+      bank_id: props.bankId,
+      questions: formattedQuestions,
+    });
+    hide();
+    importResult.value = result;
+    showResultDrawer.value = true;
+    if (result.fail_count === 0) {
+      message.success(`智能导入完成，成功 ${result.success_count} 道题目`);
+      isPreviewVisible.value = false;
     }
-    await smartCommitApi(
-      props.bankId,
-      smartExtractData.value.materials,
-      smartExtractData.value.questions,
+  } catch (e: any) {
+    hide();
+    message.error('直接导入失败: ' + e.message);
+  } finally {
+    isPipelineImporting.value = false;
+  }
+}
+
+async function handleDownloadMd() {
+  if (!pipelineResult.value?.md_url) return;
+  try {
+    const blob = await downloadPipelineFileApi(pipelineResult.value.md_url);
+    triggerBlobDownload(blob, 'export.md');
+  } catch {
+    message.error('下载失败');
+  }
+}
+
+// ============ Tab 2: Excel 导入 ============
+const excelFileList = ref<UploadFile[]>([]);
+const excelUploading = ref(false);
+const excelResult = ref<any>(null);
+
+const beforeExcelUpload: UploadProps['beforeUpload'] = (file) => {
+  excelFileList.value = [file as any];
+  return false;
+};
+
+async function handleExcelImport() {
+  if (excelFileList.value.length === 0) {
+    message.error('请先选择 Excel 文件');
+    return;
+  }
+
+  excelUploading.value = true;
+  const hide = message.loading('正在导入 Excel...', 0);
+
+  try {
+    const rawItem = toRaw(excelFileList.value[0]) as any;
+    const originFile = toRaw(rawItem.originFileObj || rawItem);
+    const cleanFile = new File([originFile], originFile.name || 'import.xlsx', {
+      type: originFile.type || 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    });
+
+    const result = await importExcelQuestionsApi(cleanFile, props.bankId);
+    hide();
+    excelResult.value = result;
+    message.success(
+      `导入完成！成功 ${result.success_count} 题，去重 ${result.dedup_count || 0} 题`,
     );
+    excelFileList.value = [];
+  } catch (e: any) {
     hide();
-    message.success('全部题目提交入库成功！');
-    smartExtractData.value = null;
-    pdfFileList.value = [];
-    mdFileList.value = [];
-  } catch (error: any) {
-    hide();
-    message.error(error.message || '提交入库失败');
+    message.error('Excel 导入失败: ' + e.message);
   } finally {
-    pdfCommitting.value = false;
+    excelUploading.value = false;
   }
 }
 
-/**
- * 离线 JSON 直接导入
- */
+async function handleDownloadTemplate() {
+  try {
+    const blob = await downloadImportTemplateApi();
+    triggerBlobDownload(blob, 'question_import_template.xlsx');
+  } catch {
+    message.error('模板下载失败');
+  }
+}
+
+// ============ Tab 3: JSON 导入 ============
+const jsonFileList = ref<UploadFile[]>([]);
+const jsonUploading = ref(false);
+
+const beforeJsonUpload: UploadProps['beforeUpload'] = (file) => {
+  jsonFileList.value = [file as any];
+  return false;
+};
+
 async function handleJsonImport() {
   if (jsonFileList.value.length === 0) return;
   jsonUploading.value = true;
@@ -340,22 +300,19 @@ async function handleJsonImport() {
     const data = JSON.parse(text);
     const questions = data.questions || [];
 
-    // 格式映射与章节覆盖
-    const formattedQuestions = questions.map((q: any) => {
-      return {
-        题目: q.stem || q.题目,
-        题型: q.type || q.题型,
-        分数: q.score || q.分数 || 1,
-        难度: q.difficulty || q.难度 || '中等',
-        选项A: q.options_data?.A?.content || q.选项A,
-        选项B: q.options_data?.B?.content || q.选项B,
-        选项C: q.options_data?.C?.content || q.选项C,
-        选项D: q.options_data?.D?.content || q.选项D,
-        答案: q.answer_data?.correct || q.答案,
-        解析: q.analysis_content || q.解析 || '',
-        一级目录: targetChapter.value || q.chapter_name || q.一级目录,
-      };
-    });
+    const formattedQuestions: QuestionImportRow[] = questions.map((q: any) => ({
+      题目: q.stem || q.题目,
+      题型: q.type || q.题型,
+      分数: q.score || q.分数 || 1,
+      难度: q.difficulty || q.难度 || '中等',
+      选项A: q.options_data?.A?.content || q.选项A,
+      选项B: q.options_data?.B?.content || q.选项B,
+      选项C: q.options_data?.C?.content || q.选项C,
+      选项D: q.options_data?.D?.content || q.选项D,
+      答案: q.answer_data?.correct || q.答案,
+      解析: q.analysis_content || q.解析 || '',
+      一级目录: q.chapter_name || q.一级目录,
+    }));
 
     const result = await batchImportQuestionsApi({
       bank_id: props.bankId,
@@ -376,153 +333,7 @@ async function handleJsonImport() {
   }
 }
 
-/**
- * 标准 CSV 导入
- */
-async function handleCsvImport() {
-  if (csvFileList.value.length === 0) return;
-  csvUploading.value = true;
-  const hide = message.loading('正在解析 CSV 文件...', 0);
-  try {
-    const file = csvFileList.value[0] as any;
-    const text = await file.text();
-
-    // 简单的 CSV 解析器（支持章节覆盖）
-    const lines = text.split('\n').filter((l: string) => l.trim());
-    const parseLine = (line: string) => {
-      const parts: string[] = [];
-      let cur = '';
-      let quote = false;
-      for (let i = 0; i < line.length; i++) {
-        const c = line[i];
-        if (c === '"') quote = !quote;
-        else if (c === ',' && !quote) {
-          parts.push(cur.trim());
-          cur = '';
-        } else cur += c;
-      }
-      parts.push(cur.trim());
-      return parts;
-    };
-
-    const headers = parseLine(lines[0]);
-    const questions: QuestionImportRow[] = lines
-      .slice(1)
-      .map((line: string) => {
-        const v = parseLine(line);
-        const getV = (h: string) => {
-          const i = headers.indexOf(h);
-          return i !== -1 ? v[i] : '';
-        };
-        return {
-          题目: getV('题目') || getV('题干'),
-          题型: getV('题型') || getV('类型'),
-          分数: Number.parseInt(getV('分数') || '1'),
-          难度: getV('难度') || '中等',
-          选项A: getV('选项A'),
-          选项B: getV('选项B'),
-          选项C: getV('选项C'),
-          选项D: getV('选项D'),
-          答案: getV('答案') || getV('答'),
-          解析: getV('解析') || '',
-          一级目录: targetChapter.value || getV('一级目录'),
-          二级目录: targetChapter.value ? null : getV('二级目录'),
-        };
-      });
-
-    const result = await batchImportQuestionsApi({
-      bank_id: props.bankId,
-      questions,
-    });
-    hide();
-    importResult.value = result;
-    showResultDrawer.value = true;
-    if (result.fail_count === 0) csvFileList.value = [];
-  } catch (e: any) {
-    hide();
-    message.error('CSV 导入失败: ' + e.message);
-  } finally {
-    csvUploading.value = false;
-  }
-}
-
-// 表格列定义
-// const smartReviewColumns = [
-//   { title: '原题号', dataIndex: 'sort_order', width: 80 },
-//   { title: '题型', dataIndex: 'type', width: 80 },
-//   { title: '归属章节', dataIndex: 'chapter_name', width: 140 },
-//   { title: '题干内容', dataIndex: 'stem', ellipsis: true },
-//   { title: '预测难度', dataIndex: 'difficulty', width: 80 },
-//   { title: '操作', dataIndex: 'action', width: 130 }
-// ];
-
-// 删除原本用于单题深度修改的变量
-// const editModalVisible = ref(false);
-// const editingQuestion = ref<any>({});
-// const editingQuestionStr = ref('');
-// const editingIndex = ref<number>(-1);
-
-// function openEditModal(record: any, index: number) {
-//   editingQuestion.value = JSON.parse(JSON.stringify(record));
-//   editingQuestionStr.value = JSON.stringify(record, null, 2);
-//   editingIndex.value = index;
-//   editModalVisible.value = true;
-// }
-
-// watch(editingQuestion, (newVal) => {
-//   editingQuestionStr.value = JSON.stringify(newVal, null, 2);
-// }, { deep: true });
-
-// function handleSaveEdit() {
-//   try {
-//     const parsed = JSON.parse(editingQuestionStr.value);
-//     if (smartExtractData.value && editingIndex.value > -1) {
-//       smartExtractData.value.questions[editingIndex.value] = parsed;
-//     }
-//     editModalVisible.value = false;
-//     message.success('已应用所作的修改');
-//   } catch (e: any) {
-//     message.error('数据结构格式有误，无法保存：' + e.message);
-//   }
-// }
-
-function removeQuestion(index: number) {
-  if (smartExtractData.value) {
-    smartExtractData.value.questions.splice(index, 1);
-    message.success('已从入库队列剔除该题');
-  }
-}
-
-// --- 批量修改审核题目 ---
-const batchEditVisible = ref(false);
-const batchEditForm = ref({
-  type: undefined,
-  difficulty: undefined,
-  chapter_name: undefined,
-  score: undefined,
-});
-
-function handleBatchEdit() {
-  if (!smartExtractData.value) return;
-  const { type, difficulty, chapter_name, score } = batchEditForm.value;
-  const count = smartExtractData.value.questions.length;
-  smartExtractData.value.questions.forEach((q: any) => {
-    if (type !== undefined) q.type = type;
-    if (difficulty !== undefined) q.difficulty = difficulty;
-    if (chapter_name !== undefined && chapter_name !== '')
-      q.chapter_name = chapter_name;
-    if (score !== undefined) q.score = score;
-  });
-  message.success(`已应用批量配置到 ${count} 道题目`);
-  batchEditVisible.value = false;
-  batchEditForm.value = {
-    type: undefined,
-    difficulty: undefined,
-    chapter_name: undefined,
-    score: undefined,
-  };
-}
-
+// ============ 通用 ============
 const resultColumns = [
   { title: '行号', dataIndex: 'row_number', width: 80 },
   {
@@ -537,193 +348,230 @@ const resultColumns = [
 
 <template>
   <div class="question-import-container">
-    <Card title="题目批量中心">
-      <!-- 全局章节配置 -->
-      <div class="mb-6 rounded-lg border border-gray-100 bg-gray-50 p-5">
-        <h4
-          class="mb-3 flex items-center gap-2 text-sm font-bold text-gray-800"
-        >
-          <span class="h-4 w-1 rounded-full bg-blue-500"></span>
-          导入配置
-        </h4>
-        <AForm layout="vertical">
-          <AFormItem
-            label="目标章节 (设置后将强制覆盖文件内的章节)"
-            style="margin-bottom: 0"
-          >
-            <ASelect
-              v-model:value="targetChapter"
-              show-search
-              allow-clear
-              mode="tags"
-              :max-tag-count="1"
-              placeholder="可直接输入新章节名称或选择已有章节"
-              :options="chapterOptions"
-              class="w-full max-w-md"
-              :getPopupContainer="(triggerNode) => triggerNode.parentNode"
-            />
-          </AFormItem>
-        </AForm>
-      </div>
-
+    <Card title="题目批量导入">
       <Tabs v-model:active-key="activeImportTab" type="card">
-        <!-- PDF 识别 -->
-        <TabPane key="pdf" tab="PDF 识别">
+        <!-- ============ 智能导入流水线 ============ -->
+        <TabPane key="pipeline" tab="🤖 智能导入">
           <div
-            class="rounded-b-lg border border-t-0 border-gray-100 bg-white p-4"
+            class="rounded-b-lg border border-t-0 border-gray-100 bg-white p-6"
           >
-            <Alert
-              message="AI 智能解析 PDF 文档并抽取结构化试题。"
-              type="info"
-              show-icon
-              class="mb-6"
-            />
+            <Alert class="mb-6" show-icon type="info">
+              <template #message>
+                上传 PDF 或 MD 文件 → 自动分段 + AI 提取 → 生成带校验的
+                Excel，人工审核后再导入
+              </template>
+            </Alert>
+
+            <!-- 文件选择 -->
             <div class="import-step">
-              <div class="mb-4 text-sm font-medium text-gray-600">
-                第一步：上传 PDF 文件
+              <div class="mb-3 text-sm font-medium text-gray-600">
+                选择 PDF 或 Markdown 文件：
               </div>
-              <AUpload
-                :file-list="pdfFileList"
-                :before-upload="beforePdfUpload"
-                accept=".pdf"
-                :max-count="1"
-              >
-                <VbenButton
-                  ><MaterialSymbolsDescriptionOutline class="mr-1 size-4" />
-                  选择 PDF</VbenButton
+              <div class="flex items-center gap-4">
+                <AUpload
+                  :file-list="pipelineFileList"
+                  :before-upload="beforePipelineUpload"
+                  accept=".pdf,.md"
+                  :max-count="1"
                 >
-              </AUpload>
+                  <VbenButton>
+                    <MaterialSymbolsDescriptionOutline class="mr-1 size-4" />
+                    选择文件
+                  </VbenButton>
+                </AUpload>
+                <VbenButton
+                  type="primary"
+                  :loading="pipelineRunning"
+                  :disabled="pipelineFileList.length === 0"
+                  @click="handleRunPipeline"
+                >
+                  🚀 开始智能导入
+                </VbenButton>
+              </div>
             </div>
-            <div class="mt-8 flex justify-end">
-              <VbenButton
-                type="primary"
-                :loading="extracting"
-                :disabled="pdfFileList.length === 0"
-                @click="handleExtract('pdf')"
+
+            <!-- 流水线进度 -->
+            <div
+              v-if="pipelineRunning || pipelineResult || pipelineError"
+              class="mt-6 rounded-lg border bg-gray-50 p-5"
+            >
+              <!-- Steps 进度条 -->
+              <Steps :current="currentStep" size="small" class="mb-6">
+                <Step title="解析文档" />
+                <Step title="正则分段" />
+                <Step title="AI 提取" />
+                <Step title="生成 Excel" />
+                <Step title="完成" />
+              </Steps>
+
+              <!-- 当前状态消息 -->
+              <div
+                v-if="pipelineMessage && !pipelineResult"
+                class="mb-4 flex items-center gap-2 text-sm text-gray-600"
               >
-                开始解析预览 Markdown
-              </VbenButton>
-            </div>
-            <!-- 解析结果预览与快速切片区 -->
-            <div v-if="parsedMdResult" class="mt-6 border-t pt-6">
-              <div class="mb-4 flex items-center justify-between">
-                <h4 class="text-base font-bold text-gray-800">
-                  Markdown 预览与切片管理
-                </h4>
-                <div class="flex gap-2">
-                  <VbenButton
-                    :loading="savingToServer"
-                    @click="handleSaveSegmentsToServer"
-                    >保存至服务器</VbenButton
-                  >
-                  <VbenButton type="primary" @click="addSegment"
-                    >添加新分片</VbenButton
-                  >
-                </div>
+                <span
+                  class="inline-block size-2 animate-pulse rounded-full bg-blue-500"
+                />
+                {{ pipelineMessage }}
               </div>
 
-              <div class="grid grid-cols-12 gap-6">
-                <!-- 左侧：带行号的预览 -->
-                <div class="col-span-8">
-                  <div class="mb-2 text-xs font-semibold text-gray-500">
-                    内容预览（含行号）：
-                  </div>
-                  <div
-                    class="max-h-[500px] overflow-y-auto rounded border bg-gray-900 p-0 text-[12px] leading-relaxed text-gray-300"
-                  >
-                    <table class="w-full border-collapse">
-                      <tr
-                        v-for="(line, idx) in parsedMdResult.split('\n')"
-                        :key="idx"
-                        class="hover:bg-gray-800"
-                      >
-                        <td
-                          class="w-12 select-none border-r border-gray-700 bg-gray-800 pr-2 text-right text-gray-500"
-                        >
-                          {{ idx + 1 }}
-                        </td>
-                        <td class="whitespace-pre-wrap pl-3 font-mono">
-                          {{ line }}
-                        </td>
-                      </tr>
-                    </table>
-                  </div>
-                </div>
+              <!-- AI 提取进度条 -->
+              <div
+                v-if="
+                  pipelineStage === 'ai_extract' ||
+                  pipelineStage === 'ai_extract_done'
+                "
+                class="mb-4"
+              >
+                <Progress
+                  :percent="pipelineProgress"
+                  :status="pipelineProgress >= 100 ? 'success' : 'active'"
+                  stroke-color="#1677ff"
+                />
+              </div>
 
-                <!-- 右侧：切片命名与范围设置 -->
-                <div class="col-span-4">
-                  <div class="mb-2 text-xs font-semibold text-gray-500">
-                    切片配置：
-                  </div>
-                  <div
-                    v-if="segments.length === 0"
-                    class="flex h-32 flex-col items-center justify-center rounded border border-dashed bg-gray-50 text-gray-400"
-                  >
-                    <p>暂无分片，点击上方按钮添加</p>
-                  </div>
-                  <div v-else class="space-y-3">
-                    <div
-                      v-for="(seg, index) in segments"
-                      :key="index"
-                      class="rounded-lg border bg-white p-3 shadow-sm"
-                    >
-                      <div class="mb-2 flex items-center justify-between">
-                        <input
-                          v-model="seg.name"
-                          class="w-2/3 border-b border-transparent font-bold text-blue-600 outline-none hover:border-blue-300 focus:border-blue-500"
-                          placeholder="分片名称"
-                        />
-                        <VbenButton
-                          type="link"
-                          danger
-                          @click="removeSegment(index)"
-                          >删除</VbenButton
-                        >
-                      </div>
-                      <div class="flex items-center gap-2 text-xs">
-                        <span>行号范围:</span>
-                        <input
-                          v-model.number="seg.startLine"
-                          type="number"
-                          class="w-16 rounded border px-1"
-                        />
-                        <span>至</span>
-                        <input
-                          v-model.number="seg.endLine"
-                          type="number"
-                          class="w-16 rounded border px-1"
-                        />
-                      </div>
-                      <div class="mt-3 flex justify-end gap-2">
-                        <VbenButton ghost @click="downloadSegment(seg)"
-                          >下载 MD</VbenButton
-                        >
-                        <VbenButton
-                          type="primary"
-                          ghost
-                          @click="sendSegmentToExtraction(seg)"
-                          >提取题目</VbenButton
-                        >
-                      </div>
+              <!-- 错误 -->
+              <Alert
+                v-if="pipelineError"
+                :message="pipelineError"
+                type="error"
+                show-icon
+                class="mb-4"
+              />
+
+              <!-- 完成结果 -->
+              <div v-if="pipelineResult" class="space-y-4">
+                <Alert type="success" show-icon>
+                  <template #message>
+                    流水线执行完成！共识别
+                    <strong>{{ pipelineResult.questions_count }}</strong>
+                    道题目
+                    <span v-if="pipelineResult.warnings_count > 0">
+                      ，其中
+                      <Tag color="orange">
+                        {{ pipelineResult.warnings_count }} 条告警
+                      </Tag>
+                      已在 Excel 中标红
+                    </span>
+                  </template>
+                </Alert>
+
+                <div
+                  class="flex items-center justify-between rounded-lg border bg-white p-4"
+                >
+                  <div class="space-y-1 text-sm text-gray-600">
+                    <div>📄 Markdown 长度：{{ pipelineResult.md_length }} 字符</div>
+                    <div>🔢 正则分段数：{{ pipelineResult.segments_count }} 段</div>
+                    <div>
+                      📊 识别题数：{{ pipelineResult.questions_count }} 题
+                    </div>
+                    <div>
+                      ⚠️ 校验告警：{{ pipelineResult.warnings_count }} 条
                     </div>
                   </div>
+                  <div class="flex flex-col gap-2">
+                    <VbenButton
+                      type="primary"
+                      @click="showPipelinePreview"
+                      class="!bg-green-600 !hover:bg-green-500 text-white"
+                    >
+                      👀 在线审核与直接导入
+                    </VbenButton>
+                    <VbenButton @click="handleDownloadExcel">
+                      ⬇️ 下载 Excel 备份或修改
+                    </VbenButton>
+                    <VbenButton v-if="pipelineResult.md_url" @click="handleDownloadMd">
+                      📄 下载过程 Markdown
+                    </VbenButton>
+                    <VbenButton @click="resetPipeline">重新导入</VbenButton>
+                  </div>
                 </div>
+
+                <Alert type="info" show-icon>
+                  <template #message>
+                    您可以直接点击【在线审核与直接导入】直接入库，若需复杂修改可下载 Excel 编辑后再上传。
+                  </template>
+                </Alert>
               </div>
             </div>
           </div>
         </TabPane>
 
-        <!-- JSON 导入 -->
-        <TabPane key="json" tab="JSON 导入">
+        <!-- ============ Excel 导入 ============ -->
+        <TabPane key="excel" tab="📊 Excel 导入">
           <div
-            class="rounded-b-lg border border-t-0 border-gray-100 bg-white p-4"
+            class="rounded-b-lg border border-t-0 border-gray-100 bg-white p-6"
           >
-            <Alert
-              message="支持符合 JSON Schema 格式的系统导出文件直接回灌。"
-              type="info"
-              show-icon
-              class="mb-6"
-            />
+            <Alert class="mb-6" show-icon type="info">
+              <template #message>
+                上传符合模板格式的 Excel 文件直接入库。支持题干去重、材料关联。
+              </template>
+            </Alert>
+
+            <div class="import-step">
+              <div class="mb-3 flex items-center justify-between">
+                <span class="text-sm font-medium text-gray-600"
+                  >选择 Excel 文件（.xlsx）：</span
+                >
+                <VbenButton type="link" @click="handleDownloadTemplate">
+                  📥 下载导入模板
+                </VbenButton>
+              </div>
+              <AUpload
+                :file-list="excelFileList"
+                :before-upload="beforeExcelUpload"
+                accept=".xlsx,.xls"
+                :max-count="1"
+              >
+                <VbenButton>
+                  <MaterialSymbolsUploadFileOutline class="mr-1 size-4" />
+                  选择 Excel 文件
+                </VbenButton>
+              </AUpload>
+            </div>
+
+            <div class="mt-6 flex justify-end">
+              <VbenButton
+                type="primary"
+                :loading="excelUploading"
+                :disabled="excelFileList.length === 0"
+                @click="handleExcelImport"
+              >
+                开始导入
+              </VbenButton>
+            </div>
+
+            <!-- Excel 导入结果 -->
+            <div v-if="excelResult" class="mt-6">
+              <Alert
+                :type="excelResult.fail_count === 0 ? 'success' : 'warning'"
+                show-icon
+              >
+                <template #message>
+                  导入完成：成功 {{ excelResult.success_count }} 题，失败
+                  {{ excelResult.fail_count }} 题
+                  <span v-if="excelResult.dedup_count">
+                    ，去重复用 {{ excelResult.dedup_count }} 题
+                  </span>
+                  <span v-if="excelResult.materials_count">
+                    ，材料 {{ excelResult.materials_count }} 条
+                  </span>
+                </template>
+              </Alert>
+            </div>
+          </div>
+        </TabPane>
+
+        <!-- ============ JSON 导入 ============ -->
+        <TabPane key="json" tab="📋 JSON 导入">
+          <div
+            class="rounded-b-lg border border-t-0 border-gray-100 bg-white p-6"
+          >
+            <Alert class="mb-6" show-icon type="info">
+              <template #message>
+                支持符合 JSON Schema 格式的系统导出文件直接回灌。
+              </template>
+            </Alert>
             <div class="import-step">
               <AUpload
                 :file-list="jsonFileList"
@@ -731,13 +579,13 @@ const resultColumns = [
                 accept=".json"
                 :max-count="1"
               >
-                <VbenButton
-                  ><MaterialSymbolsDescriptionOutline class="mr-1 size-4" />
-                  选择 JSON 文件</VbenButton
-                >
+                <VbenButton>
+                  <MaterialSymbolsDescriptionOutline class="mr-1 size-4" />
+                  选择 JSON 文件
+                </VbenButton>
               </AUpload>
             </div>
-            <div class="mt-8 flex justify-end">
+            <div class="mt-6 flex justify-end">
               <VbenButton
                 type="primary"
                 :loading="jsonUploading"
@@ -749,421 +597,8 @@ const resultColumns = [
             </div>
           </div>
         </TabPane>
-
-        <!-- MD 导入 -->
-        <TabPane key="md" tab="MD 导入">
-          <div
-            class="rounded-b-lg border border-t-0 border-gray-100 bg-white p-4"
-          >
-            <Alert
-              message="适合已具备 Markdown 格式题目的文本直接分析出题。"
-              type="info"
-              show-icon
-              class="mb-6"
-            />
-            <div class="import-step">
-              <AUpload
-                :file-list="mdFileList"
-                :before-upload="beforeMdUpload"
-                accept=".md"
-                :max-count="1"
-              >
-                <VbenButton
-                  ><MaterialSymbolsDescriptionOutline class="mr-1 size-4" />
-                  选择 MD 文件</VbenButton
-                >
-              </AUpload>
-            </div>
-            <div class="mt-8 flex justify-end">
-              <VbenButton
-                type="primary"
-                :loading="extracting"
-                :disabled="mdFileList.length === 0"
-                @click="handleExtract('md')"
-              >
-                解析 MD 开始出题
-              </VbenButton>
-            </div>
-          </div>
-        </TabPane>
-
-        <!-- CSV 导入 -->
-        <TabPane key="csv" tab="CSV 导入">
-          <div
-            class="rounded-b-lg border border-t-0 border-gray-100 bg-white p-4"
-          >
-            <Alert
-              message="标准模板导入，性能最快，适合大批量存量迁移。"
-              type="info"
-              show-icon
-              class="mb-6"
-            />
-            <div class="import-step">
-              <AUpload
-                :file-list="csvFileList"
-                :before-upload="beforeCsvUpload"
-                accept=".csv"
-                :max-count="1"
-              >
-                <VbenButton
-                  ><MaterialSymbolsUploadFileOutline class="mr-1 size-4" /> 选择
-                  CSV 文件</VbenButton
-                >
-              </AUpload>
-            </div>
-            <div class="mt-8 flex justify-end">
-              <VbenButton
-                type="primary"
-                :loading="csvUploading"
-                :disabled="csvFileList.length === 0"
-                @click="handleCsvImport"
-              >
-                开始 CSV 导入
-              </VbenButton>
-            </div>
-          </div>
-        </TabPane>
       </Tabs>
     </Card>
-
-    <!-- 预览与修改区域 (直接内嵌在标签页下方) -->
-    <div v-if="smartExtractData" class="mt-4">
-      <Card title="🚀 AI 抽取数据确认 (所见即所得，随时可修改)">
-        <template #extra>
-          <VbenButton type="dashed" size="sm" @click="batchEditVisible = true"
-            >📦 批量修改配置</VbenButton
-          >
-        </template>
-
-        <div
-          v-if="smartExtractData.questions.length === 0 && isStreamingProgress"
-          class="py-10 text-center text-gray-500"
-        >
-          📇 AI 正在阅读和分解材料，即将输出试题流...
-        </div>
-
-        <div class="max-h-[700px] space-y-4 overflow-y-auto px-1 pb-4">
-          <div
-            v-for="(q, index) in smartExtractData.questions"
-            :key="index"
-            class="rounded-lg border bg-white p-5 transition-all hover:shadow-md"
-          >
-            <!-- 只读视图（默认）-->
-            <div
-              v-if="!q._isEditing"
-              @dblclick="q._isEditing = true"
-              class="group cursor-pointer"
-            >
-              <!-- 头部：序号与详情栏 -->
-              <div class="mb-3 flex items-start justify-between border-b pb-2">
-                <div class="mt-1 text-sm font-bold text-gray-700">
-                  <span
-                    class="mr-2 inline-block rounded bg-blue-100 px-2 text-xs font-bold text-blue-700"
-                    ># {{ q.sort_order || index + 1 }}</span
-                  >
-                  <span class="mr-3">{{ q.chapter_name || '未分类章节' }}</span>
-                  <VbenButton
-                    type="link"
-                    size="sm"
-                    class="opacity-0 transition-opacity group-hover:opacity-100"
-                    @click.stop="q._isEditing = true"
-                    >✏️ 双击修改该题</VbenButton
-                  >
-                </div>
-                <div class="flex items-center gap-2">
-                  <span
-                    class="rounded bg-gray-100 px-2 py-0.5 text-xs text-gray-400"
-                    >{{ q.type }}</span
-                  >
-                  <span
-                    class="rounded bg-yellow-50 px-2 py-0.5 text-xs text-yellow-600"
-                    >{{ q.difficulty }}</span
-                  >
-                  <span
-                    class="rounded bg-green-50 px-2 py-0.5 text-xs text-green-600"
-                    >{{ q.score }}分</span
-                  >
-                  <span class="mx-2 text-gray-300">|</span>
-                  <APopconfirm
-                    title="确认剔除此题吗?"
-                    @confirm="removeQuestion(index)"
-                  >
-                    <VbenButton
-                      type="link"
-                      danger
-                      size="sm"
-                      class="h-auto p-0"
-                      @click.stop
-                      >弃用删除</VbenButton
-                    >
-                  </APopconfirm>
-                </div>
-              </div>
-
-              <!-- 题干正文 -->
-              <div
-                class="prose prose-sm mb-4 max-w-none text-gray-800"
-                v-html="q.stem"
-              ></div>
-
-              <!-- 选项（若存在） -->
-              <div
-                v-if="
-                  ['single', 'multiple', 'judgement'].includes(q.type) &&
-                  q.options_data
-                "
-                class="mb-4 grid grid-cols-1 gap-2 rounded bg-gray-50 p-3"
-              >
-                <div
-                  v-for="(opt, key) in q.options_data"
-                  :key="key"
-                  class="flex items-start text-sm"
-                >
-                  <span class="mt-1 w-6 font-bold text-gray-500"
-                    >{{ key }}.</span
-                  >
-                  <span
-                    v-html="opt.content"
-                    class="prose prose-sm flex-1"
-                  ></span>
-                </div>
-              </div>
-
-              <!-- 答案与解析 -->
-              <div class="flex flex-col gap-2">
-                <div
-                  class="flex items-center gap-2 rounded border border-green-100 bg-green-50 p-3 text-sm font-bold text-green-800"
-                >
-                  <span>✅ 答案：</span>
-                  <span class="text-lg">{{
-                    q.answer_data?.correct || q.answer || '未知'
-                  }}</span>
-                </div>
-                <div
-                  class="rounded border border-gray-100 bg-gray-50 p-3 text-sm text-gray-600"
-                >
-                  <strong class="text-gray-800">💡 解析：</strong>
-                  <span
-                    class="prose prose-sm"
-                    v-html="q.analysis_content"
-                  ></span>
-                </div>
-              </div>
-            </div>
-
-            <!-- 编辑模式表单 -->
-            <div v-else>
-              <div
-                class="mb-4 flex items-center justify-between rounded bg-blue-50 p-2 px-4"
-              >
-                <div class="flex items-center gap-2 font-bold text-blue-700">
-                  <span
-                    class="rounded bg-blue-600 px-2 py-0.5 text-xs text-white"
-                    ># {{ q.sort_order || index + 1 }}</span
-                  >
-                  正在就地编辑...
-                </div>
-                <VbenButton
-                  type="primary"
-                  size="sm"
-                  @click="q._isEditing = false"
-                  >完成修改</VbenButton
-                >
-              </div>
-              <AForm layout="vertical">
-                <div class="grid grid-cols-2 gap-4 md:grid-cols-5">
-                  <AFormItem label="题号" class="mb-3">
-                    <AInputNumber
-                      v-model:value="q.sort_order"
-                      style="width: 100%"
-                    />
-                  </AFormItem>
-                  <AFormItem label="题型" class="mb-3">
-                    <ASelect
-                      :getPopupContainer="
-                        (triggerNode) => triggerNode.parentNode
-                      "
-                      v-model:value="q.type"
-                      :options="[
-                        { label: '单选', value: 'single' },
-                        { label: '多选', value: 'multiple' },
-                        { label: '判断', value: 'judgement' },
-                        { label: '填空', value: 'fill' },
-                        { label: '简答', value: 'shortAnswer' },
-                      ]"
-                    />
-                  </AFormItem>
-                  <AFormItem label="难度" class="mb-3">
-                    <ASelect
-                      :getPopupContainer="
-                        (triggerNode) => triggerNode.parentNode
-                      "
-                      v-model:value="q.difficulty"
-                      :options="[
-                        { label: '简单', value: 'easy' },
-                        { label: '中等', value: 'medium' },
-                        { label: '困难', value: 'hard' },
-                      ]"
-                    />
-                  </AFormItem>
-                  <AFormItem label="归属分类/章节" class="mb-3">
-                    <AInput v-model:value="q.chapter_name" />
-                  </AFormItem>
-                  <AFormItem label="设定分数" class="mb-3">
-                    <AInputNumber v-model:value="q.score" style="width: 100%" />
-                  </AFormItem>
-                </div>
-
-                <AFormItem label="题干源码" class="mb-3">
-                  <ATextarea v-model:value="q.stem" :rows="3" />
-                </AFormItem>
-
-                <div
-                  v-if="
-                    ['single', 'multiple', 'judgement'].includes(q.type) &&
-                    q.options_data
-                  "
-                  class="mb-3 rounded-lg border border-blue-100 bg-blue-50/50 p-3"
-                >
-                  <div class="mb-2 text-sm font-bold text-blue-800">
-                    选项列表编排
-                  </div>
-                  <div
-                    v-for="(opt, key) in q.options_data"
-                    :key="key"
-                    class="mb-2 flex items-start gap-2"
-                  >
-                    <div
-                      class="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-blue-100 font-bold text-blue-700"
-                    >
-                      {{ key }}
-                    </div>
-                    <ATextarea
-                      v-model:value="opt.content"
-                      :rows="1"
-                      class="flex-grow"
-                    />
-                  </div>
-                </div>
-
-                <AFormItem
-                  label="正确答案 (如果是多选推荐切换到 JSON 里使用数组 ['A', 'B'])"
-                  class="mb-3"
-                >
-                  <AInput
-                    v-if="q.answer_data"
-                    v-model:value="q.answer_data.correct"
-                    size="large"
-                    class="font-bold text-green-700"
-                  />
-                  <AInput
-                    v-else
-                    v-model:value="q.answer"
-                    size="large"
-                    class="font-bold text-green-700"
-                  />
-                </AFormItem>
-
-                <AFormItem label="题目解析" class="mb-0">
-                  <ATextarea v-model:value="q.analysis_content" :rows="3" />
-                </AFormItem>
-              </AForm>
-            </div>
-          </div>
-        </div>
-
-        <div class="mt-6 flex justify-end gap-3 px-2">
-          <span
-            v-if="isStreamingProgress"
-            class="mr-auto flex animate-pulse items-center text-sm font-bold text-blue-500"
-          >
-            ⏳ AI 引擎正在持续生成题卡中，已收集
-            {{ smartExtractData.questions.length }} 道题...
-          </span>
-          <VbenButton
-            v-if="!isStreamingProgress"
-            @click="smartExtractData = null"
-            >清空并放弃</VbenButton
-          >
-          <VbenButton
-            type="primary"
-            :loading="pdfCommitting"
-            :disabled="isStreamingProgress"
-            @click="handleSmartCommit"
-            size="lg"
-            class="w-40"
-            >确认无误 立即入库</VbenButton
-          >
-        </div>
-      </Card>
-    </div>
-
-    <!-- 批量修改模态框 -->
-    <AModal
-      v-model:open="batchEditVisible"
-      title="📦 批量修改入库队列"
-      @ok="handleBatchEdit"
-      destroy-on-close
-      :z-index="2000"
-      ok-text="应用批量配置"
-      cancel-text="取消"
-    >
-      <Alert
-        message="仅填写需要覆盖的字段，留空的字段将保持各题目原有数据不受影响。"
-        type="info"
-        class="mb-4"
-      />
-      <AForm
-        layout="vertical"
-        class="rounded-lg border border-gray-100 bg-gray-50/50 p-4"
-      >
-        <AFormItem label="批量修改章节为">
-          <AInput
-            v-model:value="batchEditForm.chapter_name"
-            placeholder="留空则不修改"
-            size="large"
-          />
-        </AFormItem>
-        <AFormItem label="批量修改题型为">
-          <ASelect
-            :getPopupContainer="(triggerNode) => triggerNode.parentNode"
-            v-model:value="batchEditForm.type"
-            allow-clear
-            placeholder="留空则不修改"
-            size="large"
-            :options="[
-              { label: '单选', value: 'single' },
-              { label: '多选', value: 'multiple' },
-              { label: '判断', value: 'judgement' },
-              { label: '填空', value: 'fill' },
-              { label: '简答', value: 'shortAnswer' },
-            ]"
-          />
-        </AFormItem>
-        <AFormItem label="批量修改难度为">
-          <ASelect
-            :getPopupContainer="(triggerNode) => triggerNode.parentNode"
-            v-model:value="batchEditForm.difficulty"
-            allow-clear
-            placeholder="留空则不修改"
-            size="large"
-            :options="[
-              { label: '简单', value: 'easy' },
-              { label: '中等', value: 'medium' },
-              { label: '困难', value: 'hard' },
-            ]"
-          />
-        </AFormItem>
-        <AFormItem label="批量修改分数为" class="mb-0">
-          <AInputNumber
-            v-model:value="batchEditForm.score"
-            style="width: 100%"
-            placeholder="留空则不修改"
-            size="large"
-          />
-        </AFormItem>
-      </AForm>
-    </AModal>
 
     <!-- 导入统计结果 -->
     <Drawer v-model:open="showResultDrawer" title="导入运行报告" :width="700">
@@ -1182,6 +617,100 @@ const resultColumns = [
         />
       </div>
     </Drawer>
+
+    <!-- 智能导入预览 -->
+    <Modal
+      v-model:open="isPreviewVisible"
+      title="在线审核题目"
+      :width="1400"
+      :style="{ top: '20px' }"
+      :footer="null"
+      :destroyOnClose="true"
+    >
+      <div v-if="pipelineResult?.questions" class="flex flex-col space-y-4" style="height: 85vh;">
+        <Alert
+          message="支持直接在下方表格中修改题干、题型、答案及解析！修改无误后点击下方按钮直接入库。对于复杂的选项调整，建议仍使用 Excel 下载修改。"
+          type="info"
+          show-icon
+        />
+        <VxeTable
+          border
+          show-overflow
+          :data="pipelineResult.questions"
+          height="100%"
+          :edit-config="{ trigger: 'dblclick', mode: 'cell' }"
+          :mouse-config="{ selected: true }"
+          :keyboard-config="{ isArrow: true, isDel: true, isEnter: true, isTab: true, isEdit: true }"
+          size="small"
+        >
+          <VxeColumn type="seq" width="60" title="序号"></VxeColumn>
+          
+          <VxeColumn field="type" title="题型" width="100" :edit-render="{}">
+            <template #edit="{ row }">
+              <Select v-model:value="row.type" style="width: 100%" size="small">
+                <Select.Option value="single">单选</Select.Option>
+                <Select.Option value="multiple">多选</Select.Option>
+                <Select.Option value="judgement">判断</Select.Option>
+                <Select.Option value="fill">填空</Select.Option>
+                <Select.Option value="shortAnswer">简答</Select.Option>
+              </Select>
+            </template>
+            <template #default="{ row }">
+              {{ row.type === 'single' ? '单选' : row.type === 'multiple' ? '多选' : row.type === 'judgement' ? '判断' : row.type === 'fill' ? '填空' : row.type === 'shortAnswer' ? '简答' : row.type }}
+            </template>
+          </VxeColumn>
+
+          <VxeColumn field="stem" title="题干" width="300" :edit-render="{}">
+            <template #edit="{ row }">
+              <Input.TextArea
+                v-model:value="row.stem"
+                :autoSize="{ minRows: 2, maxRows: 6 }"
+              />
+            </template>
+          </VxeColumn>
+
+          <VxeColumn field="answer_data.correct" title="答案" width="120" :edit-render="{}">
+            <template #edit="{ row }">
+                <Input v-if="row.answer_data" v-model:value="row.answer_data.correct" size="small" />
+                <Input v-else :value="''" @change="(e: any) => (row.answer_data = { correct: e.target.value })" size="small" />
+            </template>
+            <template #default="{ row }">
+                {{ row.answer_data?.correct || '' }}
+            </template>
+          </VxeColumn>
+
+          <VxeColumn field="analysis_content" title="解析" min-width="200" :edit-render="{}">
+            <template #edit="{ row }">
+              <Input.TextArea
+                v-model:value="row.analysis_content"
+                :autoSize="{ minRows: 2, maxRows: 6 }"
+              />
+            </template>
+          </VxeColumn>
+
+          <VxeColumn field="material_id" title="材料编号" width="100" :edit-render="{}">
+            <template #edit="{ row }">
+              <Input v-model:value="row.material_id" size="small" placeholder="填编号" />
+            </template>
+            <template #default="{ row }">
+              {{ row.material_id || '' }}
+            </template>
+          </VxeColumn>
+
+        </VxeTable>
+        <div class="flex justify-end gap-2 mt-2 border-t pt-4">
+          <VbenButton @click="isPreviewVisible = false">取消修改</VbenButton>
+          <VbenButton
+            type="primary"
+            class="!bg-green-600 !hover:bg-green-500 text-white"
+            :loading="isPipelineImporting"
+            @click="importPipelineQuestions"
+          >
+            无误，直接导入生效
+          </VbenButton>
+        </div>
+      </div>
+    </Modal>
   </div>
 </template>
 

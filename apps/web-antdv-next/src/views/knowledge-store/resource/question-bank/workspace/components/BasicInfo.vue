@@ -41,6 +41,7 @@ function toBankParams(
     bank_type: Number(values.bank_type ?? base?.bank_type ?? 1),
     scene_mask: Number(values.scene_mask ?? base?.scene_mask ?? 1),
     parent_id: values.parent_id ?? base?.parent_id ?? null,
+    chapter_source_bank_id: values.chapter_source_bank_id ?? base?.chapter_source_bank_id ?? null,
     status: Number(values.status ?? base?.status ?? 1),
     scope: Number(values.scope ?? base?.scope ?? 1),
   };
@@ -56,6 +57,7 @@ function loadBankData(data: BankResult) {
     difficulty: data.difficulty,
     name: data.name,
     parent_id: data.parent_id,
+    chapter_source_bank_id: data.chapter_source_bank_id,
     scene_mask: data.scene_mask,
     scope: data.scope,
     status: data.status,
@@ -101,7 +103,7 @@ async function handleSaveBasic() {
 </script>
 
 <template>
-  <div class="flex flex-col gap-4">
+  <div class="flex flex-col gap-4 h-full overflow-y-auto">
     <Card title="基本信息">
       <BasicForm />
 

@@ -108,6 +108,7 @@ import { ExtensionKatexInline, ExtensionKatexBlock } from "../plugins/katex";
 import { ExtensionTextDiagram } from "../plugins/text-diagram";
 import { HTMLEditedExtension, MarkdownEditedExtension } from "../plugins/hybrid-edit";
 import { HighlightBlock } from "../plugins/highlight-block";
+import { HyperlinkCardExtension, HyperlinkInlineCardExtension, TextBubbleExtension } from "../plugins/hyperlink-card/editor";
 
 export interface ExtensionsKitOptions {
   audio: Partial<ExtensionAudioOptions> | false;
@@ -439,6 +440,9 @@ export const ExtensionsKit = Extension.create<ExtensionsKitOptions>({
     
     // 自定义高亮块
     internalExtensions.push(HighlightBlock);
+
+    // 超链接卡片插件能力
+    internalExtensions.push(HyperlinkCardExtension, HyperlinkInlineCardExtension, TextBubbleExtension);
 
     const extensions =
       filterDuplicateExtensions([

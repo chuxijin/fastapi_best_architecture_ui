@@ -1,10 +1,9 @@
-﻿<script setup lang="ts">
-import type { DifficultyType, FileInfo, QuestionType } from '#/api';
+<script setup lang="ts">
+import type { DifficultyType, QuestionType } from '#/api';
 
 import { onMounted, ref, watch } from 'vue';
 
 import {
-  createIconifyIcon,
   MaterialSymbolsAdd,
   MaterialSymbolsDelete,
 } from '@vben/icons';
@@ -26,7 +25,6 @@ import {
 
 import { getQuestionDetailApi } from '#/api';
 import { requestClient } from '#/api/request';
-import MediaPicker from '#/components/MediaPicker.vue';
 import HaloEditorWrapper from '#/components/HaloEditor/HaloEditorWrapper.vue';
 
 import ShortAnswerEditor from './ShortAnswerEditor.vue';
@@ -36,9 +34,6 @@ const props = defineProps<Props>();
 const emit = defineEmits<{
   submit: [data: any];
 }>();
-
-// 创建需要的图标
-const FileImageOutlined = createIconifyIcon('material-symbols:image-outline');
 
 interface Props {
   bankId: number;
@@ -76,6 +71,7 @@ const formData = ref({
   usage: 'all',
   difficulty: 'medium' as DifficultyType,
   score: ['fill', 'shortAnswer'].includes(props.questionType) ? 5 : 1,
+  sort_order: 0,
   chapter_id: undefined as number | undefined,
   stem: '',
   knowledge_point: '',
@@ -148,7 +144,7 @@ function toOptionsData(
         const content = value?.content || value?.content_ref?.content || '';
         return [code, { code, content }] as const;
       })
-      .filter(([, item]) => item.content !== '');
+      .filter(([, item]: [string, any]) => item.content !== '');
     if (entries.length > 0) {
       return Object.fromEntries(entries);
     }
@@ -165,45 +161,13 @@ function toOptionsData(
         const content = item?.content || item?.content_ref?.content || '';
         return [code, { code, content }] as const;
       })
-      .filter(([, item]) => item.content !== '');
+      .filter(([, item]: [string, any]) => item.content !== '');
     if (entries.length > 0) {
       return Object.fromEntries(entries);
     }
   }
 
   return null;
-}
-
-// ==================== Media Picker 媒体选择器 ====================
-const showMediaPicker = ref(false);
-const currentEditorTarget = ref<'analysis' | 'stem' | null>(null);
-
-function openMediaPicker(target: 'analysis' | 'stem') {
-  currentEditorTarget.value = target;
-  showMediaPicker.value = true;
-}
-
-function handleMediaSelect(files: FileInfo[]) {
-  if (files.length === 0) return;
-
-  // 将选中的图片插入到对应的编辑器中
-  const imageMarkdown = files
-    .map((file) => {
-      if (file.type === 'image') {
-        return `<img src="${file.url}" alt="${file.name}" style="max-width:100%" />`;
-      }
-      return `<a href="${file.url}" target="_blank">${file.name}</a>`;
-    })
-    .join('<br/>');
-
-  // 根据目标编辑器插入内容
-  if (currentEditorTarget.value === 'stem') {
-    formData.value.stem += (formData.value.stem ? '\n\n' : '') + imageMarkdown;
-  } else if (currentEditorTarget.value === 'analysis') {
-    analysisContent.value +=
-      (analysisContent.value ? '\n\n' : '') + imageMarkdown;
-  }
-  message.success(`成功插入 ${files.length} 个文件`);
 }
 
 // ==================== 选项配置 ====================
@@ -300,26 +264,37 @@ async function submit() {
     throw new Error('请输入题干');
   }
 
-  // 构建基础题目数据
-  const submitData: any = {
-    bank_id: formData.value.bank_id,
+  // 1. 构建 Core 题目本体数据
+  const coreData = {
     type: formData.value.type,
     stem: formData.value.stem,
-    chapter_id: formData.value.chapter_id,
     difficulty: formData.value.difficulty,
-    score: formData.value.score,
-    knowledge_point: formData.value.knowledge_point,
-    source: formData.value.source,
-    year: formData.value.year,
-    usage: formData.value.usage,
-    is_active: formData.value.is_active,
-    material_ids: selectedMaterialIds.value, // 对所有题型生效
+    default_score: formData.value.score,
+    knowledge_point: formData.value.knowledge_point
+      ? typeof formData.value.knowledge_point === 'string'
+        ? formData.value.knowledge_point.split('、').filter(Boolean)
+        : Array.isArray(formData.value.knowledge_point)
+          ? formData.value.knowledge_point
+          : null
+      : null,
+    content_status: 10,
   };
 
-  // 构建答案数据（QuestionAnalysis）
-  const analysisData: any = {};
+  // 2. 构建挂载数据 Placement
+  const placementsData = [
+    {
+      bank_id: formData.value.bank_id,
+      chapter_id: formData.value.chapter_id || null,
+      sort_order: formData.value.sort_order,
+      score: formData.value.score,
+      is_active: formData.value.is_active,
+    },
+  ];
 
-  // 根据题型构建选项和答案
+  // 3. 构建选项和答案
+  let optionsData: any[] = [];
+  let analysesData: any[] = [];
+
   switch (props.questionType) {
     case 'fill': {
       const hasEmptyAnswer = blankAnswers.value.some(
@@ -329,11 +304,16 @@ async function submit() {
         message.error('请填写所有填空的答案');
         throw new Error('请填写所有填空的答案');
       }
-      submitData.options_data = null;
-      analysisData.answer_data = {
-        correct: blankAnswers.value.map((b) => b.answer),
-      };
-      analysisData.content = analysisContent.value;
+      analysesData = [
+        {
+          type: 'official',
+          is_default: true,
+          answer_data: {
+            correct: blankAnswers.value.map((b) => b.answer),
+          },
+          content: analysisContent.value,
+        },
+      ];
       break;
     }
     case 'judgement': {
@@ -341,14 +321,18 @@ async function submit() {
         message.error('请选择答案');
         throw new Error('请选择答案');
       }
-      submitData.options_data = null;
-      analysisData.answer_data = {
-        correct: judgmentAnswer.value === 'true' ? 'A' : 'B',
-      };
-      analysisData.content = analysisContent.value;
+      analysesData = [
+        {
+          type: 'official',
+          is_default: true,
+          answer_data: {
+            correct: judgmentAnswer.value === 'true' ? 'A' : 'B',
+          },
+          content: analysisContent.value,
+        },
+      ];
       break;
     }
-
     case 'multiple':
     // fall through
     case 'single': {
@@ -356,35 +340,36 @@ async function submit() {
         message.error('请选择答案');
         throw new Error('请选择答案');
       }
-      // 构建 options_data
-      const optionsData: Record<string, any> = {};
-      options.value.forEach((opt) => {
-        optionsData[opt.label] = {
-          code: opt.label,
-          content: opt.content,
-        };
-      });
-      submitData.options_data = optionsData;
+      // 构建 options 数组
+      optionsData = options.value.map((opt, idx) => ({
+        option_code: opt.label,
+        content: opt.content,
+        sort_order: idx + 1,
+        is_active: true,
+      }));
 
       // 构建答案数据
-      analysisData.answer_data = {
-        correct:
-          props.questionType === 'single'
-            ? selectedAnswer.value[0]
-            : selectedAnswer.value,
-      };
-      analysisData.content = analysisContent.value;
+      analysesData = [
+        {
+          type: 'official',
+          is_default: true,
+          answer_data: {
+            correct:
+              props.questionType === 'single'
+                ? selectedAnswer.value[0]
+                : selectedAnswer.value,
+          },
+          content: analysisContent.value,
+        },
+      ];
       break;
     }
-
     case 'shortAnswer': {
       if (shortAnswerVersions.value.length === 0) {
         message.error('请至少添加一个答案版本');
         throw new Error('请至少添加一个答案版本');
       }
-
-      // 🔥 新格式：每个版本作为独立的解析记录
-      submitData.analyses = shortAnswerVersions.value.map((v, idx) => ({
+      analysesData = shortAnswerVersions.value.map((v, idx) => ({
         type: v.type, // 机构名称存入 type 字段
         answer_data: {
           correct: v.answer, // 答案内容
@@ -392,17 +377,19 @@ async function submit() {
         content: v.analysis || '', // 解析内容
         is_default: v.is_default || idx === 0, // 第一个默认
       }));
-
-      // 不再使用单条 analysis
       break;
     }
   }
 
-  // 如果有 analyses 则不设置 analysis（新格式优先）
-  if (!submitData.analyses) {
-    submitData.analysis = analysisData;
-  }
-  emit('submit', submitData);
+  const finalSubmitData = {
+    core: coreData,
+    placements: placementsData,
+    options: optionsData.length > 0 ? optionsData : undefined,
+    analyses: analysesData,
+    material_ids: selectedMaterialIds.value,
+  };
+
+  emit('submit', finalSubmitData);
 }
 
 // ==================== 数据加载 ====================
@@ -458,19 +445,24 @@ async function loadQuestionData(questionId: number) {
           }
         : undefined);
 
+    const defaultPlacement = Array.isArray(merged.placements) && merged.placements.length > 0 
+      ? merged.placements[0] 
+      : null;
+
     // 填充共享数据
     formData.value = {
-      bank_id: merged.bank_id,
+      bank_id: merged.bank_id ?? defaultPlacement?.bank_id ?? props.bankId,
       type: merged.type,
       usage: merged.usage || 'all',
       difficulty: merged.difficulty || 'medium',
-      score: merged.score,
-      chapter_id: merged.chapter_id ?? undefined,
+      score: merged.score ?? defaultPlacement?.score ?? merged.default_score ?? (['fill', 'shortAnswer'].includes(props.questionType) ? 5 : 1),
+      sort_order: merged.sort_order ?? defaultPlacement?.sort_order ?? 0,
+      chapter_id: merged.chapter_id ?? defaultPlacement?.chapter_id ?? undefined,
       stem: merged.stem,
       knowledge_point: normalizedKnowledgePoint,
       source: merged.source || '',
       year: merged.year ?? undefined,
-      is_active: merged.is_active ?? true,
+      is_active: merged.is_active ?? defaultPlacement?.is_active ?? true,
     };
 
     // 加载关联材料
@@ -646,8 +638,8 @@ defineExpose({
         />
       </Col>
 
-      <!-- 第二行：难度、分值、章节 -->
-      <Col :span="8" class="mb-4">
+      <!-- 第二行：难度、分值、排序、章节 -->
+      <Col :span="6" class="mb-4">
         <div class="form-label">难度</div>
         <Select
           v-model:value="formData.difficulty"
@@ -657,7 +649,7 @@ defineExpose({
         />
       </Col>
 
-      <Col :span="8" class="mb-4">
+      <Col :span="6" class="mb-4">
         <div class="form-label">分值<span class="text-red-500">*</span></div>
         <InputNumber
           v-model:value="formData.score"
@@ -668,7 +660,18 @@ defineExpose({
         />
       </Col>
 
-      <Col :span="8" class="mb-4">
+      <Col :span="6" class="mb-4">
+        <div class="form-label">排序</div>
+        <InputNumber
+          v-model:value="formData.sort_order"
+          :min="0"
+          :precision="0"
+          placeholder="请输入排序"
+          class="w-full"
+        />
+      </Col>
+
+      <Col :span="6" class="mb-4">
         <div class="form-label">所属章节</div>
         <Select
           v-model:value="formData.chapter_id"
@@ -681,14 +684,8 @@ defineExpose({
 
       <!-- 题干 -->
       <Col :span="24" class="mb-4">
-        <div class="mb-2 flex items-center justify-between">
-          <div class="form-label mb-0">
-            题干<span class="text-red-500">*</span>
-          </div>
-          <Button type="default" size="small" @click="openMediaPicker('stem')">
-            <FileImageOutlined />
-            从媒体库选择
-          </Button>
+        <div class="form-label">
+          题干<span class="text-red-500">*</span>
         </div>
         <HaloEditorWrapper v-model="formData.stem" :height="150" />
       </Col>
@@ -857,17 +854,7 @@ defineExpose({
 
       <!-- 解析 (对于简答题，解析已包含在多版本中，故隐藏) -->
       <Col v-if="questionType !== 'shortAnswer'" :span="24" class="mb-4">
-        <div class="mb-2 flex items-center justify-between">
-          <div class="form-label mb-0">题目解析</div>
-          <Button
-            type="default"
-            size="small"
-            @click="openMediaPicker('analysis')"
-          >
-            <FileImageOutlined />
-            从媒体库选择
-          </Button>
-        </div>
+        <div class="form-label">题目解析</div>
         <HaloEditorWrapper v-model="analysisContent" :height="150" />
       </Col>
 
@@ -912,13 +899,6 @@ defineExpose({
       </Col>
     </Row>
 
-    <!-- 媒体选择器 -->
-    <MediaPicker
-      v-model:open="showMediaPicker"
-      :multiple="true"
-      accept="image/*,video/*,.pdf"
-      @select="handleMediaSelect"
-    />
   </div>
 </template>
 

@@ -82,6 +82,25 @@ export const basicInfoSchema: VbenFormSchema[] = [
     label: '所属父题库',
   },
   {
+    component: 'ApiSelect',
+    componentProps: {
+      allowClear: true,
+      api: async () => {
+        const { getBankListApi } = await import('#/api');
+        const data = await getBankListApi({ bank_type: 1 });
+        return data.map((item: any) => ({
+          label: item.name,
+          value: item.id,
+        }));
+      },
+      class: 'w-full',
+      placeholder: '无（独立管理篇章）',
+    },
+    fieldName: 'chapter_source_bank_id',
+    label: '篇章共享来源',
+    help: '此处修改只对后续新建章节或导入产生影响。',
+  },
+  {
     component: 'InputNumber',
     componentProps: {
       class: 'w-full',

@@ -634,6 +634,9 @@ importers:
       '@floating-ui/dom':
         specifier: ^1.7.6
         version: 1.7.6
+      '@halo-dev/hyperlink-card':
+        specifier: ^1.7.0
+        version: 1.7.0
       '@iconify-json/lucide':
         specifier: ^1.2.95
         version: 1.2.95
@@ -898,6 +901,12 @@ importers:
       vue-router:
         specifier: 'catalog:'
         version: 5.0.4(@vue/compiler-sfc@3.5.32)(pinia@3.0.4(typescript@5.9.3)(vue@3.5.32(typescript@5.9.3)))(vue@3.5.32(typescript@5.9.3))
+      vxe-pc-ui:
+        specifier: ^4.13.23
+        version: 4.13.23(vue@3.5.32(typescript@5.9.3))
+      vxe-table:
+        specifier: ^4.18.12
+        version: 4.18.12(vue@3.5.32(typescript@5.9.3))
     devDependencies:
       '@iconify-json/carbon':
         specifier: ^1.2.19
@@ -3532,6 +3541,9 @@ packages:
 
   '@floating-ui/vue@1.1.10':
     resolution: {integrity: sha512-vdf8f6rHnFPPLRsmL4p12wYl+Ux4mOJOkjzKEMYVnwdf7UFdvBtHlLvQyx8iKG5vhPRbDRgZxdtpmyigDPjzYg==}
+
+  '@halo-dev/hyperlink-card@1.7.0':
+    resolution: {integrity: sha512-0i0xP/G2noXEGqrrjoWuQ0oMtdev8TwTYyOl2uDXg0SQn7FtBZ/7H/dl1CcS3KXH1NHF+zRnNhoF2M7qz8agJw==}
 
   '@humanfs/core@0.19.1':
     resolution: {integrity: sha512-5DyQ4+1JEUzejeK1JGICcideyfUbGixgS9jNgex5nqkW+cY7WZhxBigmieN5Qnw9ZosSNVC9KQKyb+GUaGyKUA==}
@@ -8740,6 +8752,11 @@ packages:
     cpu: [arm64]
     os: [linux]
 
+  lefthook-linux-x64@2.1.5:
+    resolution: {integrity: sha512-bqK3LrAB5l5YaCaoHk6qRWlITrGWzP4FbwRxA31elbxjd0wgNWZ2Sn3zEfSEcxz442g7/PPkEwqqsTx0kSFzpg==}
+    cpu: [x64]
+    os: [linux]
+
   lefthook-openbsd-arm64@2.1.5:
     resolution: {integrity: sha512-5aSwK7vV3A6t0w9PnxCMiVjQlcvopBP50BtmnnLnNJyAYHnFbZ0Baq5M0WkE9IsUkWSux0fe6fd0jDkuG711MA==}
     cpu: [arm64]
@@ -11515,8 +11532,14 @@ packages:
   vxe-pc-ui@4.13.21:
     resolution: {integrity: sha512-Qqhm3igRMn8Zrlbnam94gCMsQ6a/DKrJMllfGHVn6VMFvfug7HOkYoOt6roZOWzYRukNqxAPS9RoyZ2lVA+QBA==}
 
+  vxe-pc-ui@4.13.23:
+    resolution: {integrity: sha512-FRicMKRas/qod0L3j4WUCb/R6rmKGGC18NlWccFspHY+nTvxa9mcgjGAAnIkOGd8OBXexEvCYKAadS5Bc1bAUA==}
+
   vxe-table@4.18.11:
     resolution: {integrity: sha512-1NAdT45yUg8gqzILLqfXS7fuDfMnfNhYE8gZqR5IvcNH9EMr115dhAyCyC0i8PZZ3hlR3SnZsIPPkpliWebcAg==}
+
+  vxe-table@4.18.12:
+    resolution: {integrity: sha512-FjcM/YWV5ytStY8lUR+wTQ26rtvuEugf1om8qyApVVyVVIaEixYwM7ufrcK0s4nUKiDcUVRE06OTDt0dz4kGXA==}
 
   w3c-keyname@2.2.8:
     resolution: {integrity: sha512-dpojBhNsCNN7T82Tm7k26A6G9ML3NkhDsnw9n/eoxSRlVBB4CEtIQ/KTCLI2Fwf3ataSXRhYFkQi3SlnFwPvPQ==}
@@ -13760,6 +13783,8 @@ snapshots:
     transitivePeerDependencies:
       - '@vue/composition-api'
       - vue
+
+  '@halo-dev/hyperlink-card@1.7.0': {}
 
   '@humanfs/core@0.19.1': {}
 
@@ -19263,6 +19288,9 @@ snapshots:
   lefthook-linux-arm64@2.1.5:
     optional: true
 
+  lefthook-linux-x64@2.1.5:
+    optional: true
+
   lefthook-openbsd-arm64@2.1.5:
     optional: true
 
@@ -19282,6 +19310,7 @@ snapshots:
       lefthook-freebsd-arm64: 2.1.5
       lefthook-freebsd-x64: 2.1.5
       lefthook-linux-arm64: 2.1.5
+      lefthook-linux-x64: 2.1.5
       lefthook-openbsd-arm64: 2.1.5
       lefthook-openbsd-x64: 2.1.5
       lefthook-windows-arm64: 2.1.5
@@ -22288,9 +22317,21 @@ snapshots:
     transitivePeerDependencies:
       - vue
 
+  vxe-pc-ui@4.13.23(vue@3.5.32(typescript@5.9.3)):
+    dependencies:
+      '@vxe-ui/core': 4.4.4(vue@3.5.32(typescript@5.9.3))
+    transitivePeerDependencies:
+      - vue
+
   vxe-table@4.18.11(vue@3.5.32(typescript@5.9.3)):
     dependencies:
       vxe-pc-ui: 4.13.21(vue@3.5.32(typescript@5.9.3))
+    transitivePeerDependencies:
+      - vue
+
+  vxe-table@4.18.12(vue@3.5.32(typescript@5.9.3)):
+    dependencies:
+      vxe-pc-ui: 4.13.23(vue@3.5.32(typescript@5.9.3))
     transitivePeerDependencies:
       - vue
 

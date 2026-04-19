@@ -34,8 +34,14 @@ function onEditorChange(e: Event) {
     as="span"
     contenteditable="false"
     :class="{ 'katex-node-view-selected': props.selected }"
+    :style="!props.editor.isEditable ? 'padding: 0; background: transparent;' : ''"
   >
+    <!-- 如果不可编辑，直接渲染纯净 HTML，丢弃掉外层 VDropdown 的交互包袱 -->
+    <span v-if="!props.editor.isEditable" v-html="renderedKatex"></span>
+
+    <!-- 编辑模式时保持原样 -->
     <VDropdown
+      v-else
       :classes="['no-padding']"
       :distance="12"
       placement="bottom"

@@ -34,6 +34,20 @@ const coreRoutes: RouteRecordRaw[] = [
     redirect: preferences.app.defaultHomePath,
     children: [
       {
+        name: 'GongkaoContentEditor',
+        path: 'gongkao/content/editor/:id(.*)?',
+        component: () =>
+          import('#/views/gongkao/content/editor.vue'),
+        meta: {
+          title: '内容创作工作台',
+          hideInMenu: true,
+          hideInTab: false,
+          fullPathKey: false,
+          activeMenu: '/gongkao/content',
+        },
+      },
+
+      {
         name: 'KnowledgeStoreQuestionBankWorkspace',
         path: 'knowledge-store/resource/question-bank/:id/:tab?',
         component: () =>
