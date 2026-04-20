@@ -1,0 +1,81 @@
+name: Deploy web-antdv-next
+
+on:
+  workflow_dispatch:
+  push:
+    tags:
+      - 'v*'
+
+concurrency:
+  group: deploy-web-antdv-next
+  cancel-in-progress: false
+
+env:
+  APP_NAME: web-antdv-next
+  APP_DIR: apps/web-antdv-next
+  DEPLOY_PATH: /www/wwwroot/WeBot/frontend/apps/web-antdv-next/dist
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          run_install: false
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: .node-version
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build
+        run: pnpm run build --filter=@vben/${{ env.APP_NAME }}
+        env:
+          NODE_OPTIONS: --max-old-space-size=4096
+
+      - name: Verify dist
+        run: |
+          test -f ${{ env.APP_DIR }}/dist/index.html || { echo "dist/index.html missing"; exit 1; }
+          du -sh ${{ env.APP_DIR }}/dist
+
+      - name: Setup SSH
+        uses: webfactory/ssh-agent@v0.9.0
+        with:
+          ssh-private-key: ${{ secrets.DEPLOY_SSH_KEY }}
+
+      - name: Add server to known_hosts
+        run: |
+          mkdir -p ~/.ssh
+          ssh-keyscan -p ${{ secrets.DEPLOY_SSH_PORT || 22 }} -H ${{ secrets.DEPLOY_HOST }} >> ~/.ssh/known_hosts
+
+      - name: Ensure target dir
+        run: |
+          ssh -p ${{ secrets.DEPLOY_SSH_PORT || 22 }} \
+            ${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }} \
+            "mkdir -p ${{ env.DEPLOY_PATH }}"
+
+      - name: Rsync dist to server
+        run: |
+          rsync -az --delete \
+            -e "ssh -p ${{ secrets.DEPLOY_SSH_PORT || 22 }}" \
+            ${{ env.APP_DIR }}/dist/ \
+            ${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }}:${{ env.DEPLOY_PATH }}/
+
+      - name: Upload dist artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: dist-${{ github.sha }}
+          path: ${{ env.APP_DIR }}/dist
+          retention-days: 7

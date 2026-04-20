@@ -60,7 +60,10 @@ skills-lock.json
 
 # 升级 vben 时需要删除的文件(夹)
 .changeset
-.github
+.github/*
+!.github/workflows/
+.github/workflows/*
+!.github/workflows/deploy-*.yml
 .vscode
 apps/backend-mock
 apps/web-antd

@@ -11,11 +11,16 @@ export default defineConfig(async (): Promise<any> => {
   return {
     application: {},
     vite: {
-      plugins: [
-        Icons({ compiler: 'vue3' }),
-      ],
+      plugins: [Icons({ compiler: 'vue3' })],
       optimizeDeps: {
-        exclude: ['@v-c/util', '@v-c/tabs', 'antdv-next', '@v-c/dropdown', '@v-c/menu', '@v-c/select'],
+        exclude: [
+          '@v-c/util',
+          '@v-c/tabs',
+          'antdv-next',
+          '@v-c/dropdown',
+          '@v-c/menu',
+          '@v-c/select',
+        ],
       },
       resolve: {
         alias: [
@@ -43,55 +48,6 @@ export default defineConfig(async (): Promise<any> => {
           {
             find: '@halo-dev/ui-shared',
             replacement: resolve(__dirname, 'src/stubs/halo-ui-shared.ts'),
-          },
-          {
-            find: '@codemirror/autocomplete',
-            replacement: resolve(
-              __dirname,
-              '../../node_modules/.pnpm/@codemirror+autocomplete@6.20.0/node_modules/@codemirror/autocomplete',
-            ),
-          },
-          {
-            find: '@codemirror/commands',
-            replacement: resolve(
-              __dirname,
-              '../../node_modules/.pnpm/@codemirror+commands@6.10.2/node_modules/@codemirror/commands',
-            ),
-          },
-          {
-            find: '@codemirror/lang-html',
-            replacement: resolve(
-              __dirname,
-              '../../node_modules/.pnpm/@codemirror+lang-html@6.4.11/node_modules/@codemirror/lang-html',
-            ),
-          },
-          {
-            find: '@codemirror/lang-markdown',
-            replacement: resolve(
-              __dirname,
-              '../../node_modules/.pnpm/@codemirror+lang-markdown@6.5.0/node_modules/@codemirror/lang-markdown',
-            ),
-          },
-          {
-            find: '@codemirror/language',
-            replacement: resolve(
-              __dirname,
-              '../../node_modules/.pnpm/@codemirror+language@6.12.1/node_modules/@codemirror/language',
-            ),
-          },
-          {
-            find: '@codemirror/state',
-            replacement: resolve(
-              __dirname,
-              '../../node_modules/.pnpm/@codemirror+state@6.5.4/node_modules/@codemirror/state',
-            ),
-          },
-          {
-            find: '@codemirror/view',
-            replacement: resolve(
-              __dirname,
-              '../../node_modules/.pnpm/@codemirror+view@6.39.15/node_modules/@codemirror/view',
-            ),
           },
         ],
       },
