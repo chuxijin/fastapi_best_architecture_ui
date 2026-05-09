@@ -1088,7 +1088,8 @@ function startTaskPolling() {
     if (!autoRefreshTasks.value) {
       return;
     }
-    if (runningJobCount.value <= 0 && !selectedJobId.value) {
+    // 没有正在运行的任务时停止轮询
+    if (runningJobCount.value <= 0) {
       return;
     }
     await fetchJobs(true);

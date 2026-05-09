@@ -582,6 +582,9 @@ export interface QuestionImportRow {
   解析: string;
   一级目录?: null | string;
   二级目录?: null | string;
+  三级目录?: null | string;
+  知识点?: null | string;
+  材料编号?: null | string;
 }
 
 /**
@@ -600,6 +603,7 @@ export interface ImportResultItem {
   success: boolean;
   question_id: null | number;
   error_message: null | string;
+  action?: null | string;
 }
 
 /**
@@ -641,49 +645,175 @@ function getApiBaseUrl(): string {
   return apiURL;
 }
 
-// ==================== 智能导入流水线 API（SSE 流式） ====================
+// ==================== AI 审核台文件解析 API ====================
 
-/**
- * 智能导入流水线结果
- */
-export interface PipelineResult {
-  excel_url: string;
-  md_url?: string;
+export interface PdfMarkdownResult {
+  file_name: string;
+  job_id?: string;
   md_length: number;
-  questions_count: number;
-  segments_count: number;
-  warnings_count: number;
-  questions?: any[];
+  md_url: string;
+  status?: string;
+  text_file_name?: string;
+  text_length?: number;
+  text_url?: string;
 }
 
-/**
- * 智能导入流水线 SSE 事件
- */
-export type PipelineEvent =
-  | { type: 'done'; excel_url: string; md_length: number; md_url?: string; questions_count: number; segments_count: number; warnings_count: number; questions?: any[] }
-  | { type: 'error'; message: string }
-  | { type: 'progress'; batch_index: number; total_batches: number; total_questions_count: number }
-  | { type: 'stage'; message: string; stage: string };
+export interface RecoverLlamaParseMarkdownPayload {
+  bank_id: number;
+  download_images?: boolean;
+  job_id: string;
+}
 
-/**
- * 发起智能导入流水线请求（SSE 流式）
- *
- * :param file: PDF 或 MD 文件
- * :param bankId: 题库 ID
- * :param onEvent: SSE 事件回调
- * :return:
- */
-export async function pipelineParseApi(
+export interface ReviewMaterialItem {
+  material_id: string;
+  title: string;
+  content: string;
+  source_segment_ids: string[];
+  confidence: number;
+  warnings: string[];
+  status: string;
+}
+
+export interface ReviewQuestionItem {
+  question_id: string;
+  source_segment_id?: null | string;
+  question_no_raw?: null | string;
+  type: string;
+  stem: string;
+  options_data: Record<string, any>;
+  answer_data: Record<string, any>;
+  analysis_content: string;
+  difficulty: string;
+  knowledge_point?: null | string | string[];
+  score: number;
+  sort_order?: null | number;
+  source?: null | string;
+  year?: null | number;
+  chapter_name?: null | string;
+  chapter_level1_name?: null | string;
+  chapter_level2_name?: null | string;
+  chapter_level3_name?: null | string;
+  material_id?: null | string;
+  source_quote?: null | string;
+  confidence: number;
+  warnings: string[];
+  status: string;
+}
+
+export interface ReviewAnswerItem {
+  answer_id: string;
+  source_segment_id?: null | string;
+  question_no_raw?: null | string;
+  sort_order?: null | number;
+  answer_data: Record<string, any>;
+  analysis_content: string;
+  source_quote?: null | string;
+  confidence: number;
+  warnings: string[];
+  status: string;
+}
+
+export interface ReviewSegmentItem {
+  segment_id: string;
+  index: number;
+  type: string;
+  content: string;
+  preview: string;
+  length: number;
+  content_hash: string;
+}
+
+export interface ReviewJobResult {
+  job_id: string;
+  status: string;
+  bank_id: number;
+  bank_name: string;
+  provider_id: number;
+  file_name: string;
+  file_type: string;
+  extract_mode?: string;
+  md_url: string;
+  excel_url?: null | string;
+  materials: ReviewMaterialItem[];
+  questions: ReviewQuestionItem[];
+  answers: ReviewAnswerItem[];
+  segments: ReviewSegmentItem[];
+  warnings: string[];
+  materials_count: number;
+  questions_count: number;
+  answers_count: number;
+  segments_count: number;
+}
+
+export interface ReviewJobUpdatePayload {
+  materials: ReviewMaterialItem[];
+  questions: ReviewQuestionItem[];
+  answers: ReviewAnswerItem[];
+  segments: ReviewSegmentItem[];
+  status: string;
+}
+
+export type ReviewJobEvent =
+  | { type: 'done'; answers_count: number; job: ReviewJobResult; materials_count: number; message: string; questions_count: number; segments_count: number; warnings_count: number }
+  | { type: 'error'; message: string }
+  | {
+    type: 'progress';
+    batch_answers_count?: number;
+    batch_index: number;
+    batch_materials_count?: number;
+    batch_questions_count?: number;
+    total_answers_count?: number;
+    total_batches: number;
+    total_materials_count?: number;
+    total_questions_count?: number;
+  }
+  | { type: 'stage'; answers_count?: number; md_length?: number; md_url?: string; message: string; questions_count?: number; segments_count?: number; stage: string };
+
+export async function convertPdfToMarkdownApi(
   file: File,
   bankId: number,
-  onEvent: (event: PipelineEvent) => void,
-): Promise<void> {
+): Promise<PdfMarkdownResult> {
   const formData = new FormData();
   formData.append('bank_id', bankId.toString());
   formData.append('file', file);
 
   const baseUrl = getApiBaseUrl();
-  const response = await fetch(`${baseUrl}/api/v1/qbank/parse/pipeline`, {
+  const response = await fetch(`${baseUrl}/api/v1/qbank/parse/pdf-markdown`, {
+    method: 'POST',
+    headers: getAuthHeaders(),
+    body: formData,
+  });
+  const json = await response.json();
+  if (json.code === 200) {
+    return json.data as PdfMarkdownResult;
+  }
+  throw new Error(json.msg || 'PDF 转 Markdown 失败');
+}
+
+export async function recoverLlamaParseMarkdownApi(
+  data: RecoverLlamaParseMarkdownPayload,
+) {
+  return requestClient.post<PdfMarkdownResult>(
+    '/api/v1/qbank/parse/pdf-markdown/recover',
+    data,
+  );
+}
+
+export async function createReviewJobStreamApi(
+  file: File,
+  bankId: number,
+  providerId: number,
+  extractMode: 'answer' | 'question',
+  onEvent: (event: ReviewJobEvent) => void,
+): Promise<void> {
+  const formData = new FormData();
+  formData.append('bank_id', bankId.toString());
+  formData.append('provider_id', providerId.toString());
+  formData.append('extract_mode', extractMode);
+  formData.append('file', file);
+
+  const baseUrl = getApiBaseUrl();
+  const response = await fetch(`${baseUrl}/api/v1/qbank/parse/review-jobs/stream`, {
     method: 'POST',
     headers: getAuthHeaders(),
     body: formData,
@@ -717,13 +847,35 @@ export async function pipelineParseApi(
       if (dataStr === '[DONE]') continue;
 
       try {
-        const event = JSON.parse(dataStr) as PipelineEvent;
+        const event = JSON.parse(dataStr) as ReviewJobEvent;
         onEvent(event);
       } catch {
         // 忽略非 JSON 行
       }
     }
   }
+}
+
+export async function updateReviewJobApi(
+  jobId: string,
+  data: ReviewJobUpdatePayload,
+) {
+  return requestClient.put<ReviewJobResult>(
+    `/api/v1/qbank/parse/review-jobs/${jobId}`,
+    data,
+  );
+}
+
+export async function exportReviewJobExcelApi(jobId: string) {
+  return requestClient.post<{ excel_url: string; warnings_count: number }>(
+    `/api/v1/qbank/parse/review-jobs/${jobId}/excel`,
+  );
+}
+
+export async function commitReviewJobApi(jobId: string) {
+  return requestClient.post<{ materials_count: number; questions_count: number }>(
+    `/api/v1/qbank/parse/review-jobs/${jobId}/commit`,
+  );
 }
 
 // ==================== Excel 导入 API ====================
@@ -736,6 +888,9 @@ export interface ExcelImportResult {
   success_count: number;
   fail_count: number;
   dedup_count?: number;
+  existing_count?: number;
+  skipped_count?: number;
+  conflict_count?: number;
   materials_count?: number;
 }
 
@@ -782,15 +937,15 @@ export async function downloadImportTemplateApi(): Promise<Blob> {
 }
 
 /**
- * 下载流水线生成的文件
- *
- * :param urlPath: 文件路径（如 excel_url / md_url）
- * :return:
+ * 下载解析生成的文件
  */
-export async function downloadPipelineFileApi(urlPath: string): Promise<Blob> {
+export async function downloadParseFileApi(urlPath: string): Promise<Blob> {
   const baseUrl = getApiBaseUrl();
   const response = await fetch(`${baseUrl}${urlPath}`, {
     headers: getAuthHeaders(),
   });
+  if (!response.ok) {
+    throw new Error('文件下载失败');
+  }
   return response.blob();
 }

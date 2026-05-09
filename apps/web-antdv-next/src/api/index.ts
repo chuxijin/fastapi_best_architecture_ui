@@ -1,5 +1,6 @@
 export * from './app-auth';
 export * from './category';
+export * from './cms';
 export * from './core';
 export * from './coulddrive';
 export * from './data-permission';
@@ -11,6 +12,7 @@ export * from './log';
 export * from './mall';
 export * from './monitor';
 export * from './plugin';
+export * from './quest';
 export * from './role';
 export * from './scheduler';
 export * from './social';

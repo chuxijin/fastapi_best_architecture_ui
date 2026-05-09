@@ -2,11 +2,12 @@ import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import { defineConfig } from '@vben/vite-config';
+
 import Icons from 'unplugin-icons/vite';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
+ 
 export default defineConfig(async (): Promise<any> => {
   return {
     application: {},

@@ -2,10 +2,11 @@
 import type { UploadFile, UploadProps } from 'ant-design-vue';
 import type {
   BatchImportQuestionResult,
-  ExcelImportResult,
-  PipelineEvent,
-  PipelineResult,
+  PdfMarkdownResult,
   QuestionImportRow,
+  ReviewAnswerItem,
+  ReviewJobEvent,
+  ReviewJobResult,
 } from '#/api';
 import { ref, computed, toRaw } from 'vue';
 
@@ -29,16 +30,23 @@ import {
   Drawer,
   Modal,
   Input,
+  Checkbox,
   Select,
   Tag,
+  Empty,
 } from 'ant-design-vue';
 
 import {
   batchImportQuestionsApi,
+  commitReviewJobApi,
+  convertPdfToMarkdownApi,
+  createReviewJobStreamApi,
   downloadImportTemplateApi,
-  downloadPipelineFileApi,
+  downloadParseFileApi,
+  exportReviewJobExcelApi,
   importExcelQuestionsApi,
-  pipelineParseApi,
+  recoverLlamaParseMarkdownApi,
+  updateReviewJobApi,
 } from '#/api';
 
 import { VxeTable, VxeColumn } from 'vxe-table';
@@ -52,105 +60,428 @@ interface Props {
 const props = defineProps<Props>();
 
 // ============ 通用状态 ============
-const activeImportTab = ref('pipeline');
+const activeImportTab = ref('review');
 const importResult = ref<BatchImportQuestionResult | null>(null);
 const showResultDrawer = ref(false);
 
-// ============ Tab 1: 智能导入流水线 ============
-const pipelineFileList = ref<UploadFile[]>([]);
-const pipelineRunning = ref(false);
-const pipelineStage = ref(''); // 当前阶段
-const pipelineMessage = ref(''); // 当前阶段消息
-const pipelineProgress = ref(0); // AI 批次进度百分比
-const pipelineLogs = ref<{ message: string; type: string }[]>([]);
-const pipelineResult = ref<PipelineResult | null>(null);
-const pipelineError = ref('');
+// ============ Tab 0: AI 审核台 ============
+const reviewFileList = ref<UploadFile[]>([]);
+const reviewJob = ref<ReviewJobResult | null>(null);
+const reviewLoading = ref(false);
+const reviewSaving = ref(false);
+const reviewCommitting = ref(false);
+const reviewProviderId = ref(4);
+const reviewStage = ref('');
+const reviewMessage = ref('');
+const reviewProgress = ref(0);
+const reviewError = ref('');
+const selectedReviewQuestionIndex = ref(0);
+const selectedReviewMaterialIndex = ref(0);
+const selectedReviewAnswerIndex = ref(0);
 
-// 阶段映射为 Steps 步骤
-const stageStepMap: Record<string, number> = {
+const selectedReviewQuestion = computed(() => {
+  return reviewJob.value?.questions[selectedReviewQuestionIndex.value] || null;
+});
+const selectedReviewMaterial = computed(() => {
+  return reviewJob.value?.materials[selectedReviewMaterialIndex.value] || null;
+});
+const selectedReviewAnswer = computed(() => {
+  return reviewJob.value?.answers?.[selectedReviewAnswerIndex.value] || null;
+});
+const selectedSourceSegment = computed(() => {
+  const question = selectedReviewQuestion.value;
+  if (!question || !reviewJob.value) return null;
+  return reviewJob.value.segments.find(
+    (item) => item.segment_id === question.source_segment_id,
+  ) || null;
+});
+const selectedReviewAnswerSourceSegment = computed(() => {
+  const answerItem = selectedReviewAnswer.value;
+  if (!answerItem || !reviewJob.value) return null;
+  return reviewJob.value.segments.find(
+    (item) => item.segment_id === answerItem.source_segment_id,
+  ) || null;
+});
+const reviewWarningCount = computed(() => {
+  if (!reviewJob.value) return 0;
+  const questionWarnings = reviewJob.value.questions.reduce(
+    (count, item) => count + (item.warnings?.length || 0),
+    0,
+  );
+  const materialWarnings = reviewJob.value.materials.reduce(
+    (count, item) => count + (item.warnings?.length || 0),
+    0,
+  );
+  const answerWarnings = (reviewJob.value.answers || []).reduce(
+    (count, item) => count + (item.warnings?.length || 0),
+    0,
+  );
+  return questionWarnings + materialWarnings + answerWarnings + (reviewJob.value.warnings?.length || 0);
+});
+const reviewApprovedCount = computed(() => {
+  if (!reviewJob.value) return 0;
+  return reviewJob.value.questions.filter((item) => item.status === 'approved').length;
+});
+const reviewStageStepMap: Record<string, number> = {
   parse: 0,
   parse_done: 0,
   segment: 1,
   segment_done: 1,
   ai_extract: 2,
   ai_extract_done: 2,
-  excel: 3,
 };
-const currentStep = computed(() => {
-  if (pipelineResult.value) return 4; // 全部完成
-  return stageStepMap[pipelineStage.value] ?? -1;
+const currentReviewStep = computed(() => {
+  if (reviewJob.value) return 3;
+  return reviewStageStepMap[reviewStage.value] ?? -1;
 });
 
-const beforePipelineUpload: UploadProps['beforeUpload'] = (file) => {
-  pipelineFileList.value = [file as any];
+const beforeReviewUpload: UploadProps['beforeUpload'] = (file) => {
+  reviewFileList.value = [file as any];
   return false;
 };
 
-function resetPipeline() {
-  pipelineRunning.value = false;
-  pipelineStage.value = '';
-  pipelineMessage.value = '';
-  pipelineProgress.value = 0;
-  pipelineLogs.value = [];
-  pipelineResult.value = null;
-  pipelineError.value = '';
+function getCleanUploadFile(fileList: UploadFile[], fallbackName: string) {
+  const rawItem = toRaw(fileList[0]) as any;
+  const originFile = toRaw(rawItem.originFileObj || rawItem);
+  return new File([originFile], originFile.name || fallbackName, {
+    type: originFile.type || 'application/octet-stream',
+  });
 }
 
-async function handleRunPipeline() {
-  if (pipelineFileList.value.length === 0) {
-    message.error('请先选择文件');
+async function handleCreateReviewJob(extractMode: 'answer' | 'question' = 'question') {
+  if (reviewFileList.value.length === 0) {
+    message.error('请先选择 PDF 或 Markdown 文件');
     return;
   }
 
-  resetPipeline();
-  pipelineRunning.value = true;
-
-  // 脱去 Ant Design Vue 包装和 Vue Proxy，重建纯净 File 对象
-  const rawItem = toRaw(pipelineFileList.value[0]) as any;
-  const originFile = toRaw(rawItem.originFileObj || rawItem);
-  const cleanFile = new File([originFile], originFile.name || 'document.pdf', {
-    type: originFile.type || 'application/pdf',
-  });
-
+  reviewLoading.value = true;
+  reviewJob.value = null;
+  reviewStage.value = '';
+  reviewMessage.value = '';
+  reviewProgress.value = 0;
+  reviewError.value = '';
+  const loadingText = extractMode === 'answer' ? '正在解析答案和解析...' : '正在创建 AI 审核任务...';
+  const hide = message.loading(loadingText, 0);
   try {
-    await pipelineParseApi(cleanFile, props.bankId, (event: PipelineEvent) => {
-      if (event.type === 'stage') {
-        pipelineStage.value = event.stage;
-        pipelineMessage.value = event.message || '';
-        pipelineLogs.value.push({ message: event.message, type: 'stage' });
-      } else if (event.type === 'progress') {
-        const pct = Math.round(
-          (event.batch_index / event.total_batches) * 100,
-        );
-        pipelineProgress.value = pct;
-        pipelineMessage.value = `AI 提取中 ${event.batch_index}/${event.total_batches} 批，已识别 ${event.total_questions_count} 题`;
-      } else if (event.type === 'done') {
-        pipelineResult.value = {
-          excel_url: event.excel_url,
-          md_url: event.md_url,
-          questions_count: event.questions_count,
-          warnings_count: event.warnings_count,
-          md_length: event.md_length,
-          segments_count: event.segments_count,
-          questions: event.questions,
-        };
-        pipelineLogs.value.push({
-          message: `✅ 完成！共 ${event.questions_count} 题，${event.warnings_count} 条告警`,
-          type: 'done',
-        });
-      } else if (event.type === 'error') {
-        pipelineError.value = event.message;
-        pipelineLogs.value.push({
-          message: `❌ ${event.message}`,
-          type: 'error',
-        });
-      }
-    });
+    const cleanFile = getCleanUploadFile(reviewFileList.value, 'document.pdf');
+    await createReviewJobStreamApi(
+      cleanFile,
+      props.bankId,
+      reviewProviderId.value,
+      extractMode,
+      (event: ReviewJobEvent) => {
+        if (event.type === 'stage') {
+          reviewStage.value = event.stage;
+          reviewMessage.value = event.message || '';
+          if (event.stage === 'ai_extract_done') {
+            reviewProgress.value = 100;
+          }
+          return;
+        }
+        if (event.type === 'progress') {
+          reviewProgress.value = Math.round((event.batch_index / event.total_batches) * 100);
+          const totalQuestions = event.total_questions_count || 0;
+          const totalAnswers = event.total_answers_count || 0;
+          reviewMessage.value = `AI 提取中 ${event.batch_index}/${event.total_batches} 批，题目 ${totalQuestions} 道，答案解析 ${totalAnswers} 条`;
+          return;
+        }
+        if (event.type === 'done') {
+          reviewJob.value = event.job;
+          reviewProgress.value = 100;
+          reviewMessage.value = event.message;
+          return;
+        }
+        if (event.type === 'error') {
+          reviewError.value = event.message;
+          message.error(event.message || '创建审核任务失败');
+        }
+      },
+    );
+    const currentJob = reviewJob.value as ReviewJobResult | null;
+    if (!currentJob && reviewError.value) return;
+    if (!currentJob) {
+      throw new Error('未获取到审核任务结果');
+    }
+    selectedReviewQuestionIndex.value = 0;
+    selectedReviewMaterialIndex.value = 0;
+    selectedReviewAnswerIndex.value = 0;
+    if (extractMode === 'answer') {
+      message.success(`答案解析已生成，识别 ${currentJob.answers_count} 条`);
+      return;
+    }
+    message.success(
+      `审核任务已创建，识别 ${currentJob.questions_count} 题，答案解析 ${currentJob.answers_count} 条`,
+    );
   } catch (e: any) {
-    pipelineError.value = e.message || '流水线执行失败';
+    message.error(e.message || '创建审核任务失败');
   } finally {
-    pipelineRunning.value = false;
+    hide();
+    reviewLoading.value = false;
   }
+}
+
+async function handleSaveReviewJob(status?: string) {
+  if (!reviewJob.value) return;
+  reviewSaving.value = true;
+  try {
+    reviewJob.value = await updateReviewJobApi(reviewJob.value.job_id, {
+      materials: reviewJob.value.materials,
+      questions: reviewJob.value.questions,
+      answers: reviewJob.value.answers || [],
+      segments: reviewJob.value.segments,
+      status: status || reviewJob.value.status || 'pending_review',
+    });
+    message.success('审核结果已保存');
+  } catch (e: any) {
+    message.error(e.message || '保存失败');
+  } finally {
+    reviewSaving.value = false;
+  }
+}
+
+async function handleExportReviewExcel() {
+  if (!reviewJob.value) return;
+  await handleSaveReviewJob();
+  try {
+    const data = await exportReviewJobExcelApi(reviewJob.value.job_id);
+    reviewJob.value.excel_url = data.excel_url;
+    const urlPath = `/api/v1/qbank/parse/files/download?filename=${encodeURIComponent(data.excel_url)}`;
+    const blob = await downloadParseFileApi(urlPath);
+    const filename = data.excel_url.split('/').pop() || 'review.xlsx';
+    triggerBlobDownload(blob, filename);
+  } catch (e: any) {
+    message.error(e.message || '导出 Excel 失败');
+  }
+}
+
+async function handleCommitReviewJob() {
+  if (!reviewJob.value) return;
+  Modal.confirm({
+    title: '确认入库',
+    content: `将提交 ${reviewJob.value.questions.filter((item) => item.status !== 'rejected').length} 道题，状态为“拒绝”的题目不会入库。`,
+    async onOk() {
+      if (!reviewJob.value) return;
+      reviewCommitting.value = true;
+      try {
+        await handleSaveReviewJob('approved');
+        const result = await commitReviewJobApi(reviewJob.value.job_id);
+        reviewJob.value.status = 'committed';
+        message.success(`入库完成：${result.questions_count} 题，${result.materials_count} 条材料`);
+      } catch (e: any) {
+        message.error(e.message || '入库失败');
+      } finally {
+        reviewCommitting.value = false;
+      }
+    },
+  });
+}
+
+function markReviewQuestion(status: string) {
+  if (!selectedReviewQuestion.value) return;
+  selectedReviewQuestion.value.status = status;
+}
+
+function markReviewMaterial(status: string) {
+  if (!selectedReviewMaterial.value) return;
+  selectedReviewMaterial.value.status = status;
+}
+
+function getReviewOption(code: string) {
+  const option = selectedReviewQuestion.value?.options_data?.[code];
+  if (!option) return '';
+  if (typeof option === 'string') return option;
+  return option.content || '';
+}
+
+function setReviewOption(code: string, value: string) {
+  const question = selectedReviewQuestion.value;
+  if (!question) return;
+  const option = question.options_data?.[code];
+  if (typeof option === 'object' && option) {
+    option.content = value;
+    return;
+  }
+  question.options_data[code] = { code, content: value };
+}
+
+function getReviewAnswer() {
+  const correct = selectedReviewQuestion.value?.answer_data?.correct;
+  if (Array.isArray(correct)) return correct.join(',');
+  return correct || '';
+}
+
+function setReviewAnswer(value: string) {
+  const question = selectedReviewQuestion.value;
+  if (!question) return;
+  if (question.type === 'multiple') {
+    question.answer_data.correct = value.split(/[\s,，、]+/).filter(Boolean);
+    return;
+  }
+  question.answer_data.correct = value;
+}
+
+function getReviewAnswerItem(answerItem: ReviewAnswerItem | null) {
+  const correct = answerItem?.answer_data?.correct;
+  if (Array.isArray(correct)) return correct.join(',');
+  return correct || '';
+}
+
+function setReviewAnswerItemAnswer(answerItem: ReviewAnswerItem, value: string) {
+  if (!answerItem.answer_data) {
+    answerItem.answer_data = {};
+  }
+  answerItem.answer_data.correct = value;
+}
+
+function normalizeCopyCell(value: unknown) {
+  if (Array.isArray(value)) return value.join(',');
+  return String(value ?? '').replace(/\t/g, ' ').replace(/\r?\n/g, ' ').trim();
+}
+
+async function handleCopyReviewAnswers() {
+  const answers = reviewJob.value?.answers || [];
+  if (answers.length === 0) {
+    message.warning('暂无答案解析可复制');
+    return;
+  }
+
+  const text = answers
+    .map((answerItem) => {
+      return [
+        normalizeCopyCell(getReviewAnswerItem(answerItem)),
+        normalizeCopyCell(answerItem.analysis_content),
+      ].join('\t');
+    })
+    .join('\n');
+
+  if (navigator.clipboard?.writeText) {
+    await navigator.clipboard.writeText(text);
+  } else {
+    const textarea = document.createElement('textarea');
+    textarea.value = text;
+    textarea.style.position = 'fixed';
+    textarea.style.opacity = '0';
+    document.body.append(textarea);
+    textarea.select();
+    document.execCommand('copy');
+    textarea.remove();
+  }
+  message.success(`已复制 ${answers.length} 行答案和解析`);
+}
+
+function setReviewSortOrder(value: string) {
+  const question = selectedReviewQuestion.value;
+  if (!question) return;
+  const parsed = Number(value);
+  question.sort_order = Number.isFinite(parsed) ? parsed : null;
+}
+
+function setReviewChapterLevel1Name(value: string) {
+  const question = selectedReviewQuestion.value;
+  if (!question) return;
+  question.chapter_level1_name = value || null;
+  question.chapter_name = value || null;
+}
+
+function setReviewChapterLevel2Name(value: string) {
+  const question = selectedReviewQuestion.value;
+  if (!question) return;
+  question.chapter_level2_name = value || null;
+}
+
+function setReviewChapterLevel3Name(value: string) {
+  const question = selectedReviewQuestion.value;
+  if (!question) return;
+  question.chapter_level3_name = value || null;
+}
+
+function setReviewMaterialId(value: string) {
+  const question = selectedReviewQuestion.value;
+  if (!question) return;
+  question.material_id = value || null;
+}
+
+function setReviewKnowledgePoint(value: string) {
+  const question = selectedReviewQuestion.value;
+  if (!question) return;
+  question.knowledge_point = value || null;
+}
+
+const markdownConverting = ref(false);
+const recoverMarkdownOpen = ref(false);
+const recoverMarkdownJobId = ref('');
+const recoverMarkdownLoading = ref(false);
+const recoverMarkdownDownloadImages = ref(false);
+
+function openRecoverMarkdownModal() {
+  recoverMarkdownDownloadImages.value = false;
+  recoverMarkdownOpen.value = true;
+}
+
+async function handleConvertPdfToMarkdown() {
+  if (reviewFileList.value.length === 0) {
+    message.error('请先选择 PDF 文件');
+    return;
+  }
+
+  const cleanFile = getCleanUploadFile(reviewFileList.value, 'document.pdf');
+  if (!cleanFile.name.toLowerCase().endsWith('.pdf')) {
+    message.error('仅支持 PDF 转 Markdown');
+    return;
+  }
+
+  markdownConverting.value = true;
+  const hide = message.loading('正在转换 Markdown...', 0);
+  try {
+    const data = await convertPdfToMarkdownApi(cleanFile, props.bankId);
+    await downloadParseResultFiles(data, 'document');
+    const textMessage = data.text_length ? `，Text ${data.text_length} 字符` : '';
+    message.success(`Markdown 已生成，共 ${data.md_length} 字符${textMessage}`);
+  } catch (e: any) {
+    message.error(e.message || 'PDF 转 Markdown 失败');
+  } finally {
+    hide();
+    markdownConverting.value = false;
+  }
+}
+
+async function handleRecoverMarkdownFromJob() {
+  const jobId = recoverMarkdownJobId.value.trim();
+  if (!jobId) {
+    message.error('请输入 LlamaParse JobID');
+    return;
+  }
+
+  recoverMarkdownLoading.value = true;
+  const hide = message.loading('正在从云端恢复 Markdown...', 0);
+  try {
+    const data = await recoverLlamaParseMarkdownApi({
+      bank_id: props.bankId,
+      download_images: recoverMarkdownDownloadImages.value,
+      job_id: jobId,
+    });
+    await downloadParseResultFiles(data, jobId);
+    recoverMarkdownOpen.value = false;
+    const textMessage = data.text_length ? `，Text ${data.text_length} 字符` : '';
+    message.success(`Markdown 已恢复，共 ${data.md_length} 字符${textMessage}`);
+  } catch (e: any) {
+    message.error(e.message || '恢复 Markdown 失败');
+  } finally {
+    hide();
+    recoverMarkdownLoading.value = false;
+  }
+}
+
+async function downloadParseResultFiles(data: PdfMarkdownResult, fallbackStem: string) {
+  const mdUrlPath = `/api/v1/qbank/parse/files/download?filename=${encodeURIComponent(data.md_url)}`;
+  const mdBlob = await downloadParseFileApi(mdUrlPath);
+  triggerBlobDownload(mdBlob, data.file_name || `${fallbackStem}.md`);
+
+  if (!data.text_url) return;
+
+  const textUrlPath = `/api/v1/qbank/parse/files/download?filename=${encodeURIComponent(data.text_url)}`;
+  const textBlob = await downloadParseFileApi(textUrlPath);
+  triggerBlobDownload(textBlob, data.text_file_name || `${fallbackStem}.txt`);
 }
 
 function triggerBlobDownload(blob: Blob, filename: string) {
@@ -158,80 +489,14 @@ function triggerBlobDownload(blob: Blob, filename: string) {
   const a = document.createElement('a');
   a.href = blobUrl;
   a.download = filename;
+  document.body.appendChild(a);
   a.click();
-  URL.revokeObjectURL(blobUrl);
+  document.body.removeChild(a);
+  window.setTimeout(() => URL.revokeObjectURL(blobUrl), 1000);
   message.success('文件已开始下载');
 }
 
-async function handleDownloadExcel() {
-  if (!pipelineResult.value) return;
-  try {
-    const urlPath = `/api/v1/qbank/parse/pipeline/download?filename=${encodeURIComponent(pipelineResult.value.excel_url)}`;
-    const blob = await downloadPipelineFileApi(urlPath);
-    const filename = pipelineResult.value.excel_url.split('/').pop() || 'export.xlsx';
-    triggerBlobDownload(blob, filename);
-  } catch {
-    message.error('下载失败');
-  }
-}
-
-const isPipelineImporting = ref(false);
-const isPreviewVisible = ref(false);
-
-function showPipelinePreview() {
-  isPreviewVisible.value = true;
-}
-
-async function importPipelineQuestions() {
-  if (!pipelineResult.value?.questions?.length) return;
-  isPipelineImporting.value = true;
-  const hide = message.loading('正在直接导入...', 0);
-  try {
-    const formattedQuestions: QuestionImportRow[] = pipelineResult.value.questions.map((q: any) => ({
-      题目: q.stem || q.题目,
-      题型: q.type || q.题型,
-      分数: q.score || q.分数 || 1,
-      难度: q.difficulty || q.难度 || '中等',
-      选项A: q.options_data?.A?.content || q.选项A,
-      选项B: q.options_data?.B?.content || q.选项B,
-      选项C: q.options_data?.C?.content || q.选项C,
-      选项D: q.options_data?.D?.content || q.选项D,
-      答案: q.answer_data?.correct || q.答案,
-      解析: q.analysis_content || q.解析 || '',
-      一级目录: q.chapter_name || q.一级目录,
-      材料编号: q.material_id || q.材料编号 || '',
-    }));
-
-    const result = await batchImportQuestionsApi({
-      bank_id: props.bankId,
-      questions: formattedQuestions,
-    });
-    hide();
-    importResult.value = result;
-    showResultDrawer.value = true;
-    if (result.fail_count === 0) {
-      message.success(`智能导入完成，成功 ${result.success_count} 道题目`);
-      isPreviewVisible.value = false;
-    }
-  } catch (e: any) {
-    hide();
-    message.error('直接导入失败: ' + e.message);
-  } finally {
-    isPipelineImporting.value = false;
-  }
-}
-
-async function handleDownloadMd() {
-  if (!pipelineResult.value?.md_url) return;
-  try {
-    const blob = await downloadPipelineFileApi(pipelineResult.value.md_url);
-    triggerBlobDownload(blob, 'export.md');
-  } catch {
-    message.error('下载失败');
-  }
-}
-
-// ============ Tab 2: Excel 导入 ============
+// ============ Tab 1: Excel 导入 ============
 const excelFileList = ref<UploadFile[]>([]);
 const excelUploading = ref(false);
 const excelResult = ref<any>(null);
@@ -261,7 +526,7 @@ async function handleExcelImport() {
     hide();
     excelResult.value = result;
     message.success(
-      `导入完成！成功 ${result.success_count} 题，去重 ${result.dedup_count || 0} 题`,
+      `导入完成！成功 ${result.success_count} 题，复用 ${result.dedup_count || 0} 题，冲突提示 ${result.conflict_count || 0} 条`,
     );
     excelFileList.value = [];
   } catch (e: any) {
@@ -311,7 +576,9 @@ async function handleJsonImport() {
       选项D: q.options_data?.D?.content || q.选项D,
       答案: q.answer_data?.correct || q.答案,
       解析: q.analysis_content || q.解析 || '',
-      一级目录: q.chapter_name || q.一级目录,
+      一级目录: q.chapter_level1_name || q.一级目录 || q.chapter_name,
+      二级目录: q.chapter_level2_name || q.二级目录,
+      三级目录: q.chapter_level3_name || q.三级目录,
     }));
 
     const result = await batchImportQuestionsApi({
@@ -350,150 +617,403 @@ const resultColumns = [
   <div class="question-import-container">
     <Card title="题目批量导入">
       <Tabs v-model:active-key="activeImportTab" type="card">
-        <!-- ============ 智能导入流水线 ============ -->
-        <TabPane key="pipeline" tab="🤖 智能导入">
-          <div
-            class="rounded-b-lg border border-t-0 border-gray-100 bg-white p-6"
-          >
-            <Alert class="mb-6" show-icon type="info">
+        <!-- ============ AI 审核台 ============ -->
+        <TabPane key="review" tab="🧾 AI审核台">
+          <div class="rounded-b-lg border border-t-0 border-gray-100 bg-white p-6">
+            <Alert class="mb-5" show-icon type="info">
               <template #message>
-                上传 PDF 或 MD 文件 → 自动分段 + AI 提取 → 生成带校验的
-                Excel，人工审核后再导入
+                上传 PDF 或 Markdown 后生成审核任务。材料、题目、答案先人工确认，确认后再入库；Excel 可随时导出备份。
               </template>
             </Alert>
 
-            <!-- 文件选择 -->
-            <div class="import-step">
-              <div class="mb-3 text-sm font-medium text-gray-600">
-                选择 PDF 或 Markdown 文件：
-              </div>
-              <div class="flex items-center gap-4">
-                <AUpload
-                  :file-list="pipelineFileList"
-                  :before-upload="beforePipelineUpload"
-                  accept=".pdf,.md"
-                  :max-count="1"
-                >
-                  <VbenButton>
-                    <MaterialSymbolsDescriptionOutline class="mr-1 size-4" />
-                    选择文件
-                  </VbenButton>
-                </AUpload>
-                <VbenButton
-                  type="primary"
-                  :loading="pipelineRunning"
-                  :disabled="pipelineFileList.length === 0"
-                  @click="handleRunPipeline"
-                >
-                  🚀 开始智能导入
+            <div class="mb-5 flex flex-wrap items-center gap-3">
+              <AUpload
+                :file-list="reviewFileList"
+                :before-upload="beforeReviewUpload"
+                accept=".pdf,.md"
+                :max-count="1"
+              >
+                <VbenButton>
+                  <MaterialSymbolsDescriptionOutline class="mr-1 size-4" />
+                  选择 PDF / MD
                 </VbenButton>
-              </div>
+              </AUpload>
+              <Input
+                v-model:value.number="reviewProviderId"
+                class="!w-24"
+                type="number"
+                addon-before="供应商"
+              />
+              <VbenButton
+                type="primary"
+                :loading="reviewLoading"
+                :disabled="reviewFileList.length === 0"
+                @click="handleCreateReviewJob('question')"
+              >
+                创建审核任务
+              </VbenButton>
+              <VbenButton
+                :loading="reviewLoading"
+                :disabled="reviewFileList.length === 0"
+                @click="handleCreateReviewJob('answer')"
+              >
+                解析答案解析
+              </VbenButton>
+              <VbenButton
+                :loading="markdownConverting"
+                :disabled="reviewFileList.length === 0 || reviewLoading"
+                @click="handleConvertPdfToMarkdown"
+              >
+                仅转 Markdown
+              </VbenButton>
+              <VbenButton
+                :loading="recoverMarkdownLoading"
+                :disabled="reviewLoading || markdownConverting"
+                @click="openRecoverMarkdownModal"
+              >
+                恢复 JobID
+              </VbenButton>
+              <VbenButton
+                :disabled="!reviewJob?.answers?.length"
+                @click="handleCopyReviewAnswers"
+              >
+                复制答案/解析两列
+              </VbenButton>
+              <VbenButton
+                :disabled="!reviewJob"
+                :loading="reviewSaving"
+                @click="handleSaveReviewJob()"
+              >
+                保存审核
+              </VbenButton>
+              <VbenButton :disabled="!reviewJob" @click="handleExportReviewExcel">
+                导出 Excel
+              </VbenButton>
+              <VbenButton
+                type="primary"
+                class="!bg-green-600 text-white"
+                :disabled="!reviewJob || reviewJob.status === 'committed' || reviewJob.extract_mode === 'answer'"
+                :loading="reviewCommitting"
+                @click="handleCommitReviewJob"
+              >
+                确认入库
+              </VbenButton>
             </div>
 
-            <!-- 流水线进度 -->
             <div
-              v-if="pipelineRunning || pipelineResult || pipelineError"
-              class="mt-6 rounded-lg border bg-gray-50 p-5"
+              v-if="reviewLoading || reviewStage || reviewError"
+              class="mb-5 rounded-lg border bg-gray-50 p-5"
             >
-              <!-- Steps 进度条 -->
-              <Steps :current="currentStep" size="small" class="mb-6">
+              <Steps :current="currentReviewStep" size="small" class="mb-5">
                 <Step title="解析文档" />
                 <Step title="正则分段" />
                 <Step title="AI 提取" />
-                <Step title="生成 Excel" />
-                <Step title="完成" />
+                <Step title="进入审核" />
               </Steps>
-
-              <!-- 当前状态消息 -->
               <div
-                v-if="pipelineMessage && !pipelineResult"
+                v-if="reviewMessage && !reviewError"
                 class="mb-4 flex items-center gap-2 text-sm text-gray-600"
               >
                 <span
+                  v-if="reviewLoading"
                   class="inline-block size-2 animate-pulse rounded-full bg-blue-500"
                 />
-                {{ pipelineMessage }}
+                {{ reviewMessage }}
               </div>
-
-              <!-- AI 提取进度条 -->
-              <div
-                v-if="
-                  pipelineStage === 'ai_extract' ||
-                  pipelineStage === 'ai_extract_done'
-                "
-                class="mb-4"
-              >
-                <Progress
-                  :percent="pipelineProgress"
-                  :status="pipelineProgress >= 100 ? 'success' : 'active'"
-                  stroke-color="#1677ff"
-                />
-              </div>
-
-              <!-- 错误 -->
+              <Progress
+                v-if="reviewStage === 'ai_extract' || reviewStage === 'ai_extract_done'"
+                :percent="reviewProgress"
+                :status="reviewProgress >= 100 ? 'success' : 'active'"
+                stroke-color="#1677ff"
+              />
               <Alert
-                v-if="pipelineError"
-                :message="pipelineError"
+                v-if="reviewError"
+                class="mt-4"
+                :message="reviewError"
                 type="error"
                 show-icon
-                class="mb-4"
               />
+            </div>
 
-              <!-- 完成结果 -->
-              <div v-if="pipelineResult" class="space-y-4">
-                <Alert type="success" show-icon>
-                  <template #message>
-                    流水线执行完成！共识别
-                    <strong>{{ pipelineResult.questions_count }}</strong>
-                    道题目
-                    <span v-if="pipelineResult.warnings_count > 0">
-                      ，其中
-                      <Tag color="orange">
-                        {{ pipelineResult.warnings_count }} 条告警
-                      </Tag>
-                      已在 Excel 中标红
-                    </span>
-                  </template>
-                </Alert>
-
-                <div
-                  class="flex items-center justify-between rounded-lg border bg-white p-4"
-                >
-                  <div class="space-y-1 text-sm text-gray-600">
-                    <div>📄 Markdown 长度：{{ pipelineResult.md_length }} 字符</div>
-                    <div>🔢 正则分段数：{{ pipelineResult.segments_count }} 段</div>
-                    <div>
-                      📊 识别题数：{{ pipelineResult.questions_count }} 题
-                    </div>
-                    <div>
-                      ⚠️ 校验告警：{{ pipelineResult.warnings_count }} 条
-                    </div>
-                  </div>
-                  <div class="flex flex-col gap-2">
-                    <VbenButton
-                      type="primary"
-                      @click="showPipelinePreview"
-                      class="!bg-green-600 !hover:bg-green-500 text-white"
-                    >
-                      👀 在线审核与直接导入
-                    </VbenButton>
-                    <VbenButton @click="handleDownloadExcel">
-                      ⬇️ 下载 Excel 备份或修改
-                    </VbenButton>
-                    <VbenButton v-if="pipelineResult.md_url" @click="handleDownloadMd">
-                      📄 下载过程 Markdown
-                    </VbenButton>
-                    <VbenButton @click="resetPipeline">重新导入</VbenButton>
-                  </div>
-                </div>
-
-                <Alert type="info" show-icon>
-                  <template #message>
-                    您可以直接点击【在线审核与直接导入】直接入库，若需复杂修改可下载 Excel 编辑后再上传。
-                  </template>
-                </Alert>
+            <div v-if="reviewJob" class="mb-4 grid grid-cols-5 gap-3">
+              <div class="review-stat">
+                <div class="review-stat-value">{{ reviewJob.questions.length }}</div>
+                <div class="review-stat-label">题目</div>
+              </div>
+              <div class="review-stat">
+                <div class="review-stat-value">{{ reviewJob.materials.length }}</div>
+                <div class="review-stat-label">材料</div>
+              </div>
+              <div class="review-stat">
+                <div class="review-stat-value">{{ reviewJob.answers?.length || 0 }}</div>
+                <div class="review-stat-label">答案解析</div>
+              </div>
+              <div class="review-stat">
+                <div class="review-stat-value">{{ reviewApprovedCount }}</div>
+                <div class="review-stat-label">已通过</div>
+              </div>
+              <div class="review-stat">
+                <div class="review-stat-value text-red-600">{{ reviewWarningCount }}</div>
+                <div class="review-stat-label">告警</div>
               </div>
             </div>
+
+            <Alert
+              v-if="reviewJob?.extract_mode === 'answer'"
+              class="mb-4"
+              show-icon
+              type="success"
+              message="当前为答案解析模式，只用于复制粘贴，不会提交入库。"
+            />
+
+            <div v-if="reviewJob" class="review-workbench">
+              <div class="review-list">
+                <div class="review-panel-title">题目列表</div>
+                <div
+                  v-for="(question, index) in reviewJob.questions"
+                  :key="question.question_id"
+                  class="review-question-row"
+                  :class="{
+                    active: selectedReviewQuestionIndex === index,
+                    rejected: question.status === 'rejected',
+                  }"
+                  @click="selectedReviewQuestionIndex = index"
+                >
+                  <div class="truncate font-medium">
+                    {{ question.sort_order || index + 1 }}. {{ question.question_no_raw || question.question_id }}
+                  </div>
+                  <div class="mt-1 flex items-center gap-1 text-xs text-gray-500">
+                    <Tag size="small">{{ question.type }}</Tag>
+                    <span>{{ Math.round((question.confidence || 0) * 100) }}%</span>
+                    <Tag v-if="question.warnings?.length" color="orange" size="small">
+                      {{ question.warnings.length }}
+                    </Tag>
+                  </div>
+                </div>
+              </div>
+
+              <div class="review-editor">
+                <template v-if="selectedReviewQuestion">
+                  <div class="mb-4 flex items-start justify-between gap-3">
+                    <div>
+                      <div class="text-lg font-semibold">
+                        第 {{ selectedReviewQuestion.sort_order || selectedReviewQuestionIndex + 1 }} 题
+                      </div>
+                      <div class="text-xs text-gray-500">
+                        {{ selectedReviewQuestion.source_segment_id || '未绑定来源分段' }}
+                      </div>
+                    </div>
+                    <div class="flex gap-2">
+                      <VbenButton size="sm" @click="markReviewQuestion('approved')">通过</VbenButton>
+                      <VbenButton size="sm" @click="markReviewQuestion('pending_review')">待审</VbenButton>
+                      <VbenButton size="sm" danger @click="markReviewQuestion('rejected')">拒绝</VbenButton>
+                    </div>
+                  </div>
+
+                  <div class="grid grid-cols-6 gap-3">
+                    <Select v-model:value="selectedReviewQuestion.type">
+                      <Select.Option value="single">单选</Select.Option>
+                      <Select.Option value="multiple">多选</Select.Option>
+                      <Select.Option value="judgement">判断</Select.Option>
+                      <Select.Option value="fill">填空</Select.Option>
+                      <Select.Option value="shortAnswer">简答</Select.Option>
+                    </Select>
+                    <Input
+                      :value="selectedReviewQuestion.sort_order ?? undefined"
+                      type="number"
+                      placeholder="排序"
+                      @change="(event: any) => setReviewSortOrder(event.target.value)"
+                    />
+                    <Input
+                      :value="selectedReviewQuestion.chapter_level1_name || selectedReviewQuestion.chapter_name || ''"
+                      placeholder="一级篇章"
+                      @change="(event: any) => setReviewChapterLevel1Name(event.target.value)"
+                    />
+                    <Input
+                      :value="selectedReviewQuestion.chapter_level2_name || ''"
+                      placeholder="二级篇章"
+                      @change="(event: any) => setReviewChapterLevel2Name(event.target.value)"
+                    />
+                    <Input
+                      :value="selectedReviewQuestion.chapter_level3_name || ''"
+                      placeholder="三级篇章"
+                      @change="(event: any) => setReviewChapterLevel3Name(event.target.value)"
+                    />
+                    <Input
+                      :value="selectedReviewQuestion.material_id || ''"
+                      placeholder="材料编号"
+                      @change="(event: any) => setReviewMaterialId(event.target.value)"
+                    />
+                  </div>
+
+                  <div class="mt-4">
+                    <div class="mb-1 text-sm text-gray-500">题干</div>
+                    <Input.TextArea
+                      v-model:value="selectedReviewQuestion.stem"
+                      :auto-size="{ minRows: 4, maxRows: 10 }"
+                    />
+                  </div>
+
+                  <div class="mt-4 grid grid-cols-2 gap-3">
+                    <Input
+                      v-for="code in ['A', 'B', 'C', 'D']"
+                      :key="code"
+                      :value="getReviewOption(code)"
+                      :addon-before="code"
+                      @change="(event: any) => setReviewOption(code, event.target.value)"
+                    />
+                  </div>
+
+                  <div class="mt-4 grid grid-cols-2 gap-3">
+                    <Input
+                      :value="getReviewAnswer()"
+                      addon-before="答案"
+                      @change="(event: any) => setReviewAnswer(event.target.value)"
+                    />
+                    <Input
+                      :value="Array.isArray(selectedReviewQuestion.knowledge_point) ? selectedReviewQuestion.knowledge_point.join(',') : selectedReviewQuestion.knowledge_point || ''"
+                      addon-before="知识点"
+                      @change="(event: any) => setReviewKnowledgePoint(event.target.value)"
+                    />
+                  </div>
+
+                  <div class="mt-4">
+                    <div class="mb-1 text-sm text-gray-500">解析</div>
+                    <Input.TextArea
+                      v-model:value="selectedReviewQuestion.analysis_content"
+                      :auto-size="{ minRows: 3, maxRows: 8 }"
+                    />
+                  </div>
+
+                  <Alert
+                    v-if="selectedReviewQuestion.warnings?.length"
+                    class="mt-4"
+                    type="warning"
+                    show-icon
+                    :message="selectedReviewQuestion.warnings.join('；')"
+                  />
+                </template>
+
+                <template v-else-if="reviewJob.extract_mode === 'answer'">
+                  <div class="mb-4 flex items-center justify-between gap-3">
+                    <div>
+                      <div class="text-lg font-semibold">答案解析</div>
+                      <div class="text-xs text-gray-500">
+                        共 {{ reviewJob.answers?.length || 0 }} 条，复制时只复制答案和解析两列
+                      </div>
+                    </div>
+                    <VbenButton
+                      type="primary"
+                      :disabled="!reviewJob.answers?.length"
+                      @click="handleCopyReviewAnswers"
+                    >
+                      复制两列
+                    </VbenButton>
+                  </div>
+
+                  <VxeTable
+                    border
+                    show-overflow
+                    :data="reviewJob.answers || []"
+                    height="600"
+                    :edit-config="{ trigger: 'dblclick', mode: 'cell' }"
+                    :mouse-config="{ selected: true }"
+                    :keyboard-config="{ isArrow: true, isDel: true, isEnter: true, isTab: true, isEdit: true }"
+                    size="small"
+                  >
+                    <VxeColumn field="question_no_raw" title="题号" width="90" :edit-render="{}">
+                      <template #edit="{ row }">
+                        <Input v-model:value="row.question_no_raw" size="small" />
+                      </template>
+                    </VxeColumn>
+                    <VxeColumn field="answer_data.correct" title="答案" width="160" :edit-render="{}">
+                      <template #edit="{ row }">
+                        <Input
+                          :value="getReviewAnswerItem(row)"
+                          size="small"
+                          @change="(event: any) => setReviewAnswerItemAnswer(row, event.target.value)"
+                        />
+                      </template>
+                      <template #default="{ row }">
+                        {{ getReviewAnswerItem(row) }}
+                      </template>
+                    </VxeColumn>
+                    <VxeColumn field="analysis_content" title="解析" min-width="420" :edit-render="{}">
+                      <template #edit="{ row }">
+                        <Input.TextArea
+                          v-model:value="row.analysis_content"
+                          :auto-size="{ minRows: 3, maxRows: 8 }"
+                        />
+                      </template>
+                    </VxeColumn>
+                  </VxeTable>
+                </template>
+              </div>
+
+              <div class="review-side">
+                <div class="review-panel-title">材料</div>
+                <div
+                  v-for="(material, index) in reviewJob.materials"
+                  :key="`${material.material_id}-${index}`"
+                  class="review-material"
+                  :class="{ active: selectedReviewMaterialIndex === index }"
+                  @click="selectedReviewMaterialIndex = index"
+                >
+                  <div class="mb-2 flex items-center gap-2">
+                    <Input v-model:value="material.material_id" class="!w-24" size="small" />
+                    <VbenButton size="sm" @click.stop="markReviewMaterial('approved')">过</VbenButton>
+                    <VbenButton size="sm" danger @click.stop="markReviewMaterial('rejected')">拒</VbenButton>
+                  </div>
+                  <Input v-model:value="material.title" class="mb-2" size="small" />
+                  <Input.TextArea
+                    v-model:value="material.content"
+                    :auto-size="{ minRows: 3, maxRows: 8 }"
+                  />
+                </div>
+
+                <div class="review-panel-title mt-4">答案解析</div>
+                <div
+                  v-for="(answer, index) in reviewJob.answers || []"
+                  :key="`${answer.answer_id}-${index}`"
+                  class="review-answer"
+                  :class="{ active: selectedReviewAnswerIndex === index }"
+                  @click="selectedReviewAnswerIndex = index"
+                >
+                  <div class="mb-2 flex items-center gap-2">
+                    <Input
+                      :value="answer.question_no_raw || undefined"
+                      class="!w-24"
+                      size="small"
+                      addon-before="题号"
+                      @change="(event: any) => answer.question_no_raw = event.target.value || null"
+                    />
+                    <Input
+                      :value="getReviewAnswerItem(answer)"
+                      class="min-w-0 flex-1"
+                      size="small"
+                      addon-before="答案"
+                      @change="(event: any) => setReviewAnswerItemAnswer(answer, event.target.value)"
+                    />
+                  </div>
+                  <Input.TextArea
+                    v-model:value="answer.analysis_content"
+                    :auto-size="{ minRows: 3, maxRows: 8 }"
+                  />
+                  <Alert
+                    v-if="answer.warnings?.length"
+                    class="mt-2"
+                    type="warning"
+                    show-icon
+                    :message="answer.warnings.join('；')"
+                  />
+                </div>
+
+                <div class="review-panel-title mt-4">来源原文</div>
+                <pre class="review-source">{{ selectedReviewAnswer?.source_quote || selectedReviewAnswerSourceSegment?.content || selectedSourceSegment?.content || '暂无来源分段' }}</pre>
+              </div>
+            </div>
+
+            <Empty v-else description="暂无审核任务，请选择文件后创建" />
           </div>
         </TabPane>
 
@@ -551,7 +1071,16 @@ const resultColumns = [
                   导入完成：成功 {{ excelResult.success_count }} 题，失败
                   {{ excelResult.fail_count }} 题
                   <span v-if="excelResult.dedup_count">
-                    ，去重复用 {{ excelResult.dedup_count }} 题
+                    ，复用已有 {{ excelResult.dedup_count }} 题
+                  </span>
+                  <span v-if="excelResult.existing_count">
+                    ，已存在 {{ excelResult.existing_count }} 题
+                  </span>
+                  <span v-if="excelResult.skipped_count">
+                    ，跳过重复 {{ excelResult.skipped_count }} 题
+                  </span>
+                  <span v-if="excelResult.conflict_count">
+                    ，冲突提示 {{ excelResult.conflict_count }} 条
                   </span>
                   <span v-if="excelResult.materials_count">
                     ，材料 {{ excelResult.materials_count }} 条
@@ -600,6 +1129,23 @@ const resultColumns = [
       </Tabs>
     </Card>
 
+    <Modal
+      v-model:open="recoverMarkdownOpen"
+      title="从 LlamaParse JobID 恢复 Markdown"
+      :confirm-loading="recoverMarkdownLoading"
+      ok-text="恢复并下载"
+      @ok="handleRecoverMarkdownFromJob"
+    >
+      <Input
+        v-model:value="recoverMarkdownJobId"
+        placeholder="例如 pjb-mnlicqrdyv4eir5pwhs85dkpgo9j"
+        allow-clear
+      />
+      <Checkbox v-model:checked="recoverMarkdownDownloadImages" class="mt-3">
+        同时下载图片
+      </Checkbox>
+    </Modal>
+
     <!-- 导入统计结果 -->
     <Drawer v-model:open="showResultDrawer" title="导入运行报告" :width="700">
       <div v-if="importResult" class="space-y-4">
@@ -618,99 +1164,6 @@ const resultColumns = [
       </div>
     </Drawer>
 
-    <!-- 智能导入预览 -->
-    <Modal
-      v-model:open="isPreviewVisible"
-      title="在线审核题目"
-      :width="1400"
-      :style="{ top: '20px' }"
-      :footer="null"
-      :destroyOnClose="true"
-    >
-      <div v-if="pipelineResult?.questions" class="flex flex-col space-y-4" style="height: 85vh;">
-        <Alert
-          message="支持直接在下方表格中修改题干、题型、答案及解析！修改无误后点击下方按钮直接入库。对于复杂的选项调整，建议仍使用 Excel 下载修改。"
-          type="info"
-          show-icon
-        />
-        <VxeTable
-          border
-          show-overflow
-          :data="pipelineResult.questions"
-          height="100%"
-          :edit-config="{ trigger: 'dblclick', mode: 'cell' }"
-          :mouse-config="{ selected: true }"
-          :keyboard-config="{ isArrow: true, isDel: true, isEnter: true, isTab: true, isEdit: true }"
-          size="small"
-        >
-          <VxeColumn type="seq" width="60" title="序号"></VxeColumn>
-          
-          <VxeColumn field="type" title="题型" width="100" :edit-render="{}">
-            <template #edit="{ row }">
-              <Select v-model:value="row.type" style="width: 100%" size="small">
-                <Select.Option value="single">单选</Select.Option>
-                <Select.Option value="multiple">多选</Select.Option>
-                <Select.Option value="judgement">判断</Select.Option>
-                <Select.Option value="fill">填空</Select.Option>
-                <Select.Option value="shortAnswer">简答</Select.Option>
-              </Select>
-            </template>
-            <template #default="{ row }">
-              {{ row.type === 'single' ? '单选' : row.type === 'multiple' ? '多选' : row.type === 'judgement' ? '判断' : row.type === 'fill' ? '填空' : row.type === 'shortAnswer' ? '简答' : row.type }}
-            </template>
-          </VxeColumn>
-
-          <VxeColumn field="stem" title="题干" width="300" :edit-render="{}">
-            <template #edit="{ row }">
-              <Input.TextArea
-                v-model:value="row.stem"
-                :autoSize="{ minRows: 2, maxRows: 6 }"
-              />
-            </template>
-          </VxeColumn>
-
-          <VxeColumn field="answer_data.correct" title="答案" width="120" :edit-render="{}">
-            <template #edit="{ row }">
-                <Input v-if="row.answer_data" v-model:value="row.answer_data.correct" size="small" />
-                <Input v-else :value="''" @change="(e: any) => (row.answer_data = { correct: e.target.value })" size="small" />
-            </template>
-            <template #default="{ row }">
-                {{ row.answer_data?.correct || '' }}
-            </template>
-          </VxeColumn>
-
-          <VxeColumn field="analysis_content" title="解析" min-width="200" :edit-render="{}">
-            <template #edit="{ row }">
-              <Input.TextArea
-                v-model:value="row.analysis_content"
-                :autoSize="{ minRows: 2, maxRows: 6 }"
-              />
-            </template>
-          </VxeColumn>
-
-          <VxeColumn field="material_id" title="材料编号" width="100" :edit-render="{}">
-            <template #edit="{ row }">
-              <Input v-model:value="row.material_id" size="small" placeholder="填编号" />
-            </template>
-            <template #default="{ row }">
-              {{ row.material_id || '' }}
-            </template>
-          </VxeColumn>
-
-        </VxeTable>
-        <div class="flex justify-end gap-2 mt-2 border-t pt-4">
-          <VbenButton @click="isPreviewVisible = false">取消修改</VbenButton>
-          <VbenButton
-            type="primary"
-            class="!bg-green-600 !hover:bg-green-500 text-white"
-            :loading="isPipelineImporting"
-            @click="importPipelineQuestions"
-          >
-            无误，直接导入生效
-          </VbenButton>
-        </div>
-      </div>
-    </Modal>
   </div>
 </template>
 
@@ -719,5 +1172,117 @@ const resultColumns = [
   padding: 20px;
   border: 1px dashed #e5e7eb;
   border-radius: 8px;
+}
+
+.review-stat {
+  padding: 12px 14px;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  background: #f9fafb;
+}
+
+.review-stat-value {
+  color: #111827;
+  font-size: 24px;
+  font-weight: 700;
+  line-height: 1.1;
+}
+
+.review-stat-label {
+  margin-top: 4px;
+  color: #6b7280;
+  font-size: 12px;
+}
+
+.review-workbench {
+  display: grid;
+  grid-template-columns: 240px minmax(420px, 1fr) 360px;
+  gap: 12px;
+  min-height: 680px;
+}
+
+.review-list,
+.review-editor,
+.review-side {
+  min-height: 0;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  background: #fff;
+}
+
+.review-list,
+.review-side {
+  overflow: auto;
+}
+
+.review-editor {
+  padding: 16px;
+}
+
+.review-panel-title {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  padding: 10px 12px;
+  border-bottom: 1px solid #f3f4f6;
+  background: #fff;
+  color: #111827;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.review-question-row {
+  cursor: pointer;
+  padding: 10px 12px;
+  border-bottom: 1px solid #f3f4f6;
+}
+
+.review-question-row.active {
+  background: #eff6ff;
+}
+
+.review-question-row.rejected {
+  opacity: 0.55;
+}
+
+.review-material {
+  margin: 10px;
+  padding: 10px;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+}
+
+.review-material.active {
+  border-color: #1677ff;
+  box-shadow: 0 0 0 2px rgb(22 119 255 / 8%);
+}
+
+.review-answer {
+  margin: 10px;
+  padding: 10px;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+}
+
+.review-answer.active {
+  border-color: #16a34a;
+  box-shadow: 0 0 0 2px rgb(22 163 74 / 8%);
+}
+
+.review-source {
+  margin: 10px;
+  padding: 12px;
+  border-radius: 8px;
+  background: #f9fafb;
+  color: #374151;
+  font-size: 12px;
+  line-height: 1.6;
+  white-space: pre-wrap;
+}
+
+@media (max-width: 1200px) {
+  .review-workbench {
+    grid-template-columns: 1fr;
+  }
 }
 </style>
