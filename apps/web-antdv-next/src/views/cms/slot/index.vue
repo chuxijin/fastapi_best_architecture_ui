@@ -115,7 +115,9 @@ function tryParseJson(text?: string): Record<string, any> | undefined {
     const parsed = JSON.parse(text);
     return typeof parsed === 'object' && parsed !== null ? parsed : undefined;
   } catch {
-    throw new Error('JSON 格式错误, 请检查 jump_extra / target_extra / extra 字段');
+    throw new Error(
+      'JSON 格式错误, 请检查 jump_extra / target_extra / extra 字段',
+    );
   }
 }
 
@@ -165,7 +167,10 @@ const [Drawer, drawerApi] = useVbenDrawer({
         extra,
       };
       if (formData.value?.id) {
-        await updateCmsSlotApi(formData.value.id, payload as UpdateCmsSlotParams);
+        await updateCmsSlotApi(
+          formData.value.id,
+          payload as UpdateCmsSlotParams,
+        );
       } else {
         await createCmsSlotApi(payload);
       }
@@ -184,8 +189,12 @@ const [Drawer, drawerApi] = useVbenDrawer({
       formData.value = { ...data };
       formApi.setValues({
         ...data,
-        jump_extra_text: data.jump_extra ? JSON.stringify(data.jump_extra, null, 2) : '',
-        target_extra_text: data.target_extra ? JSON.stringify(data.target_extra, null, 2) : '',
+        jump_extra_text: data.jump_extra
+          ? JSON.stringify(data.jump_extra, null, 2)
+          : '',
+        target_extra_text: data.target_extra
+          ? JSON.stringify(data.target_extra, null, 2)
+          : '',
         extra_text: data.extra ? JSON.stringify(data.extra, null, 2) : '',
       });
       detailHtml.value = data.detail || '';
@@ -208,7 +217,11 @@ const [Drawer, drawerApi] = useVbenDrawer({
       </template>
       <template #operation_default="{ row }">
         <div class="flex justify-center gap-2">
-          <AButton size="small" type="primary" @click="handleEdit(row)">编辑</AButton>
+          <AButton size="small" type="primary" @click="handleEdit(row)"
+            >
+编辑
+</AButton
+          >
           <AButton size="small" @click="handleStats(row)">统计</AButton>
           <AButton size="small" danger @click="handleDelete(row)">删除</AButton>
         </div>
@@ -218,7 +231,11 @@ const [Drawer, drawerApi] = useVbenDrawer({
       <Form />
       <div class="mt-4">
         <div class="mb-2 font-medium">详情(富文本)</div>
-        <HaloEditorWrapper v-model="detailHtml" :height="420" placeholder="请输入运营位详情..." />
+        <HaloEditorWrapper
+          v-model="detailHtml"
+          :height="420"
+          placeholder="请输入运营位详情..."
+        />
       </div>
     </Drawer>
     <StatsModal ref="statsModalRef" />

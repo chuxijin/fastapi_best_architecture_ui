@@ -754,20 +754,38 @@ export interface ReviewJobUpdatePayload {
 }
 
 export type ReviewJobEvent =
-  | { type: 'done'; answers_count: number; job: ReviewJobResult; materials_count: number; message: string; questions_count: number; segments_count: number; warnings_count: number }
-  | { type: 'error'; message: string }
   | {
-    type: 'progress';
-    batch_answers_count?: number;
-    batch_index: number;
-    batch_materials_count?: number;
-    batch_questions_count?: number;
-    total_answers_count?: number;
-    total_batches: number;
-    total_materials_count?: number;
-    total_questions_count?: number;
-  }
-  | { type: 'stage'; answers_count?: number; md_length?: number; md_url?: string; message: string; questions_count?: number; segments_count?: number; stage: string };
+      answers_count: number;
+      job: ReviewJobResult;
+      materials_count: number;
+      message: string;
+      questions_count: number;
+      segments_count: number;
+      type: 'done';
+      warnings_count: number;
+    }
+  | {
+      answers_count?: number;
+      md_length?: number;
+      md_url?: string;
+      message: string;
+      questions_count?: number;
+      segments_count?: number;
+      stage: string;
+      type: 'stage';
+    }
+  | {
+      batch_answers_count?: number;
+      batch_index: number;
+      batch_materials_count?: number;
+      batch_questions_count?: number;
+      total_answers_count?: number;
+      total_batches: number;
+      total_materials_count?: number;
+      total_questions_count?: number;
+      type: 'progress';
+    }
+  | { message: string; type: 'error' };
 
 export async function convertPdfToMarkdownApi(
   file: File,
@@ -813,11 +831,14 @@ export async function createReviewJobStreamApi(
   formData.append('file', file);
 
   const baseUrl = getApiBaseUrl();
-  const response = await fetch(`${baseUrl}/api/v1/qbank/parse/review-jobs/stream`, {
-    method: 'POST',
-    headers: getAuthHeaders(),
-    body: formData,
-  });
+  const response = await fetch(
+    `${baseUrl}/api/v1/qbank/parse/review-jobs/stream`,
+    {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      body: formData,
+    },
+  );
 
   if (!response.ok) {
     throw new Error(`请求失败: HTTP ${response.status}`);
@@ -841,9 +862,7 @@ export async function createReviewJobStreamApi(
 
     for (const line of lines) {
       if (!line.trim()) continue;
-      const dataStr = line.startsWith('data: ')
-        ? line.slice(6)
-        : line;
+      const dataStr = line.startsWith('data: ') ? line.slice(6) : line;
       if (dataStr === '[DONE]') continue;
 
       try {
@@ -873,9 +892,10 @@ export async function exportReviewJobExcelApi(jobId: string) {
 }
 
 export async function commitReviewJobApi(jobId: string) {
-  return requestClient.post<{ materials_count: number; questions_count: number }>(
-    `/api/v1/qbank/parse/review-jobs/${jobId}/commit`,
-  );
+  return requestClient.post<{
+    materials_count: number;
+    questions_count: number;
+  }>(`/api/v1/qbank/parse/review-jobs/${jobId}/commit`);
 }
 
 // ==================== Excel 导入 API ====================
@@ -910,11 +930,14 @@ export async function importExcelQuestionsApi(
   formData.append('file', file);
 
   const baseUrl = getApiBaseUrl();
-  const response = await fetch(`${baseUrl}/api/v1/qbank/questions/import-excel`, {
-    method: 'POST',
-    headers: getAuthHeaders(),
-    body: formData,
-  });
+  const response = await fetch(
+    `${baseUrl}/api/v1/qbank/questions/import-excel`,
+    {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      body: formData,
+    },
+  );
 
   const json = await response.json();
   if (json.code === 200) {
@@ -930,9 +953,12 @@ export async function importExcelQuestionsApi(
  */
 export async function downloadImportTemplateApi(): Promise<Blob> {
   const baseUrl = getApiBaseUrl();
-  const response = await fetch(`${baseUrl}/api/v1/qbank/questions/import-template`, {
-    headers: getAuthHeaders(),
-  });
+  const response = await fetch(
+    `${baseUrl}/api/v1/qbank/questions/import-template`,
+    {
+      headers: getAuthHeaders(),
+    },
+  );
   return response.blob();
 }
 

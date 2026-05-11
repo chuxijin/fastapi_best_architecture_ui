@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import type { UploadFile, UploadProps } from 'ant-design-vue';
+
 import type {
   BatchImportQuestionResult,
   PdfMarkdownResult,
@@ -8,33 +9,35 @@ import type {
   ReviewJobEvent,
   ReviewJobResult,
 } from '#/api';
-import { ref, computed, toRaw } from 'vue';
+
+import { computed, ref, toRaw } from 'vue';
 
 import { VbenButton } from '@vben/common-ui';
 import {
-  MaterialSymbolsUploadFileOutline,
   MaterialSymbolsDescriptionOutline,
+  MaterialSymbolsUploadFileOutline,
 } from '@vben/icons';
 
 import {
   Alert,
-  Tabs,
-  TabPane,
   Upload as AUpload,
   Card,
-  message,
-  Table,
-  Progress,
-  Steps,
-  Step,
-  Drawer,
-  Modal,
-  Input,
   Checkbox,
-  Select,
-  Tag,
+  Drawer,
   Empty,
+  Input,
+  message,
+  Modal,
+  Progress,
+  Select,
+  Step,
+  Steps,
+  Table,
+  TabPane,
+  Tabs,
+  Tag,
 } from 'ant-design-vue';
+import { VxeColumn, VxeTable } from 'vxe-table';
 
 import {
   batchImportQuestionsApi,
@@ -49,7 +52,6 @@ import {
   updateReviewJobApi,
 } from '#/api';
 
-import { VxeTable, VxeColumn } from 'vxe-table';
 import 'vxe-pc-ui/lib/style.css';
 import 'vxe-table/lib/style.css';
 
@@ -66,7 +68,7 @@ const showResultDrawer = ref(false);
 
 // ============ Tab 0: AI 审核台 ============
 const reviewFileList = ref<UploadFile[]>([]);
-const reviewJob = ref<ReviewJobResult | null>(null);
+const reviewJob = ref<null | ReviewJobResult>(null);
 const reviewLoading = ref(false);
 const reviewSaving = ref(false);
 const reviewCommitting = ref(false);
@@ -91,16 +93,20 @@ const selectedReviewAnswer = computed(() => {
 const selectedSourceSegment = computed(() => {
   const question = selectedReviewQuestion.value;
   if (!question || !reviewJob.value) return null;
-  return reviewJob.value.segments.find(
-    (item) => item.segment_id === question.source_segment_id,
-  ) || null;
+  return (
+    reviewJob.value.segments.find(
+      (item) => item.segment_id === question.source_segment_id,
+    ) || null
+  );
 });
 const selectedReviewAnswerSourceSegment = computed(() => {
   const answerItem = selectedReviewAnswer.value;
   if (!answerItem || !reviewJob.value) return null;
-  return reviewJob.value.segments.find(
-    (item) => item.segment_id === answerItem.source_segment_id,
-  ) || null;
+  return (
+    reviewJob.value.segments.find(
+      (item) => item.segment_id === answerItem.source_segment_id,
+    ) || null
+  );
 });
 const reviewWarningCount = computed(() => {
   if (!reviewJob.value) return 0;
@@ -116,11 +122,17 @@ const reviewWarningCount = computed(() => {
     (count, item) => count + (item.warnings?.length || 0),
     0,
   );
-  return questionWarnings + materialWarnings + answerWarnings + (reviewJob.value.warnings?.length || 0);
+  return (
+    questionWarnings +
+    materialWarnings +
+    answerWarnings +
+    (reviewJob.value.warnings?.length || 0)
+  );
 });
 const reviewApprovedCount = computed(() => {
   if (!reviewJob.value) return 0;
-  return reviewJob.value.questions.filter((item) => item.status === 'approved').length;
+  return reviewJob.value.questions.filter((item) => item.status === 'approved')
+    .length;
 });
 const reviewStageStepMap: Record<string, number> = {
   parse: 0,
@@ -148,7 +160,9 @@ function getCleanUploadFile(fileList: UploadFile[], fallbackName: string) {
   });
 }
 
-async function handleCreateReviewJob(extractMode: 'answer' | 'question' = 'question') {
+async function handleCreateReviewJob(
+  extractMode: 'answer' | 'question' = 'question',
+) {
   if (reviewFileList.value.length === 0) {
     message.error('请先选择 PDF 或 Markdown 文件');
     return;
@@ -160,7 +174,10 @@ async function handleCreateReviewJob(extractMode: 'answer' | 'question' = 'quest
   reviewMessage.value = '';
   reviewProgress.value = 0;
   reviewError.value = '';
-  const loadingText = extractMode === 'answer' ? '正在解析答案和解析...' : '正在创建 AI 审核任务...';
+  const loadingText =
+    extractMode === 'answer'
+      ? '正在解析答案和解析...'
+      : '正在创建 AI 审核任务...';
   const hide = message.loading(loadingText, 0);
   try {
     const cleanFile = getCleanUploadFile(reviewFileList.value, 'document.pdf');
@@ -179,7 +196,9 @@ async function handleCreateReviewJob(extractMode: 'answer' | 'question' = 'quest
           return;
         }
         if (event.type === 'progress') {
-          reviewProgress.value = Math.round((event.batch_index / event.total_batches) * 100);
+          reviewProgress.value = Math.round(
+            (event.batch_index / event.total_batches) * 100,
+          );
           const totalQuestions = event.total_questions_count || 0;
           const totalAnswers = event.total_answers_count || 0;
           reviewMessage.value = `AI 提取中 ${event.batch_index}/${event.total_batches} 批，题目 ${totalQuestions} 道，答案解析 ${totalAnswers} 条`;
@@ -197,7 +216,7 @@ async function handleCreateReviewJob(extractMode: 'answer' | 'question' = 'quest
         }
       },
     );
-    const currentJob = reviewJob.value as ReviewJobResult | null;
+    const currentJob = reviewJob.value as null | ReviewJobResult;
     if (!currentJob && reviewError.value) return;
     if (!currentJob) {
       throw new Error('未获取到审核任务结果');
@@ -212,8 +231,8 @@ async function handleCreateReviewJob(extractMode: 'answer' | 'question' = 'quest
     message.success(
       `审核任务已创建，识别 ${currentJob.questions_count} 题，答案解析 ${currentJob.answers_count} 条`,
     );
-  } catch (e: any) {
-    message.error(e.message || '创建审核任务失败');
+  } catch (error: any) {
+    message.error(error.message || '创建审核任务失败');
   } finally {
     hide();
     reviewLoading.value = false;
@@ -232,8 +251,8 @@ async function handleSaveReviewJob(status?: string) {
       status: status || reviewJob.value.status || 'pending_review',
     });
     message.success('审核结果已保存');
-  } catch (e: any) {
-    message.error(e.message || '保存失败');
+  } catch (error: any) {
+    message.error(error.message || '保存失败');
   } finally {
     reviewSaving.value = false;
   }
@@ -249,8 +268,8 @@ async function handleExportReviewExcel() {
     const blob = await downloadParseFileApi(urlPath);
     const filename = data.excel_url.split('/').pop() || 'review.xlsx';
     triggerBlobDownload(blob, filename);
-  } catch (e: any) {
-    message.error(e.message || '导出 Excel 失败');
+  } catch (error: any) {
+    message.error(error.message || '导出 Excel 失败');
   }
 }
 
@@ -266,9 +285,11 @@ async function handleCommitReviewJob() {
         await handleSaveReviewJob('approved');
         const result = await commitReviewJobApi(reviewJob.value.job_id);
         reviewJob.value.status = 'committed';
-        message.success(`入库完成：${result.questions_count} 题，${result.materials_count} 条材料`);
-      } catch (e: any) {
-        message.error(e.message || '入库失败');
+        message.success(
+          `入库完成：${result.questions_count} 题，${result.materials_count} 条材料`,
+        );
+      } catch (error: any) {
+        message.error(error.message || '入库失败');
       } finally {
         reviewCommitting.value = false;
       }
@@ -320,13 +341,16 @@ function setReviewAnswer(value: string) {
   question.answer_data.correct = value;
 }
 
-function getReviewAnswerItem(answerItem: ReviewAnswerItem | null) {
+function getReviewAnswerItem(answerItem: null | ReviewAnswerItem) {
   const correct = answerItem?.answer_data?.correct;
   if (Array.isArray(correct)) return correct.join(',');
   return correct || '';
 }
 
-function setReviewAnswerItemAnswer(answerItem: ReviewAnswerItem, value: string) {
+function setReviewAnswerItemAnswer(
+  answerItem: ReviewAnswerItem,
+  value: string,
+) {
   if (!answerItem.answer_data) {
     answerItem.answer_data = {};
   }
@@ -335,7 +359,10 @@ function setReviewAnswerItemAnswer(answerItem: ReviewAnswerItem, value: string) 
 
 function normalizeCopyCell(value: unknown) {
   if (Array.isArray(value)) return value.join(',');
-  return String(value ?? '').replace(/\t/g, ' ').replace(/\r?\n/g, ' ').trim();
+  return String(value ?? '')
+    .replaceAll('\t', ' ')
+    .replaceAll(/\r?\n/g, ' ')
+    .trim();
 }
 
 async function handleCopyReviewAnswers() {
@@ -435,10 +462,12 @@ async function handleConvertPdfToMarkdown() {
   try {
     const data = await convertPdfToMarkdownApi(cleanFile, props.bankId);
     await downloadParseResultFiles(data, 'document');
-    const textMessage = data.text_length ? `，Text ${data.text_length} 字符` : '';
+    const textMessage = data.text_length
+      ? `，Text ${data.text_length} 字符`
+      : '';
     message.success(`Markdown 已生成，共 ${data.md_length} 字符${textMessage}`);
-  } catch (e: any) {
-    message.error(e.message || 'PDF 转 Markdown 失败');
+  } catch (error: any) {
+    message.error(error.message || 'PDF 转 Markdown 失败');
   } finally {
     hide();
     markdownConverting.value = false;
@@ -462,17 +491,22 @@ async function handleRecoverMarkdownFromJob() {
     });
     await downloadParseResultFiles(data, jobId);
     recoverMarkdownOpen.value = false;
-    const textMessage = data.text_length ? `，Text ${data.text_length} 字符` : '';
+    const textMessage = data.text_length
+      ? `，Text ${data.text_length} 字符`
+      : '';
     message.success(`Markdown 已恢复，共 ${data.md_length} 字符${textMessage}`);
-  } catch (e: any) {
-    message.error(e.message || '恢复 Markdown 失败');
+  } catch (error: any) {
+    message.error(error.message || '恢复 Markdown 失败');
   } finally {
     hide();
     recoverMarkdownLoading.value = false;
   }
 }
 
-async function downloadParseResultFiles(data: PdfMarkdownResult, fallbackStem: string) {
+async function downloadParseResultFiles(
+  data: PdfMarkdownResult,
+  fallbackStem: string,
+) {
   const mdUrlPath = `/api/v1/qbank/parse/files/download?filename=${encodeURIComponent(data.md_url)}`;
   const mdBlob = await downloadParseFileApi(mdUrlPath);
   triggerBlobDownload(mdBlob, data.file_name || `${fallbackStem}.md`);
@@ -489,9 +523,9 @@ function triggerBlobDownload(blob: Blob, filename: string) {
   const a = document.createElement('a');
   a.href = blobUrl;
   a.download = filename;
-  document.body.appendChild(a);
+  document.body.append(a);
   a.click();
-  document.body.removeChild(a);
+  a.remove();
   window.setTimeout(() => URL.revokeObjectURL(blobUrl), 1000);
   message.success('文件已开始下载');
 }
@@ -519,7 +553,9 @@ async function handleExcelImport() {
     const rawItem = toRaw(excelFileList.value[0]) as any;
     const originFile = toRaw(rawItem.originFileObj || rawItem);
     const cleanFile = new File([originFile], originFile.name || 'import.xlsx', {
-      type: originFile.type || 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      type:
+        originFile.type ||
+        'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
     });
 
     const result = await importExcelQuestionsApi(cleanFile, props.bankId);
@@ -529,9 +565,9 @@ async function handleExcelImport() {
       `导入完成！成功 ${result.success_count} 题，复用 ${result.dedup_count || 0} 题，冲突提示 ${result.conflict_count || 0} 条`,
     );
     excelFileList.value = [];
-  } catch (e: any) {
+  } catch (error: any) {
     hide();
-    message.error('Excel 导入失败: ' + e.message);
+    message.error(`Excel 导入失败: ${error.message}`);
   } finally {
     excelUploading.value = false;
   }
@@ -592,9 +628,9 @@ async function handleJsonImport() {
       message.success(`JSON 导入完成，成功 ${result.success_count} 道题目`);
       jsonFileList.value = [];
     }
-  } catch (e: any) {
+  } catch (error: any) {
     hide();
-    message.error('JSON 导入失败: ' + e.message);
+    message.error(`JSON 导入失败: ${error.message}`);
   } finally {
     jsonUploading.value = false;
   }
@@ -619,10 +655,14 @@ const resultColumns = [
       <Tabs v-model:active-key="activeImportTab" type="card">
         <!-- ============ AI 审核台 ============ -->
         <TabPane key="review" tab="🧾 AI审核台">
-          <div class="rounded-b-lg border border-t-0 border-gray-100 bg-white p-6">
+          <div
+            class="rounded-b-lg border border-t-0 border-gray-100 bg-white p-6"
+          >
             <Alert class="mb-5" show-icon type="info">
               <template #message>
-                上传 PDF 或 Markdown 后生成审核任务。材料、题目、答案先人工确认，确认后再入库；Excel 可随时导出备份。
+                上传 PDF 或 Markdown
+                后生成审核任务。材料、题目、答案先人工确认，确认后再入库；Excel
+                可随时导出备份。
               </template>
             </Alert>
 
@@ -686,13 +726,20 @@ const resultColumns = [
               >
                 保存审核
               </VbenButton>
-              <VbenButton :disabled="!reviewJob" @click="handleExportReviewExcel">
+              <VbenButton
+                :disabled="!reviewJob"
+                @click="handleExportReviewExcel"
+              >
                 导出 Excel
               </VbenButton>
               <VbenButton
                 type="primary"
                 class="!bg-green-600 text-white"
-                :disabled="!reviewJob || reviewJob.status === 'committed' || reviewJob.extract_mode === 'answer'"
+                :disabled="
+                  !reviewJob ||
+                  reviewJob.status === 'committed' ||
+                  reviewJob.extract_mode === 'answer'
+                "
                 :loading="reviewCommitting"
                 @click="handleCommitReviewJob"
               >
@@ -717,11 +764,14 @@ const resultColumns = [
                 <span
                   v-if="reviewLoading"
                   class="inline-block size-2 animate-pulse rounded-full bg-blue-500"
-                />
+                ></span>
                 {{ reviewMessage }}
               </div>
               <Progress
-                v-if="reviewStage === 'ai_extract' || reviewStage === 'ai_extract_done'"
+                v-if="
+                  reviewStage === 'ai_extract' ||
+                  reviewStage === 'ai_extract_done'
+                "
                 :percent="reviewProgress"
                 :status="reviewProgress >= 100 ? 'success' : 'active'"
                 stroke-color="#1677ff"
@@ -737,15 +787,21 @@ const resultColumns = [
 
             <div v-if="reviewJob" class="mb-4 grid grid-cols-5 gap-3">
               <div class="review-stat">
-                <div class="review-stat-value">{{ reviewJob.questions.length }}</div>
+                <div class="review-stat-value">
+                  {{ reviewJob.questions.length }}
+                </div>
                 <div class="review-stat-label">题目</div>
               </div>
               <div class="review-stat">
-                <div class="review-stat-value">{{ reviewJob.materials.length }}</div>
+                <div class="review-stat-value">
+                  {{ reviewJob.materials.length }}
+                </div>
                 <div class="review-stat-label">材料</div>
               </div>
               <div class="review-stat">
-                <div class="review-stat-value">{{ reviewJob.answers?.length || 0 }}</div>
+                <div class="review-stat-value">
+                  {{ reviewJob.answers?.length || 0 }}
+                </div>
                 <div class="review-stat-label">答案解析</div>
               </div>
               <div class="review-stat">
@@ -753,7 +809,9 @@ const resultColumns = [
                 <div class="review-stat-label">已通过</div>
               </div>
               <div class="review-stat">
-                <div class="review-stat-value text-red-600">{{ reviewWarningCount }}</div>
+                <div class="review-stat-value text-red-600">
+                  {{ reviewWarningCount }}
+                </div>
                 <div class="review-stat-label">告警</div>
               </div>
             </div>
@@ -780,12 +838,21 @@ const resultColumns = [
                   @click="selectedReviewQuestionIndex = index"
                 >
                   <div class="truncate font-medium">
-                    {{ question.sort_order || index + 1 }}. {{ question.question_no_raw || question.question_id }}
+                    {{ question.sort_order || index + 1 }}.
+                    {{ question.question_no_raw || question.question_id }}
                   </div>
-                  <div class="mt-1 flex items-center gap-1 text-xs text-gray-500">
+                  <div
+                    class="mt-1 flex items-center gap-1 text-xs text-gray-500"
+                  >
                     <Tag size="small">{{ question.type }}</Tag>
-                    <span>{{ Math.round((question.confidence || 0) * 100) }}%</span>
-                    <Tag v-if="question.warnings?.length" color="orange" size="small">
+                    <span
+                      >{{ Math.round((question.confidence || 0) * 100) }}%</span
+                    >
+                    <Tag
+                      v-if="question.warnings?.length"
+                      color="orange"
+                      size="small"
+                    >
                       {{ question.warnings.length }}
                     </Tag>
                   </div>
@@ -797,16 +864,43 @@ const resultColumns = [
                   <div class="mb-4 flex items-start justify-between gap-3">
                     <div>
                       <div class="text-lg font-semibold">
-                        第 {{ selectedReviewQuestion.sort_order || selectedReviewQuestionIndex + 1 }} 题
+                        第
+                        {{
+                          selectedReviewQuestion.sort_order ||
+                          selectedReviewQuestionIndex + 1
+                        }}
+                        题
                       </div>
                       <div class="text-xs text-gray-500">
-                        {{ selectedReviewQuestion.source_segment_id || '未绑定来源分段' }}
+                        {{
+                          selectedReviewQuestion.source_segment_id ||
+                          '未绑定来源分段'
+                        }}
                       </div>
                     </div>
                     <div class="flex gap-2">
-                      <VbenButton size="sm" @click="markReviewQuestion('approved')">通过</VbenButton>
-                      <VbenButton size="sm" @click="markReviewQuestion('pending_review')">待审</VbenButton>
-                      <VbenButton size="sm" danger @click="markReviewQuestion('rejected')">拒绝</VbenButton>
+                      <VbenButton
+                        size="sm"
+                        @click="markReviewQuestion('approved')"
+                        >
+通过
+</VbenButton
+                      >
+                      <VbenButton
+                        size="sm"
+                        @click="markReviewQuestion('pending_review')"
+                        >
+待审
+</VbenButton
+                      >
+                      <VbenButton
+                        size="sm"
+                        danger
+                        @click="markReviewQuestion('rejected')"
+                        >
+拒绝
+</VbenButton
+                      >
                     </div>
                   </div>
 
@@ -822,27 +916,44 @@ const resultColumns = [
                       :value="selectedReviewQuestion.sort_order ?? undefined"
                       type="number"
                       placeholder="排序"
-                      @change="(event: any) => setReviewSortOrder(event.target.value)"
+                      @change="
+                        (event: any) => setReviewSortOrder(event.target.value)
+                      "
                     />
                     <Input
-                      :value="selectedReviewQuestion.chapter_level1_name || selectedReviewQuestion.chapter_name || ''"
+                      :value="
+                        selectedReviewQuestion.chapter_level1_name ||
+                        selectedReviewQuestion.chapter_name ||
+                        ''
+                      "
                       placeholder="一级篇章"
-                      @change="(event: any) => setReviewChapterLevel1Name(event.target.value)"
+                      @change="
+                        (event: any) =>
+                          setReviewChapterLevel1Name(event.target.value)
+                      "
                     />
                     <Input
                       :value="selectedReviewQuestion.chapter_level2_name || ''"
                       placeholder="二级篇章"
-                      @change="(event: any) => setReviewChapterLevel2Name(event.target.value)"
+                      @change="
+                        (event: any) =>
+                          setReviewChapterLevel2Name(event.target.value)
+                      "
                     />
                     <Input
                       :value="selectedReviewQuestion.chapter_level3_name || ''"
                       placeholder="三级篇章"
-                      @change="(event: any) => setReviewChapterLevel3Name(event.target.value)"
+                      @change="
+                        (event: any) =>
+                          setReviewChapterLevel3Name(event.target.value)
+                      "
                     />
                     <Input
                       :value="selectedReviewQuestion.material_id || ''"
                       placeholder="材料编号"
-                      @change="(event: any) => setReviewMaterialId(event.target.value)"
+                      @change="
+                        (event: any) => setReviewMaterialId(event.target.value)
+                      "
                     />
                   </div>
 
@@ -860,7 +971,10 @@ const resultColumns = [
                       :key="code"
                       :value="getReviewOption(code)"
                       :addon-before="code"
-                      @change="(event: any) => setReviewOption(code, event.target.value)"
+                      @change="
+                        (event: any) =>
+                          setReviewOption(code, event.target.value)
+                      "
                     />
                   </div>
 
@@ -868,12 +982,21 @@ const resultColumns = [
                     <Input
                       :value="getReviewAnswer()"
                       addon-before="答案"
-                      @change="(event: any) => setReviewAnswer(event.target.value)"
+                      @change="
+                        (event: any) => setReviewAnswer(event.target.value)
+                      "
                     />
                     <Input
-                      :value="Array.isArray(selectedReviewQuestion.knowledge_point) ? selectedReviewQuestion.knowledge_point.join(',') : selectedReviewQuestion.knowledge_point || ''"
+                      :value="
+                        Array.isArray(selectedReviewQuestion.knowledge_point)
+                          ? selectedReviewQuestion.knowledge_point.join(',')
+                          : selectedReviewQuestion.knowledge_point || ''
+                      "
                       addon-before="知识点"
-                      @change="(event: any) => setReviewKnowledgePoint(event.target.value)"
+                      @change="
+                        (event: any) =>
+                          setReviewKnowledgePoint(event.target.value)
+                      "
                     />
                   </div>
 
@@ -899,7 +1022,9 @@ const resultColumns = [
                     <div>
                       <div class="text-lg font-semibold">答案解析</div>
                       <div class="text-xs text-gray-500">
-                        共 {{ reviewJob.answers?.length || 0 }} 条，复制时只复制答案和解析两列
+                        共
+                        {{ reviewJob.answers?.length || 0 }}
+                        条，复制时只复制答案和解析两列
                       </div>
                     </div>
                     <VbenButton
@@ -918,27 +1043,54 @@ const resultColumns = [
                     height="600"
                     :edit-config="{ trigger: 'dblclick', mode: 'cell' }"
                     :mouse-config="{ selected: true }"
-                    :keyboard-config="{ isArrow: true, isDel: true, isEnter: true, isTab: true, isEdit: true }"
+                    :keyboard-config="{
+                      isArrow: true,
+                      isDel: true,
+                      isEnter: true,
+                      isTab: true,
+                      isEdit: true,
+                    }"
                     size="small"
                   >
-                    <VxeColumn field="question_no_raw" title="题号" width="90" :edit-render="{}">
+                    <VxeColumn
+                      field="question_no_raw"
+                      title="题号"
+                      width="90"
+                      :edit-render="{}"
+                    >
                       <template #edit="{ row }">
-                        <Input v-model:value="row.question_no_raw" size="small" />
+                        <Input
+                          v-model:value="row.question_no_raw"
+                          size="small"
+                        />
                       </template>
                     </VxeColumn>
-                    <VxeColumn field="answer_data.correct" title="答案" width="160" :edit-render="{}">
+                    <VxeColumn
+                      field="answer_data.correct"
+                      title="答案"
+                      width="160"
+                      :edit-render="{}"
+                    >
                       <template #edit="{ row }">
                         <Input
                           :value="getReviewAnswerItem(row)"
                           size="small"
-                          @change="(event: any) => setReviewAnswerItemAnswer(row, event.target.value)"
+                          @change="
+                            (event: any) =>
+                              setReviewAnswerItemAnswer(row, event.target.value)
+                          "
                         />
                       </template>
                       <template #default="{ row }">
                         {{ getReviewAnswerItem(row) }}
                       </template>
                     </VxeColumn>
-                    <VxeColumn field="analysis_content" title="解析" min-width="420" :edit-render="{}">
+                    <VxeColumn
+                      field="analysis_content"
+                      title="解析"
+                      min-width="420"
+                      :edit-render="{}"
+                    >
                       <template #edit="{ row }">
                         <Input.TextArea
                           v-model:value="row.analysis_content"
@@ -960,11 +1112,32 @@ const resultColumns = [
                   @click="selectedReviewMaterialIndex = index"
                 >
                   <div class="mb-2 flex items-center gap-2">
-                    <Input v-model:value="material.material_id" class="!w-24" size="small" />
-                    <VbenButton size="sm" @click.stop="markReviewMaterial('approved')">过</VbenButton>
-                    <VbenButton size="sm" danger @click.stop="markReviewMaterial('rejected')">拒</VbenButton>
+                    <Input
+                      v-model:value="material.material_id"
+                      class="!w-24"
+                      size="small"
+                    />
+                    <VbenButton
+                      size="sm"
+                      @click.stop="markReviewMaterial('approved')"
+                      >
+过
+</VbenButton
+                    >
+                    <VbenButton
+                      size="sm"
+                      danger
+                      @click.stop="markReviewMaterial('rejected')"
+                      >
+拒
+</VbenButton
+                    >
                   </div>
-                  <Input v-model:value="material.title" class="mb-2" size="small" />
+                  <Input
+                    v-model:value="material.title"
+                    class="mb-2"
+                    size="small"
+                  />
                   <Input.TextArea
                     v-model:value="material.content"
                     :auto-size="{ minRows: 3, maxRows: 8 }"
@@ -985,14 +1158,20 @@ const resultColumns = [
                       class="!w-24"
                       size="small"
                       addon-before="题号"
-                      @change="(event: any) => answer.question_no_raw = event.target.value || null"
+                      @change="
+                        (event: any) =>
+                          (answer.question_no_raw = event.target.value || null)
+                      "
                     />
                     <Input
                       :value="getReviewAnswerItem(answer)"
                       class="min-w-0 flex-1"
                       size="small"
                       addon-before="答案"
-                      @change="(event: any) => setReviewAnswerItemAnswer(answer, event.target.value)"
+                      @change="
+                        (event: any) =>
+                          setReviewAnswerItemAnswer(answer, event.target.value)
+                      "
                     />
                   </div>
                   <Input.TextArea
@@ -1009,7 +1188,12 @@ const resultColumns = [
                 </div>
 
                 <div class="review-panel-title mt-4">来源原文</div>
-                <pre class="review-source">{{ selectedReviewAnswer?.source_quote || selectedReviewAnswerSourceSegment?.content || selectedSourceSegment?.content || '暂无来源分段' }}</pre>
+                <pre class="review-source">{{
+                  selectedReviewAnswer?.source_quote ||
+                  selectedReviewAnswerSourceSegment?.content ||
+                  selectedSourceSegment?.content ||
+                  '暂无来源分段'
+                }}</pre>
               </div>
             </div>
 
@@ -1163,7 +1347,6 @@ const resultColumns = [
         />
       </div>
     </Drawer>
-
   </div>
 </template>
 
@@ -1176,22 +1359,22 @@ const resultColumns = [
 
 .review-stat {
   padding: 12px 14px;
+  background: #f9fafb;
   border: 1px solid #e5e7eb;
   border-radius: 8px;
-  background: #f9fafb;
 }
 
 .review-stat-value {
-  color: #111827;
   font-size: 24px;
   font-weight: 700;
   line-height: 1.1;
+  color: #111827;
 }
 
 .review-stat-label {
   margin-top: 4px;
-  color: #6b7280;
   font-size: 12px;
+  color: #6b7280;
 }
 
 .review-workbench {
@@ -1205,9 +1388,9 @@ const resultColumns = [
 .review-editor,
 .review-side {
   min-height: 0;
+  background: #fff;
   border: 1px solid #e5e7eb;
   border-radius: 8px;
-  background: #fff;
 }
 
 .review-list,
@@ -1224,16 +1407,16 @@ const resultColumns = [
   top: 0;
   z-index: 1;
   padding: 10px 12px;
-  border-bottom: 1px solid #f3f4f6;
-  background: #fff;
-  color: #111827;
   font-size: 14px;
   font-weight: 600;
+  color: #111827;
+  background: #fff;
+  border-bottom: 1px solid #f3f4f6;
 }
 
 .review-question-row {
-  cursor: pointer;
   padding: 10px 12px;
+  cursor: pointer;
   border-bottom: 1px solid #f3f4f6;
 }
 
@@ -1246,8 +1429,8 @@ const resultColumns = [
 }
 
 .review-material {
-  margin: 10px;
   padding: 10px;
+  margin: 10px;
   border: 1px solid #e5e7eb;
   border-radius: 8px;
 }
@@ -1258,8 +1441,8 @@ const resultColumns = [
 }
 
 .review-answer {
-  margin: 10px;
   padding: 10px;
+  margin: 10px;
   border: 1px solid #e5e7eb;
   border-radius: 8px;
 }
@@ -1270,14 +1453,14 @@ const resultColumns = [
 }
 
 .review-source {
-  margin: 10px;
   padding: 12px;
-  border-radius: 8px;
-  background: #f9fafb;
-  color: #374151;
+  margin: 10px;
   font-size: 12px;
   line-height: 1.6;
+  color: #374151;
   white-space: pre-wrap;
+  background: #f9fafb;
+  border-radius: 8px;
 }
 
 @media (max-width: 1200px) {

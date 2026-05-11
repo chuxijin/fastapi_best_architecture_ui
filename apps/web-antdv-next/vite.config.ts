@@ -7,7 +7,6 @@ import Icons from 'unplugin-icons/vite';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
- 
 export default defineConfig(async (): Promise<any> => {
   return {
     application: {},

@@ -15,15 +15,13 @@ export const claimStatusMap: Record<number, { color: string; label: string }> =
     6: { color: 'magenta', label: '已撤销' },
   };
 
-export const rewardStatusMap: Record<
-  number,
-  { color: string; label: string }
-> = {
-  0: { color: 'default', label: '未发' },
-  1: { color: 'success', label: '已发' },
-  2: { color: 'error', label: '发放失败' },
-  3: { color: 'magenta', label: '已撤销' },
-};
+export const rewardStatusMap: Record<number, { color: string; label: string }> =
+  {
+    0: { color: 'default', label: '未发' },
+    1: { color: 'success', label: '已发' },
+    2: { color: 'error', label: '发放失败' },
+    3: { color: 'magenta', label: '已撤销' },
+  };
 
 export const querySchema: VbenFormSchema[] = [
   {
@@ -58,10 +56,7 @@ export const querySchema: VbenFormSchema[] = [
 ];
 
 export function useColumns(
-  onActionClick?: (params: {
-    code: string;
-    row: QuestClaimResult;
-  }) => void,
+  _onActionClick?: (params: { code: string; row: QuestClaimResult }) => void,
 ): VxeGridProps['columns'] {
   return [
     { field: 'seq', title: $t('common.table.id'), type: 'seq', width: 50 },

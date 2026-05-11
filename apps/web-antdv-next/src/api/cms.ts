@@ -117,10 +117,9 @@ export interface CmsSlotStatsResult {
 }
 
 export async function getCmsSlotListApi(params: CmsSlotListParams) {
-  return requestClient.get<PageData<CmsSlotResult>>(
-    '/api/v1/cms/admin/slots',
-    { params },
-  );
+  return requestClient.get<PageData<CmsSlotResult>>('/api/v1/cms/admin/slots', {
+    params,
+  });
 }
 
 export async function getCmsSlotDetailApi(pk: number) {

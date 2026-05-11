@@ -17,7 +17,15 @@ import type {
   ThemeColor,
 } from '#/plugins/render_book/api';
 
-import { computed, h, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue';
+import {
+  computed,
+  h,
+  onBeforeUnmount,
+  onMounted,
+  reactive,
+  ref,
+  watch,
+} from 'vue';
 
 import { Page } from '@vben/common-ui';
 
@@ -28,13 +36,13 @@ import {
   buildRenderJobFileUrl,
   createRenderJobApi,
   createRenderTemplatePresetApi,
-  dispatchRenderJobApi,
   deleteRenderTemplatePresetApi,
+  dispatchRenderJobApi,
   executeRenderJobApi,
   getRenderJobApi,
   getRenderJobListApi,
-  getRenderTemplatesApi,
   getRenderTemplatePresetsApi,
+  getRenderTemplatesApi,
   previewRenderTemplateApi,
   updateRenderTemplatePresetApi,
 } from '#/plugins/render_book/api';
@@ -227,10 +235,9 @@ const presetForm = reactive<PresetFormState>({
 });
 
 const templateMap = computed(() => {
-  return templates.value.reduce<Record<string, RenderTemplateSummary>>((acc, item) => {
-    acc[item.key] = item;
-    return acc;
-  }, {});
+  return Object.fromEntries(
+    templates.value.map((item) => [item.key, item]),
+  ) as Record<string, RenderTemplateSummary>;
 });
 
 const selectedTemplate = computed(() => {
@@ -238,11 +245,17 @@ const selectedTemplate = computed(() => {
 });
 
 const selectedPreset = computed(() => {
-  return presets.value.find((item) => item.id === selectedPresetId.value) ?? null;
+  return (
+    presets.value.find((item) => item.id === selectedPresetId.value) ?? null
+  );
 });
 
-const showWrongRecentDays = computed(() => formState.template_key === 'wrong_question');
-const showTargetUserId = computed(() => formState.template_key === 'wrong_question');
+const showWrongRecentDays = computed(
+  () => formState.template_key === 'wrong_question',
+);
+const showTargetUserId = computed(
+  () => formState.template_key === 'wrong_question',
+);
 
 const variantOptions = [
   { label: '题目版', value: 'questions_only' },
@@ -336,7 +349,9 @@ const selectedJobFiles = computed(() => {
 });
 
 const runningJobCount = computed(() => {
-  return jobs.value.filter((item) => item.status === 'accepted' || item.status === 'running').length;
+  return jobs.value.filter(
+    (item) => item.status === 'accepted' || item.status === 'running',
+  ).length;
 });
 
 const previewTabItems = computed(() => {
@@ -357,9 +372,13 @@ const previewTabItems = computed(() => {
 watch(
   () => formState.template_key,
   async (value) => {
-    const nextCoverStyle: CoverStyle = value === 'exam_paper' ? 'exam' : 'practice';
+    const nextCoverStyle: CoverStyle =
+      value === 'exam_paper' ? 'exam' : 'practice';
     formState.cover_style = nextCoverStyle;
-    if (value !== 'exam_paper' && formState.render_variant === 'questions_only') {
+    if (
+      value !== 'exam_paper' &&
+      formState.render_variant === 'questions_only'
+    ) {
       formState.subtitle = '';
     }
     await fetchPresets(true);
@@ -419,7 +438,9 @@ function resolveVariantConfig(renderVariant: RenderVariant) {
   } satisfies VariantConfig;
 }
 
-function inferVariantFromExportConfig(payload: RenderTemplatePresetPayload): null | RenderVariant {
+function inferVariantFromExportConfig(
+  payload: RenderTemplatePresetPayload,
+): null | RenderVariant {
   if (payload.render_variant) {
     return payload.render_variant;
   }
@@ -435,7 +456,10 @@ function inferVariantFromExportConfig(payload: RenderTemplatePresetPayload): nul
       return 'combined_inline';
     }
     if (deliveryMode === 'split_pdf') {
-      const targets = payload.output_targets || { question_pdf: true, solution_pdf: false };
+      const targets = payload.output_targets || {
+        question_pdf: true,
+        solution_pdf: false,
+      };
       if (!targets.question_pdf && targets.solution_pdf) {
         return 'solutions_only';
       }
@@ -452,7 +476,10 @@ function inferVariantFromExportConfig(payload: RenderTemplatePresetPayload): nul
     return 'combined_appendix';
   }
   if (legacySolutionMode === 'separate') {
-    const targets = payload.output_targets || { question_pdf: true, solution_pdf: false };
+    const targets = payload.output_targets || {
+      question_pdf: true,
+      solution_pdf: false,
+    };
     if (!targets.question_pdf && targets.solution_pdf) {
       return 'solutions_only';
     }
@@ -462,9 +489,10 @@ function inferVariantFromExportConfig(payload: RenderTemplatePresetPayload): nul
 }
 
 function buildLayoutParams() {
-  const coverTitleLines = [formState.cover_title_line_1, formState.cover_title_line_2].filter((item) =>
-    item.trim(),
-  );
+  const coverTitleLines = [
+    formState.cover_title_line_1,
+    formState.cover_title_line_2,
+  ].filter((item) => item.trim());
   const layoutParams: Record<string, any> = {
     cover_style: formState.cover_style,
     paper_size: formState.paper_size,
@@ -512,9 +540,7 @@ function buildLayoutParams() {
 
 function normalizeStringArray(input: unknown): string[] {
   if (Array.isArray(input)) {
-    return input
-      .map((item) => String(item || '').trim())
-      .filter(Boolean);
+    return input.map((item) => String(item || '').trim()).filter(Boolean);
   }
   if (typeof input === 'string') {
     return input
@@ -678,7 +704,10 @@ function formatStatusText(status: RenderJobStatus) {
 }
 
 function statusBadge(status: RenderJobStatus) {
-  const mapping: Record<RenderJobStatus, 'default' | 'error' | 'processing' | 'success' | 'warning'> = {
+  const mapping: Record<
+    RenderJobStatus,
+    'default' | 'error' | 'processing' | 'success' | 'warning'
+  > = {
     accepted: 'warning',
     running: 'processing',
     succeeded: 'success',
@@ -698,16 +727,26 @@ function getFileKindLabel(fileKind: RenderFileKind) {
 
 function getJobOutputLink(job: RenderJobResult) {
   const preferred =
-    [...job.files].find((item) => item.file_kind === 'combined_pdf' && item.status === 'available') ||
-    [...job.files].find((item) => item.file_kind === 'question_pdf' && item.status === 'available') ||
+    [...job.files].find(
+      (item) =>
+        item.file_kind === 'combined_pdf' && item.status === 'available',
+    ) ||
+    [...job.files].find(
+      (item) =>
+        item.file_kind === 'question_pdf' && item.status === 'available',
+    ) ||
     [...job.files].find((item) => item.status === 'available');
   if (!preferred) {
     return '';
   }
-  return buildRenderJobFileUrl(job.job_id, preferred.file_kind as RenderFileKind, {
-    preferUrl: true,
-    renderVariant: preferred.render_variant || undefined,
-  });
+  return buildRenderJobFileUrl(
+    job.job_id,
+    preferred.file_kind as RenderFileKind,
+    {
+      preferUrl: true,
+      renderVariant: preferred.render_variant || undefined,
+    },
+  );
 }
 
 function openUrl(url: string) {
@@ -746,7 +785,9 @@ async function fetchTemplates() {
 async function fetchPresets(autoApply = false) {
   presetsLoading.value = true;
   try {
-    const data = await getRenderTemplatePresetsApi({ template_key: formState.template_key });
+    const data = await getRenderTemplatePresetsApi({
+      template_key: formState.template_key,
+    });
     presets.value = data;
     if (autoApply) {
       const target = data.find((item) => item.is_default) ?? data[0];
@@ -756,7 +797,10 @@ async function fetchPresets(autoApply = false) {
       } else {
         selectedPresetId.value = undefined;
       }
-    } else if (selectedPresetId.value && !data.some((item) => item.id === selectedPresetId.value)) {
+    } else if (
+      selectedPresetId.value &&
+      !data.some((item) => item.id === selectedPresetId.value)
+    ) {
       selectedPresetId.value = undefined;
     }
   } finally {
@@ -781,7 +825,9 @@ async function fetchJobs(silent = false) {
     taskPage.total = data.total;
 
     if (selectedJobId.value) {
-      const matched = data.items.find((item) => item.job_id === selectedJobId.value);
+      const matched = data.items.find(
+        (item) => item.job_id === selectedJobId.value,
+      );
       if (matched) {
         selectedJobDetail.value = matched;
       }
@@ -809,7 +855,9 @@ async function refreshJobDetail(jobId: string, silent = false) {
     const detail = await getRenderJobApi(jobId);
     selectedJobId.value = detail.job_id;
     selectedJobDetail.value = detail;
-    jobs.value = jobs.value.map((item) => (item.job_id === detail.job_id ? detail : item));
+    jobs.value = jobs.value.map((item) =>
+      item.job_id === detail.job_id ? detail : item,
+    );
   } finally {
     if (!silent) {
       taskLoading.value = false;
@@ -830,17 +878,23 @@ function applyPreset(preset: RenderTemplatePresetResult) {
   };
   const layoutParams = payload.layout_params ?? {};
   const metadata = payload.metadata ?? {};
-  const coverStyle = String(layoutParams.cover_style || metadata.cover_style || 'exam');
+  const coverStyle = String(
+    layoutParams.cover_style || metadata.cover_style || 'exam',
+  );
 
   formState.title = payload.title || '';
   formState.subtitle = payload.subtitle || '';
   formState.subject = payload.subject || '';
-  formState.bank_id = typeof filters.bank_id === 'number' ? filters.bank_id : null;
-  formState.chapter_id = typeof filters.chapter_id === 'number' ? filters.chapter_id : null;
+  formState.bank_id =
+    typeof filters.bank_id === 'number' ? filters.bank_id : null;
+  formState.chapter_id =
+    typeof filters.chapter_id === 'number' ? filters.chapter_id : null;
   formState.cat_id = typeof filters.cat_id === 'number' ? filters.cat_id : null;
   formState.region = String(filters.region || '');
-  formState.year_start = typeof filters.year_start === 'number' ? filters.year_start : null;
-  formState.year_end = typeof filters.year_end === 'number' ? filters.year_end : null;
+  formState.year_start =
+    typeof filters.year_start === 'number' ? filters.year_start : null;
+  formState.year_end =
+    typeof filters.year_end === 'number' ? filters.year_end : null;
   formState.question_ids = Array.isArray(filters.question_ids)
     ? filters.question_ids.join(',')
     : String(filters.question_ids || '');
@@ -851,16 +905,22 @@ function applyPreset(preset: RenderTemplatePresetResult) {
   formState.option_keyword = String(filters.option_keyword || '');
   formState.analysis_keyword = String(filters.analysis_keyword || '');
   formState.question_count =
-    typeof filters.question_count === 'number' && filters.question_count > 0 ? filters.question_count : 30;
+    typeof filters.question_count === 'number' && filters.question_count > 0
+      ? filters.question_count
+      : 30;
   formState.wrong_only_recent_days =
-    typeof filters.wrong_only_recent_days === 'number' && filters.wrong_only_recent_days > 0
+    typeof filters.wrong_only_recent_days === 'number' &&
+    filters.wrong_only_recent_days > 0
       ? filters.wrong_only_recent_days
       : null;
-  formState.target_user_id = typeof metadata.user_id === 'number' ? metadata.user_id : null;
-  formState.render_variant = inferVariantFromExportConfig(payload) || 'questions_only';
+  formState.target_user_id =
+    typeof metadata.user_id === 'number' ? metadata.user_id : null;
+  formState.render_variant =
+    inferVariantFromExportConfig(payload) || 'questions_only';
   formState.include_answer = !!options.include_answer;
   formState.include_analysis = !!options.include_analysis;
-  formState.layout_mode = (options as any).layout_mode || (options as any).density || 'standard';
+  formState.layout_mode =
+    (options as any).layout_mode || (options as any).density || 'standard';
   formState.theme = options.theme || 'blue';
   formState.dark_mode = !!(options as any).dark_mode;
   formState.show_source = options.show_source ?? true;
@@ -868,28 +928,53 @@ function applyPreset(preset: RenderTemplatePresetResult) {
   formState.paper_size = (layoutParams.paper_size as PaperSize) || 'B5';
   formState.page_margin = String(layoutParams.page_margin || '1.8cm');
   formState.base_font_size = String(layoutParams.base_font_size || '11pt');
-  formState.body_font_family = (layoutParams.body_font_family as FontFamilyKey) || 'song';
-  formState.heading_font_family = (layoutParams.heading_font_family as FontFamilyKey) || 'hei';
-  formState.cover_font_family = (layoutParams.cover_font_family as FontFamilyKey) || 'hei';
-  formState.cover_title_line_1 = String(layoutParams.cover_title_lines?.[0] || '');
-  formState.cover_title_line_2 = String(layoutParams.cover_title_lines?.[1] || '');
+  formState.body_font_family =
+    (layoutParams.body_font_family as FontFamilyKey) || 'song';
+  formState.heading_font_family =
+    (layoutParams.heading_font_family as FontFamilyKey) || 'hei';
+  formState.cover_font_family =
+    (layoutParams.cover_font_family as FontFamilyKey) || 'hei';
+  formState.cover_title_line_1 = String(
+    layoutParams.cover_title_lines?.[0] || '',
+  );
+  formState.cover_title_line_2 = String(
+    layoutParams.cover_title_lines?.[1] || '',
+  );
   formState.cover_sidebar_x = String(layoutParams.cover_sidebar_x || '1.34cm');
-  formState.cover_sidebar_center_gap = String(layoutParams.cover_sidebar_center_gap || '4.48cm');
-  formState.cover_ticket_rule_length = String(layoutParams.cover_ticket_rule_length || '4.45cm');
-  formState.cover_name_rule_length = String(layoutParams.cover_name_rule_length || '4.05cm');
-  formState.cover_content_left = String(layoutParams.cover_content_left || '3.15cm');
-  formState.cover_content_right = String(layoutParams.cover_content_right || '1.15cm');
+  formState.cover_sidebar_center_gap = String(
+    layoutParams.cover_sidebar_center_gap || '4.48cm',
+  );
+  formState.cover_ticket_rule_length = String(
+    layoutParams.cover_ticket_rule_length || '4.45cm',
+  );
+  formState.cover_name_rule_length = String(
+    layoutParams.cover_name_rule_length || '4.05cm',
+  );
+  formState.cover_content_left = String(
+    layoutParams.cover_content_left || '3.15cm',
+  );
+  formState.cover_content_right = String(
+    layoutParams.cover_content_right || '1.15cm',
+  );
   formState.cover_title_top = String(layoutParams.cover_title_top || '4.85cm');
-  formState.cover_notice_top = String(layoutParams.cover_notice_top || '11.9cm');
-  formState.cover_bottom_note_left = String(layoutParams.cover_bottom_note_left || '7.05cm');
-  formState.cover_bottom_note_bottom = String(layoutParams.cover_bottom_note_bottom || '3.68cm');
+  formState.cover_notice_top = String(
+    layoutParams.cover_notice_top || '11.9cm',
+  );
+  formState.cover_bottom_note_left = String(
+    layoutParams.cover_bottom_note_left || '7.05cm',
+  );
+  formState.cover_bottom_note_bottom = String(
+    layoutParams.cover_bottom_note_bottom || '3.68cm',
+  );
   formState.show_header = layoutParams.show_header ?? true;
   formState.show_footer = layoutParams.show_footer ?? true;
   formState.show_header_rule = layoutParams.show_header_rule ?? true;
   formState.show_footer_rule = layoutParams.show_footer_rule ?? false;
-  formState.first_page_header_footer = layoutParams.first_page_header_footer ?? true;
+  formState.first_page_header_footer =
+    layoutParams.first_page_header_footer ?? true;
   formState.show_page_number = layoutParams.show_page_number ?? true;
-  formState.page_number_position = (layoutParams.page_number_position as PageNumberPosition) || 'center';
+  formState.page_number_position =
+    (layoutParams.page_number_position as PageNumberPosition) || 'center';
   formState.header_left = String(layoutParams.header_left || '');
   formState.header_center = String(layoutParams.header_center || '');
   formState.header_right = String(layoutParams.header_right || '');
@@ -899,7 +984,9 @@ function applyPreset(preset: RenderTemplatePresetResult) {
 }
 
 function openPresetModal() {
-  presetForm.preset_name = selectedPreset.value?.preset_name || `${selectedTemplate.value?.name || '模板'}预设`;
+  presetForm.preset_name =
+    selectedPreset.value?.preset_name ||
+    `${selectedTemplate.value?.name || '模板'}预设`;
   presetForm.description = selectedPreset.value?.description || '';
   presetForm.is_default = selectedPreset.value?.is_default || false;
   presetForm.sort_order = selectedPreset.value?.sort_order || 0;
@@ -960,7 +1047,8 @@ async function handleDeletePreset() {
     title: '删除模板预设',
     content: `确定删除预设“${selectedPreset.value.preset_name}”吗？`,
     async onOk() {
-      await deleteRenderTemplatePresetApi(selectedPreset.value!.id);
+      if (!selectedPreset.value) return;
+      await deleteRenderTemplatePresetApi(selectedPreset.value.id);
       selectedPresetId.value = undefined;
       await fetchPresets(false);
       message.success('预设已删除');
@@ -990,7 +1078,9 @@ async function handlePreview() {
     revokePreviewUrl();
     previewUrl.value = result.pdf_url ? buildPreviewSrc(result.pdf_url) : '';
     if (!result.pdf_url) {
-      message.warning('预览已生成，但未拿到可直接访问的 PDF 地址，请检查 OSS 或执行器地址。');
+      message.warning(
+        '预览已生成，但未拿到可直接访问的 PDF 地址，请检查 OSS 或执行器地址。',
+      );
       return;
     }
     message.success('预览生成成功');
@@ -1011,7 +1101,9 @@ async function handleCreateFinalJob(dispatchAfterCreate = true) {
     const job = await createRenderJobApi(buildFinalPayload());
     selectedJobId.value = job.job_id;
     selectedJobDetail.value = job;
-    message.success(dispatchAfterCreate ? '正式任务已创建，开始后台渲染' : '正式任务已创建');
+    message.success(
+      dispatchAfterCreate ? '正式任务已创建，开始后台渲染' : '正式任务已创建',
+    );
     if (dispatchAfterCreate) {
       await dispatchRenderJobApi(job.job_id, true);
     }
@@ -1066,7 +1158,9 @@ function asJobRecord(record: Partial<RenderJobResult> | Record<string, any>) {
   return record as RenderJobResult;
 }
 
-async function handleDispatchJobRow(record: Partial<RenderJobResult> | Record<string, any>) {
+async function handleDispatchJobRow(
+  record: Partial<RenderJobResult> | Record<string, any>,
+) {
   const job = asJobRecord(record);
   if (!job) {
     return;
@@ -1074,7 +1168,9 @@ async function handleDispatchJobRow(record: Partial<RenderJobResult> | Record<st
   await handleDispatchJob(job);
 }
 
-async function handleExecuteJobSyncRow(record: Partial<RenderJobResult> | Record<string, any>) {
+async function handleExecuteJobSyncRow(
+  record: Partial<RenderJobResult> | Record<string, any>,
+) {
   const job = asJobRecord(record);
   if (!job) {
     return;
@@ -1157,7 +1253,9 @@ onBeforeUnmount(() => {
                   :value="selectedPresetId"
                   :options="
                     presets.map((item) => ({
-                      label: item.is_default ? `${item.preset_name}（默认）` : item.preset_name,
+                      label: item.is_default
+                        ? `${item.preset_name}（默认）`
+                        : item.preset_name,
                       value: item.id,
                     }))
                   "
@@ -1166,11 +1264,28 @@ onBeforeUnmount(() => {
                   @change="handlePresetChange"
                 />
                 <a-button @click="fetchPresets(false)">刷新</a-button>
-                <a-button type="dashed" @click="openPresetModal">保存当前</a-button>
+                <a-button type="dashed" @click="openPresetModal"
+                  >
+保存当前
+</a-button
+                >
               </div>
               <div class="preset-actions">
-                <a-button :disabled="!selectedPreset" @click="handleUpdatePreset">覆盖当前预设</a-button>
-                <a-button danger :disabled="!selectedPreset" @click="handleDeletePreset">删除当前预设</a-button>
+                <a-button
+                  :disabled="!selectedPreset"
+                  @click="handleUpdatePreset"
+                  >
+覆盖当前预设
+</a-button
+                >
+                <a-button
+                  danger
+                  :disabled="!selectedPreset"
+                  @click="handleDeletePreset"
+                  >
+删除当前预设
+</a-button
+                >
               </div>
             </a-form-item>
 
@@ -1184,37 +1299,68 @@ onBeforeUnmount(() => {
 
             <div class="grid-row">
               <a-form-item label="学科">
-                <a-input v-model:value="formState.subject" placeholder="如：行测" />
+                <a-input
+                  v-model:value="formState.subject"
+                  placeholder="如：行测"
+                />
               </a-form-item>
               <a-form-item label="预览变体">
-                <a-select v-model:value="formState.render_variant" :options="variantOptions" />
+                <a-select
+                  v-model:value="formState.render_variant"
+                  :options="variantOptions"
+                />
               </a-form-item>
             </div>
 
             <div class="grid-row">
               <a-form-item label="题库 ID">
-                <a-input-number v-model:value="formState.bank_id" :min="1" class="w-full" />
+                <a-input-number
+                  v-model:value="formState.bank_id"
+                  :min="1"
+                  class="w-full"
+                />
               </a-form-item>
               <a-form-item label="章节 ID">
-                <a-input-number v-model:value="formState.chapter_id" :min="1" class="w-full" />
+                <a-input-number
+                  v-model:value="formState.chapter_id"
+                  :min="1"
+                  class="w-full"
+                />
               </a-form-item>
             </div>
 
             <div class="grid-row">
               <a-form-item label="分类 ID">
-                <a-input-number v-model:value="formState.cat_id" :min="1" class="w-full" />
+                <a-input-number
+                  v-model:value="formState.cat_id"
+                  :min="1"
+                  class="w-full"
+                />
               </a-form-item>
               <a-form-item label="地区关键字">
-                <a-input v-model:value="formState.region" placeholder="如：江苏 / 市地级" />
+                <a-input
+                  v-model:value="formState.region"
+                  placeholder="如：江苏 / 市地级"
+                />
               </a-form-item>
             </div>
 
             <div class="grid-row">
               <a-form-item label="起始年份">
-                <a-input-number v-model:value="formState.year_start" :min="1900" :max="2100" class="w-full" />
+                <a-input-number
+                  v-model:value="formState.year_start"
+                  :min="1900"
+                  :max="2100"
+                  class="w-full"
+                />
               </a-form-item>
               <a-form-item label="结束年份">
-                <a-input-number v-model:value="formState.year_end" :min="1900" :max="2100" class="w-full" />
+                <a-input-number
+                  v-model:value="formState.year_end"
+                  :min="1900"
+                  :max="2100"
+                  class="w-full"
+                />
               </a-form-item>
             </div>
 
@@ -1228,7 +1374,10 @@ onBeforeUnmount(() => {
                 />
               </a-form-item>
               <a-form-item label="封面类型">
-                <a-select v-model:value="formState.cover_style" :options="coverStyleOptions" />
+                <a-select
+                  v-model:value="formState.cover_style"
+                  :options="coverStyleOptions"
+                />
               </a-form-item>
             </div>
 
@@ -1269,15 +1418,24 @@ onBeforeUnmount(() => {
 
             <div class="grid-row">
               <a-form-item label="题干关键字">
-                <a-input v-model:value="formState.stem_keyword" placeholder="模糊匹配题干" />
+                <a-input
+                  v-model:value="formState.stem_keyword"
+                  placeholder="模糊匹配题干"
+                />
               </a-form-item>
               <a-form-item label="选项关键字">
-                <a-input v-model:value="formState.option_keyword" placeholder="模糊匹配选项" />
+                <a-input
+                  v-model:value="formState.option_keyword"
+                  placeholder="模糊匹配选项"
+                />
               </a-form-item>
             </div>
 
             <a-form-item label="解析关键字">
-              <a-input v-model:value="formState.analysis_keyword" placeholder="模糊匹配解析" />
+              <a-input
+                v-model:value="formState.analysis_keyword"
+                placeholder="模糊匹配解析"
+              />
             </a-form-item>
 
             <a-form-item v-if="showWrongRecentDays" label="最近错题天数">
@@ -1290,17 +1448,27 @@ onBeforeUnmount(() => {
             </a-form-item>
 
             <a-form-item v-if="showTargetUserId" label="目标用户 ID">
-              <a-input-number v-model:value="formState.target_user_id" :min="1" class="w-full" />
+              <a-input-number
+                v-model:value="formState.target_user_id"
+                :min="1"
+                class="w-full"
+              />
             </a-form-item>
 
             <a-divider>渲染选项</a-divider>
 
             <div class="grid-row">
               <a-form-item label="主题色">
-                <a-select v-model:value="formState.theme" :options="themeOptions" />
+                <a-select
+                  v-model:value="formState.theme"
+                  :options="themeOptions"
+                />
               </a-form-item>
               <a-form-item label="版式">
-                <a-select v-model:value="formState.layout_mode" :options="layoutModeOptions" />
+                <a-select
+                  v-model:value="formState.layout_mode"
+                  :options="layoutModeOptions"
+                />
               </a-form-item>
             </div>
 
@@ -1335,35 +1503,56 @@ onBeforeUnmount(() => {
             </a-form-item>
 
             <a-form-item label="封面标题第 2 行">
-              <a-input v-model:value="formState.cover_title_line_2" placeholder="可选" />
+              <a-input
+                v-model:value="formState.cover_title_line_2"
+                placeholder="可选"
+              />
             </a-form-item>
 
             <a-divider>版式参数</a-divider>
 
             <div class="grid-row">
               <a-form-item label="纸张">
-                <a-select v-model:value="formState.paper_size" :options="paperSizeOptions" />
+                <a-select
+                  v-model:value="formState.paper_size"
+                  :options="paperSizeOptions"
+                />
               </a-form-item>
               <a-form-item label="基础字号">
-                <a-input v-model:value="formState.base_font_size" placeholder="11pt" />
+                <a-input
+                  v-model:value="formState.base_font_size"
+                  placeholder="11pt"
+                />
               </a-form-item>
             </div>
 
             <div class="grid-row">
               <a-form-item label="正文字体">
-                <a-select v-model:value="formState.body_font_family" :options="fontFamilyOptions" />
+                <a-select
+                  v-model:value="formState.body_font_family"
+                  :options="fontFamilyOptions"
+                />
               </a-form-item>
               <a-form-item label="标题字体">
-                <a-select v-model:value="formState.heading_font_family" :options="fontFamilyOptions" />
+                <a-select
+                  v-model:value="formState.heading_font_family"
+                  :options="fontFamilyOptions"
+                />
               </a-form-item>
             </div>
 
             <a-form-item label="封面字体">
-              <a-select v-model:value="formState.cover_font_family" :options="fontFamilyOptions" />
+              <a-select
+                v-model:value="formState.cover_font_family"
+                :options="fontFamilyOptions"
+              />
             </a-form-item>
 
             <a-form-item label="页边距">
-              <a-input v-model:value="formState.page_margin" placeholder="1.8cm" />
+              <a-input
+                v-model:value="formState.page_margin"
+                placeholder="1.8cm"
+              />
             </a-form-item>
 
             <div class="grid-row">
@@ -1454,35 +1643,62 @@ onBeforeUnmount(() => {
                 />
               </a-form-item>
               <a-form-item label="页眉中">
-                <a-input v-model:value="formState.header_center" placeholder="可选" />
+                <a-input
+                  v-model:value="formState.header_center"
+                  placeholder="可选"
+                />
               </a-form-item>
             </div>
 
             <a-form-item label="页眉右">
-              <a-input v-model:value="formState.header_right" placeholder="留空则默认渲染变体" />
+              <a-input
+                v-model:value="formState.header_right"
+                placeholder="留空则默认渲染变体"
+              />
             </a-form-item>
 
             <div class="grid-row">
               <a-form-item label="页脚左">
-                <a-input v-model:value="formState.footer_left" placeholder="可选" />
+                <a-input
+                  v-model:value="formState.footer_left"
+                  placeholder="可选"
+                />
               </a-form-item>
               <a-form-item label="页脚中">
-                <a-input v-model:value="formState.footer_center" placeholder="可选" />
+                <a-input
+                  v-model:value="formState.footer_center"
+                  placeholder="可选"
+                />
               </a-form-item>
             </div>
 
             <a-form-item label="页脚右">
-              <a-input v-model:value="formState.footer_right" placeholder="可选" />
+              <a-input
+                v-model:value="formState.footer_right"
+                placeholder="可选"
+              />
             </a-form-item>
 
             <div class="action-row">
-              <a-button :loading="finalSubmitting" @click="handleCreateFinalJob(false)">
+              <a-button
+                :loading="finalSubmitting"
+                @click="handleCreateFinalJob(false)"
+              >
                 创建正式任务
               </a-button>
-              <a-button type="primary" ghost :loading="finalSubmitting" @click="handleCreateFinalJob(true)">
+              <a-button
+                type="primary"
+                ghost
+                :loading="finalSubmitting"
+                @click="handleCreateFinalJob(true)"
+              >
                 后台生成正式 PDF
               </a-button>
-              <a-button type="primary" :loading="loading" @click="handlePreview">
+              <a-button
+                type="primary"
+                :loading="loading"
+                @click="handlePreview"
+              >
                 生成预览
               </a-button>
             </div>
@@ -1491,10 +1707,16 @@ onBeforeUnmount(() => {
       </section>
 
       <section class="middle-panel">
-        <a-card class="panel-card preview-card" title="PDF 预览" variant="borderless">
+        <a-card
+          class="panel-card preview-card"
+          title="PDF 预览"
+          variant="borderless"
+        >
           <template #extra>
             <div v-if="previewResult" class="preview-extra">
-              <span class="text-xs text-gray-500">Job ID: {{ previewResult.job.job_id }}</span>
+              <span class="text-xs text-gray-500"
+                >Job ID: {{ previewResult.job.job_id }}</span
+              >
               <a
                 v-if="previewResult.pdf_url"
                 :href="buildPreviewSrc(previewResult.pdf_url)"
@@ -1524,15 +1746,24 @@ onBeforeUnmount(() => {
               <a-button block @click="openPreviewMetaModal">
                 查看预览参数
               </a-button>
-              <a-button block :disabled="!selectedJobDetail" @click="openJobDetailModal">
+              <a-button
+                block
+                :disabled="!selectedJobDetail"
+                @click="openJobDetailModal"
+              >
                 查看任务详情
               </a-button>
               <a-button
                 block
                 type="primary"
                 ghost
-                :disabled="!selectedJobDetail || !getJobOutputLink(selectedJobDetail)"
-                @click="selectedJobDetail && openUrl(getJobOutputLink(selectedJobDetail))"
+                :disabled="
+                  !selectedJobDetail || !getJobOutputLink(selectedJobDetail)
+                "
+                @click="
+                  selectedJobDetail &&
+                  openUrl(getJobOutputLink(selectedJobDetail))
+                "
               >
                 打开当前主输出
               </a-button>
@@ -1540,7 +1771,9 @@ onBeforeUnmount(() => {
 
             <div v-if="selectedJobDetail" class="job-summary-card">
               <div class="job-summary-title">{{ selectedJobDetail.title }}</div>
-              <div class="job-summary-meta">Job ID: {{ selectedJobDetail.job_id }}</div>
+              <div class="job-summary-meta">
+                Job ID: {{ selectedJobDetail.job_id }}
+              </div>
               <div class="job-summary-status">
                 <a-tag :color="statusBadge(selectedJobDetail.status)">
                   {{ formatStatusText(selectedJobDetail.status) }}
@@ -1551,12 +1784,20 @@ onBeforeUnmount(() => {
             <a-empty v-else description="还没有选中正式任务" />
           </a-card>
 
-          <a-card class="panel-card task-card" title="正式任务列表" variant="borderless">
+          <a-card
+            class="panel-card task-card"
+            title="正式任务列表"
+            variant="borderless"
+          >
             <template #extra>
               <div class="task-toolbar">
                 <a-switch v-model:checked="autoRefreshTasks" size="small" />
                 <span class="text-xs text-gray-500">自动刷新</span>
-                <a-button size="small" :loading="taskLoading" @click="fetchJobs(false)">
+                <a-button
+                  size="small"
+                  :loading="taskLoading"
+                  @click="fetchJobs(false)"
+                >
                   刷新
                 </a-button>
               </div>
@@ -1567,12 +1808,18 @@ onBeforeUnmount(() => {
                 v-model:value="taskFilters.keyword"
                 allow-clear
                 placeholder="搜标题 / Job ID"
-                @press-enter="taskPage.page = 1; fetchJobs(false)"
+                @press-enter="
+                  taskPage.page = 1;
+                  fetchJobs(false);
+                "
               />
               <a-select
                 v-model:value="taskFilters.status"
                 :options="jobStatusOptions"
-                @change="taskPage.page = 1; fetchJobs(false)"
+                @change="
+                  taskPage.page = 1;
+                  fetchJobs(false);
+                "
               />
             </div>
 
@@ -1581,7 +1828,12 @@ onBeforeUnmount(() => {
               row-key="job_id"
               :columns="[
                 { title: '标题', dataIndex: 'title', key: 'title', width: 180 },
-                { title: '状态', dataIndex: 'status', key: 'status', width: 84 },
+                {
+                  title: '状态',
+                  dataIndex: 'status',
+                  key: 'status',
+                  width: 84,
+                },
                 { title: '操作', key: 'action', width: 220 },
               ]"
               :data-source="jobs"
@@ -1590,7 +1842,8 @@ onBeforeUnmount(() => {
               :custom-row="
                 (record: RenderJobResult) => ({
                   onClick: () => handleSelectJob(record),
-                  class: record.job_id === selectedJobId ? 'task-row-selected' : '',
+                  class:
+                    record.job_id === selectedJobId ? 'task-row-selected' : '',
                 })
               "
               :scroll="{ y: 520 }"
@@ -1599,7 +1852,9 @@ onBeforeUnmount(() => {
                 <template v-if="column.key === 'title'">
                   <div class="task-title-cell">
                     <div class="task-title-main">{{ record.title }}</div>
-                    <div class="task-title-sub">{{ formatDateTime(record.created_at) }}</div>
+                    <div class="task-title-sub">
+                      {{ formatDateTime(record.created_at) }}
+                    </div>
                   </div>
                 </template>
                 <template v-else-if="column.key === 'status'">
@@ -1609,7 +1864,13 @@ onBeforeUnmount(() => {
                 </template>
                 <template v-else-if="column.key === 'action'">
                   <div class="task-actions">
-                    <a-button size="small" @click.stop="refreshJobDetail(record.job_id, false)">刷新</a-button>
+                    <a-button
+                      size="small"
+                      @click.stop="refreshJobDetail(record.job_id, false)"
+                      >
+刷新
+</a-button
+                    >
                     <a-button
                       size="small"
                       type="primary"
@@ -1640,7 +1901,10 @@ onBeforeUnmount(() => {
                 :page-size-options="['5', '8', '10', '20']"
                 :total="taskPage.total"
                 @change="fetchJobs(false)"
-                @show-size-change="taskPage.page = 1; fetchJobs(false)"
+                @show-size-change="
+                  taskPage.page = 1;
+                  fetchJobs(false);
+                "
               />
             </div>
           </a-card>
@@ -1656,14 +1920,23 @@ onBeforeUnmount(() => {
     >
       <a-form layout="vertical">
         <a-form-item label="预设名称" required>
-          <a-input v-model:value="presetForm.preset_name" placeholder="如：国考-B5-考试封面" />
+          <a-input
+            v-model:value="presetForm.preset_name"
+            placeholder="如：国考-B5-考试封面"
+          />
         </a-form-item>
         <a-form-item label="说明">
-          <a-input v-model:value="presetForm.description" placeholder="可选，用于区分用途" />
+          <a-input
+            v-model:value="presetForm.description"
+            placeholder="可选，用于区分用途"
+          />
         </a-form-item>
         <div class="grid-row">
           <a-form-item label="排序值">
-            <a-input-number v-model:value="presetForm.sort_order" class="w-full" />
+            <a-input-number
+              v-model:value="presetForm.sort_order"
+              class="w-full"
+            />
           </a-form-item>
           <a-form-item label="默认预设">
             <div class="switch-row modal-switch">
@@ -1673,7 +1946,11 @@ onBeforeUnmount(() => {
           </a-form-item>
         </div>
         <a-form-item label="备注">
-          <a-textarea v-model:value="presetForm.remark" :rows="3" placeholder="可选" />
+          <a-textarea
+            v-model:value="presetForm.remark"
+            :rows="3"
+            placeholder="可选"
+          />
         </a-form-item>
       </a-form>
     </a-modal>
@@ -1695,14 +1972,29 @@ onBeforeUnmount(() => {
     >
       <template v-if="selectedJobDetail">
         <div class="job-detail-block">
-          <div class="job-detail-line"><span>标题</span><strong>{{ selectedJobDetail.title }}</strong></div>
-          <div class="job-detail-line"><span>任务 ID</span><code>{{ selectedJobDetail.job_id }}</code></div>
-          <div class="job-detail-line"><span>模板</span><span>{{ selectedJobDetail.template_key }}</span></div>
-          <div class="job-detail-line"><span>创建时间</span><span>{{ formatDateTime(selectedJobDetail.created_at) }}</span></div>
-          <div class="job-detail-line"><span>更新时间</span><span>{{ formatDateTime(selectedJobDetail.updated_at) }}</span></div>
+          <div class="job-detail-line">
+            <span>标题</span><strong>{{ selectedJobDetail.title }}</strong>
+          </div>
+          <div class="job-detail-line">
+            <span>任务 ID</span><code>{{ selectedJobDetail.job_id }}</code>
+          </div>
+          <div class="job-detail-line">
+            <span>模板</span><span>{{ selectedJobDetail.template_key }}</span>
+          </div>
+          <div class="job-detail-line">
+            <span>创建时间</span
+            ><span>{{ formatDateTime(selectedJobDetail.created_at) }}</span>
+          </div>
+          <div class="job-detail-line">
+            <span>更新时间</span
+            ><span>{{ formatDateTime(selectedJobDetail.updated_at) }}</span>
+          </div>
           <div class="job-detail-line">
             <span>主输出</span>
-            <a v-if="getJobOutputLink(selectedJobDetail)" @click.prevent="openUrl(getJobOutputLink(selectedJobDetail))">
+            <a
+              v-if="getJobOutputLink(selectedJobDetail)"
+              @click.prevent="openUrl(getJobOutputLink(selectedJobDetail))"
+            >
               打开 PDF
             </a>
             <span v-else>-</span>
@@ -1712,17 +2004,24 @@ onBeforeUnmount(() => {
           </div>
         </div>
 
-        <template v-if="(selectedJobDetail as any).metadata?.preview_urls?.length">
+        <template
+          v-if="(selectedJobDetail as any).metadata?.preview_urls?.length"
+        >
           <a-divider>生成预览与试读</a-divider>
-          <div class="overflow-x-auto pb-4" style="white-space: nowrap;">
+          <div class="overflow-x-auto pb-4" style="white-space: nowrap">
             <a-image.PreviewGroup>
-              <div style="display: inline-flex; gap: 16px;">
+              <div style="display: inline-flex; gap: 16px">
                 <a-image
-                  v-for="(url, idx) in (selectedJobDetail as any).metadata.preview_urls"
+                  v-for="(url, idx) in (selectedJobDetail as any).metadata
+                    .preview_urls"
                   :key="idx"
                   :src="url"
                   :height="240"
-                  style="border-radius: 6px; box-shadow: 0 1px 4px rgba(0,0,0,0.1); border: 1px solid #f0f0f0;"
+                  style="
+                    border: 1px solid #f0f0f0;
+                    border-radius: 6px;
+                    box-shadow: 0 1px 4px rgb(0 0 0 / 10%);
+                  "
                 />
               </div>
             </a-image.PreviewGroup>
@@ -1731,11 +2030,17 @@ onBeforeUnmount(() => {
 
         <a-divider>文件下载</a-divider>
         <div class="job-file-list">
-          <div v-for="file in selectedJobFiles" :key="`${file.file_kind}-${file.render_variant || 'default'}`" class="job-file-item">
+          <div
+            v-for="file in selectedJobFiles"
+            :key="`${file.file_kind}-${file.render_variant || 'default'}`"
+            class="job-file-item"
+          >
             <div>
               <div class="job-file-title">
                 {{ getFileKindLabel(file.file_kind as RenderFileKind) }}
-                <span v-if="file.render_variant" class="job-file-variant">({{ file.render_variant }})</span>
+                <span v-if="file.render_variant" class="job-file-variant"
+                  >({{ file.render_variant }})</span
+                >
               </div>
               <div class="job-file-meta">{{ file.filename }}</div>
             </div>
@@ -1743,21 +2048,52 @@ onBeforeUnmount(() => {
               <a-button
                 size="small"
                 :disabled="file.status !== 'available'"
-                @click="openUrl(buildRenderJobFileUrl(selectedJobDetail.job_id, file.file_kind as RenderFileKind, { inline: true, preferUrl: true, renderVariant: file.render_variant || undefined }))"
+                @click="
+                  openUrl(
+                    buildRenderJobFileUrl(
+                      selectedJobDetail.job_id,
+                      file.file_kind as RenderFileKind,
+                      {
+                        inline: true,
+                        preferUrl: true,
+                        renderVariant: file.render_variant || undefined,
+                      },
+                    ),
+                  )
+                "
               >
                 打开
               </a-button>
               <a-button
                 size="small"
                 :disabled="file.status !== 'available'"
-                @click="openUrl(buildRenderJobFileUrl(selectedJobDetail.job_id, file.file_kind as RenderFileKind, { preferUrl: true, renderVariant: file.render_variant || undefined }))"
+                @click="
+                  openUrl(
+                    buildRenderJobFileUrl(
+                      selectedJobDetail.job_id,
+                      file.file_kind as RenderFileKind,
+                      {
+                        preferUrl: true,
+                        renderVariant: file.render_variant || undefined,
+                      },
+                    ),
+                  )
+                "
               >
                 下载
               </a-button>
               <a-button
                 v-if="file.render_variant"
                 size="small"
-                @click="openUrl(buildRenderArtifactUrl(selectedJobDetail.job_id, file.render_variant, 'log'))"
+                @click="
+                  openUrl(
+                    buildRenderArtifactUrl(
+                      selectedJobDetail.job_id,
+                      file.render_variant,
+                      'log',
+                    ),
+                  )
+                "
               >
                 日志
               </a-button>
@@ -1790,10 +2126,13 @@ onBeforeUnmount(() => {
 
 .panel-card {
   height: 100%;
+  background: linear-gradient(
+    180deg,
+    rgb(255 255 255 / 98%),
+    rgb(248 250 252 / 98%)
+  );
   border-radius: 20px;
-  background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(248, 250, 252, 0.98));
-  box-shadow: 0 14px 36px rgba(15, 23, 42, 0.08);
+  box-shadow: 0 14px 36px rgb(15 23 42 / 8%);
 }
 
 .stack-panel {
@@ -1806,8 +2145,8 @@ onBeforeUnmount(() => {
 
 .preview-extra {
   display: flex;
-  align-items: center;
   gap: 12px;
+  align-items: center;
 }
 
 .preview-link {
@@ -1835,14 +2174,14 @@ onBeforeUnmount(() => {
 
 .switch-row {
   display: flex;
-  align-items: center;
   gap: 10px;
+  align-items: center;
   margin-bottom: 12px;
 }
 
 .modal-switch {
-  margin-bottom: 0;
   margin-top: 6px;
+  margin-bottom: 0;
 }
 
 .action-row {
@@ -1858,32 +2197,32 @@ onBeforeUnmount(() => {
 }
 
 .job-summary-card {
-  margin-top: 16px;
-  border-radius: 14px;
-  background: rgba(248, 250, 252, 0.9);
   padding: 14px;
+  margin-top: 16px;
+  background: rgb(248 250 252 / 90%);
+  border-radius: 14px;
 }
 
 .job-summary-title {
-  color: #0f172a;
   font-weight: 600;
   line-height: 1.5;
+  color: #0f172a;
 }
 
 .job-summary-meta {
-  color: #64748b;
-  font-size: 12px;
   margin-top: 4px;
+  font-size: 12px;
+  color: #64748b;
 }
 
 .job-summary-status {
   display: flex;
+  gap: 8px;
   align-items: center;
   justify-content: space-between;
-  gap: 8px;
-  color: #64748b;
-  font-size: 12px;
   margin-top: 10px;
+  font-size: 12px;
+  color: #64748b;
 }
 
 .preview-card,
@@ -1898,34 +2237,34 @@ onBeforeUnmount(() => {
 .preview-frame-wrap {
   height: 100%;
   min-height: 0;
-  border-radius: 16px;
+  padding: 12px;
   overflow: hidden;
   background:
-    radial-gradient(circle at top, rgba(30, 64, 175, 0.08), transparent 42%),
+    radial-gradient(circle at top, rgb(30 64 175 / 8%), transparent 42%),
     linear-gradient(180deg, #edf2f7, #e2e8f0);
-  padding: 12px;
+  border-radius: 16px;
 }
 
 .preview-frame {
   width: 100%;
   height: 100%;
   min-height: 720px;
+  background: white;
   border: none;
   border-radius: 12px;
-  background: white;
 }
 
 .json-panel {
-  margin: 0;
   height: 100%;
   min-height: 640px;
-  overflow: auto;
-  border-radius: 12px;
-  background: #0f172a;
-  color: #dbeafe;
   padding: 16px;
+  margin: 0;
+  overflow: auto;
   font-size: 12px;
   line-height: 1.6;
+  color: #dbeafe;
+  background: #0f172a;
+  border-radius: 12px;
 }
 
 .job-json-panel {
@@ -1937,8 +2276,8 @@ onBeforeUnmount(() => {
 .task-actions,
 .job-file-actions {
   display: flex;
-  align-items: center;
   gap: 8px;
+  align-items: center;
 }
 
 .task-filter-row {
@@ -1952,13 +2291,13 @@ onBeforeUnmount(() => {
 }
 
 .task-title-main {
-  color: #0f172a;
   font-weight: 600;
+  color: #0f172a;
 }
 
 .task-title-sub {
-  color: #64748b;
   font-size: 12px;
+  color: #64748b;
 }
 
 .task-pagination {
@@ -1968,7 +2307,7 @@ onBeforeUnmount(() => {
 }
 
 :deep(.task-row-selected > td) {
-  background: rgba(22, 119, 255, 0.08) !important;
+  background: rgb(22 119 255 / 8%) !important;
 }
 
 .job-detail-block {
@@ -1979,23 +2318,23 @@ onBeforeUnmount(() => {
 
 .job-detail-line {
   display: flex;
-  justify-content: space-between;
   gap: 12px;
+  justify-content: space-between;
   font-size: 13px;
 }
 
 .job-detail-line span:first-child {
-  color: #64748b;
   min-width: 72px;
+  color: #64748b;
 }
 
 .job-error-box {
-  border-radius: 12px;
-  background: rgba(220, 38, 38, 0.08);
-  color: #b91c1c;
   padding: 12px;
   font-size: 12px;
   line-height: 1.6;
+  color: #b91c1c;
+  background: rgb(220 38 38 / 8%);
+  border-radius: 12px;
 }
 
 .job-file-list {
@@ -2006,23 +2345,23 @@ onBeforeUnmount(() => {
 
 .job-file-item {
   display: flex;
+  gap: 12px;
   align-items: center;
   justify-content: space-between;
-  gap: 12px;
-  border-radius: 12px;
-  background: rgba(248, 250, 252, 0.9);
   padding: 12px;
+  background: rgb(248 250 252 / 90%);
+  border-radius: 12px;
 }
 
 .job-file-title {
-  color: #0f172a;
   font-weight: 600;
+  color: #0f172a;
 }
 
 .job-file-variant,
 .job-file-meta {
-  color: #64748b;
   font-size: 12px;
+  color: #64748b;
 }
 
 :deep(.ant-card-body) {

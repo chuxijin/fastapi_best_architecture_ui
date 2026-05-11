@@ -79,17 +79,41 @@ function formatCtr(ctr: number): string {
     <ASpin :spinning="loading">
       <div class="mb-4 flex items-center gap-3">
         <span>时间范围:</span>
-        <ASelect v-model:value="days" style="width: 160px" @change="onDaysChange">
-          <ASelectOption v-for="opt in dayOptions" :key="opt.value" :value="opt.value">
+        <ASelect
+          v-model:value="days"
+          style="width: 160px"
+          @change="onDaysChange"
+        >
+          <ASelectOption
+            v-for="opt in dayOptions"
+            :key="opt.value"
+            :value="opt.value"
+          >
             {{ opt.label }}
           </ASelectOption>
         </ASelect>
       </div>
       <ADescriptions v-if="stats" :column="2" bordered size="small">
-        <ADescriptionsItem label="曝光数">{{ stats.show_count }}</ADescriptionsItem>
-        <ADescriptionsItem label="点击数">{{ stats.click_count }}</ADescriptionsItem>
-        <ADescriptionsItem label="关闭数">{{ stats.close_count }}</ADescriptionsItem>
-        <ADescriptionsItem label="点击率(CTR)">{{ formatCtr(stats.ctr) }}</ADescriptionsItem>
+        <ADescriptionsItem label="曝光数">
+{{
+          stats.show_count
+        }}
+</ADescriptionsItem>
+        <ADescriptionsItem label="点击数">
+{{
+          stats.click_count
+        }}
+</ADescriptionsItem>
+        <ADescriptionsItem label="关闭数">
+{{
+          stats.close_count
+        }}
+</ADescriptionsItem>
+        <ADescriptionsItem label="点击率(CTR)">
+{{
+          formatCtr(stats.ctr)
+        }}
+</ADescriptionsItem>
       </ADescriptions>
       <div v-else class="text-center text-gray-400 py-8">暂无数据</div>
     </ASpin>

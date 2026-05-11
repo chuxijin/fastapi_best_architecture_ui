@@ -82,9 +82,12 @@ export interface QuestListParams {
 }
 
 export async function getQuestListApi(params: QuestListParams) {
-  return requestClient.get<PageData<QuestResult>>('/api/v1/quest/admin/quests', {
-    params,
-  });
+  return requestClient.get<PageData<QuestResult>>(
+    '/api/v1/quest/admin/quests',
+    {
+      params,
+    },
+  );
 }
 
 export async function createQuestApi(data: CreateQuestParams) {
