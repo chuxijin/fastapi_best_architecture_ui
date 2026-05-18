@@ -59,6 +59,15 @@ const routes: RouteRecordRaw[] = [
         },
       },
       {
+        name: 'AccessRedeem',
+        path: 'redeem',
+        component: () => import('#/views/access/redeem/index.vue'),
+        meta: {
+          title: '兑换配置',
+          icon: 'material-symbols:redeem',
+        },
+      },
+      {
         name: 'AccessEntitlement',
         path: 'entitlement',
         component: () => import('#/views/access/entitlement/index.vue'),

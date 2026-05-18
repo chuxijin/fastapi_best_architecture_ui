@@ -62,24 +62,17 @@ export const schema: VbenFormSchema[] = [
     component: 'Select',
     componentProps: {
       options: [
-        { label: 'basic', value: 'basic' },
-        { label: 'standard', value: 'standard' },
-        { label: 'premium', value: 'premium' },
-        { label: 'elite', value: 'elite' },
+        { label: 'basic 基础', value: 'basic' },
+        { label: 'standard 标准', value: 'standard' },
+        { label: 'premium 高级 (VIP)', value: 'premium' },
+        { label: 'elite 至尊 (SVIP)', value: 'elite' },
       ],
+      popupMatchSelectWidth: 220,
+      styles: { popup: { root: { minWidth: '220px' } } },
+      style: { width: '100%' },
     },
     fieldName: 'grade',
     label: '档级',
-    rules: 'required',
-  },
-  {
-    component: 'Select',
-    componentProps: {
-      mode: 'tags',
-      placeholder: '输入权益编码, 回车确认',
-    },
-    fieldName: 'entitlement_codes',
-    label: '权益清单',
     rules: 'required',
   },
   {
@@ -122,7 +115,8 @@ export function useColumns(
       field: 'entitlement_codes',
       title: '权益数',
       width: 100,
-      formatter: ({ row }: any) => `${(row.entitlement_codes || []).length} 项`,
+      formatter: ({ row }: any) =>
+        `${(row.items || row.entitlement_codes || []).length} 项`,
     },
     {
       field: 'status',

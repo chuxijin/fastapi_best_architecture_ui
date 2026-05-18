@@ -10,21 +10,8 @@ export const querySchema: VbenFormSchema[] = [
   {
     component: 'Input',
     componentProps: { placeholder: '搜索 code / name' },
-    fieldName: 'name',
+    fieldName: 'keyword',
     label: '关键词',
-  },
-  {
-    component: 'Select',
-    componentProps: {
-      allowClear: true,
-      options: [
-        { label: '生效', value: 'active' },
-        { label: '停用', value: 'inactive' },
-      ],
-      placeholder: '状态',
-    },
-    fieldName: 'status',
-    label: '状态',
   },
 ];
 
@@ -45,14 +32,14 @@ export const schema: VbenFormSchema[] = [
   },
   {
     component: 'InputNumber',
-    componentProps: { placeholder: '关联 sys_category.id' },
-    fieldName: 'cat_id',
-    label: '关联分类 ID',
+    componentProps: { placeholder: '父级领域 ID' },
+    fieldName: 'parent_id',
+    label: '父级领域 ID',
   },
   {
     component: 'InputNumber',
     componentProps: { min: 0, max: 999 },
-    fieldName: 'sort_order',
+    fieldName: 'display_order',
     label: '排序',
   },
 ];
@@ -65,8 +52,8 @@ export function useColumns(
     { field: 'id', title: 'ID', width: 80 },
     { field: 'code', title: '领域编码', minWidth: 140 },
     { field: 'name', title: '名称', minWidth: 140 },
-    { field: 'cat_id', title: 'cat_id', width: 100 },
-    { field: 'sort_order', title: '排序', width: 80 },
+    { field: 'parent_id', title: '父级 ID', width: 100 },
+    { field: 'display_order', title: '排序', width: 80 },
     {
       field: 'status',
       title: '状态',

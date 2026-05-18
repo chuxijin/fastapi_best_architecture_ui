@@ -6,35 +6,41 @@ import { requestClient } from '#/api/request';
 
 export interface ExperienceRuleResult {
   id: number;
-  family_code: string;
-  rule_code: string;
-  rule_name: string;
+  event_code: string;
+  name: string;
   exp_delta: number;
-  daily_cap: null | number;
-  cycle_type: string;
-  status: string;
-  description: null | string;
+  family_code: string | null;
+  cycle_day: number | null;
+  min_practice_count: number;
+  min_practice_duration: number;
+  sort: number;
+  status: number;
+  description: string | null;
   created_time: string;
+  updated_time?: string | null;
 }
 
 export interface CreateExperienceRuleParams {
-  family_code: string;
-  rule_code: string;
-  rule_name: string;
+  event_code: string;
+  name: string;
   exp_delta: number;
-  daily_cap?: null | number;
-  cycle_type: string;
-  description?: null | string;
+  family_code?: string | null;
+  cycle_day?: number | null;
+  min_practice_count?: number;
+  min_practice_duration?: number;
+  sort?: number;
+  status?: number;
+  description?: string | null;
 }
 
 export type UpdateExperienceRuleParams = Partial<CreateExperienceRuleParams> & {
-  status?: string;
+  status?: number;
 };
 
 export interface ExperienceRuleQueryParams extends PaginationParams {
   family_code?: string;
-  status?: string;
-  rule_code?: string;
+  status?: number;
+  event_code?: string;
 }
 
 export function getExperienceRuleListApi(params?: ExperienceRuleQueryParams) {

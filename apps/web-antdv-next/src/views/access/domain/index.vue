@@ -110,7 +110,7 @@ const [Modal, modalApi] = useVbenModal({
   },
   onOpenChange: async (isOpen: boolean) => {
     if (isOpen) {
-      const data = modalApi.getData<FormParams | undefined>();
+      const data = modalApi.getData<FormParams>();
       formData.value = data;
       formApi.resetForm();
       if (data) {

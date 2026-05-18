@@ -20,17 +20,26 @@ export interface AccessDomainResult {
   id: number;
   code: string;
   name: string;
-  cat_id: null | number;
-  sort_order: number;
+  short_name: null | string;
+  parent_id: null | number;
+  icon: null | string;
+  color: null | string;
+  description: null | string;
+  display_order: number;
   status: string;
   created_time: string;
+  updated_time?: null | string;
 }
 
 export interface CreateAccessDomainParams {
   code: string;
   name: string;
-  cat_id?: null | number;
-  sort_order?: number;
+  short_name?: null | string;
+  parent_id?: null | number;
+  icon?: null | string;
+  color?: null | string;
+  description?: null | string;
+  display_order?: number;
 }
 
 export type UpdateAccessDomainParams = Partial<CreateAccessDomainParams> & {
@@ -38,8 +47,7 @@ export type UpdateAccessDomainParams = Partial<CreateAccessDomainParams> & {
 };
 
 export interface AccessDomainQueryParams extends PaginationParams {
-  status?: string;
-  name?: string;
+  keyword?: string;
 }
 
 export function getAccessDomainListApi(params?: AccessDomainQueryParams) {
@@ -74,6 +82,10 @@ export interface AccessEntitlementResult {
   code: string;
   name: string;
   category: string;
+  metric: string;
+  verb: string;
+  domain_id: null | number;
+  resource_type: null | string;
   description: null | string;
   status: string;
   created_time: string;
@@ -137,7 +149,8 @@ export interface AccessPackResult {
   name: string;
   grade: string;
   description: null | string;
-  entitlement_codes: string[];
+  entitlement_codes?: string[];
+  items?: AccessPackItemResult[];
   status: string;
   created_time: string;
 }
@@ -147,12 +160,32 @@ export interface CreateAccessPackParams {
   name: string;
   grade: string;
   description?: null | string;
-  entitlement_codes: string[];
 }
 
 export type UpdateAccessPackParams = Partial<CreateAccessPackParams> & {
   status?: string;
 };
+
+export interface AccessPackItemResult {
+  id: number;
+  pack_id: number;
+  entitlement_id: number;
+  entitlement_code: string;
+  entitlement_name: string;
+  value_int: null | number;
+  value_meta: Record<string, unknown>;
+  status: string;
+}
+
+export interface SetAccessPackItemParams {
+  entitlement_code: string;
+  value_int?: null | number;
+  value_meta?: Record<string, unknown>;
+}
+
+export interface SetAccessPackItemsParams {
+  items: SetAccessPackItemParams[];
+}
 
 export interface AccessPackQueryParams extends PaginationParams {
   grade?: string;
@@ -165,6 +198,10 @@ export function getAccessPackListApi(params?: AccessPackQueryParams) {
     '/api/v1/access/packs',
     { params },
   );
+}
+
+export function getAccessPackApi(pk: number) {
+  return requestClient.get<AccessPackResult>(`/api/v1/access/packs/${pk}`);
 }
 
 export function createAccessPackApi(data: CreateAccessPackParams) {
@@ -182,18 +219,36 @@ export function deleteAccessPackApi(pk: number) {
   return requestClient.delete(`/api/v1/access/packs/${pk}`);
 }
 
+export function setAccessPackItemsApi(
+  pk: number,
+  data: SetAccessPackItemsParams,
+) {
+  return requestClient.put(`/api/v1/access/packs/${pk}/items`, data);
+}
+
 // ==================== Subscription Template (订阅模板) ====================
 
 export interface SubscriptionTemplateResult {
   id: number;
   code: string;
   name: string;
-  pack_code: string;
-  domain_codes: string[];
+  kind?: string;
+  pack_code?: string;
+  pack_codes?: string[];
+  packs?: AccessPackResult[];
+  domain_codes?: string[];
   duration_days: number;
-  price: number;
-  original_price: number;
+  auto_renewable?: boolean;
+  price?: number;
+  original_price?: number;
+  price_cents?: number;
+  display_order?: number;
+  cover_image?: null | string;
   description: null | string;
+  sale_period?: null | {
+    valid_from: string;
+    valid_to: null | string;
+  };
   status: string;
   created_time: string;
 }
@@ -201,11 +256,14 @@ export interface SubscriptionTemplateResult {
 export interface CreateSubscriptionTemplateParams {
   code: string;
   name: string;
-  pack_code: string;
-  domain_codes: string[];
-  duration_days: number;
-  price: number;
-  original_price: number;
+  kind?: string;
+  pack_codes: string[];
+  domain_codes?: string[];
+  duration_days?: null | number;
+  auto_renewable?: boolean;
+  price_cents?: number;
+  display_order?: number;
+  cover_image?: null | string;
   description?: null | string;
 }
 
@@ -255,6 +313,99 @@ export function updateSubscriptionTemplateApi(
 
 export function deleteSubscriptionTemplateApi(pk: number) {
   return requestClient.delete(`/api/v1/access/templates/${pk}`);
+}
+
+export function setSubscriptionTemplatePacksApi(
+  pk: number,
+  data: { pack_codes: string[] },
+) {
+  return requestClient.put(`/api/v1/access/templates/${pk}/packs`, data);
+}
+
+// ==================== Redeem (兑换配置) ====================
+
+export interface RedeemBatchResult {
+  id: number;
+  app_id: string;
+  batch_no: string;
+  name: string;
+  reward_type: string;
+  reward_data: Record<string, unknown>;
+  template_code?: null | string;
+  total_count: number;
+  used_count: number;
+  valid_from?: null | string;
+  valid_to?: null | string;
+  max_use_per_code: number;
+  status: number;
+  created_time: string;
+  updated_time?: null | string;
+}
+
+export interface CreateRedeemBatchParams {
+  app_id?: string;
+  name: string;
+  template_code: string;
+  total_count?: number;
+  valid_from?: null | string;
+  valid_to?: null | string;
+  max_use_per_code?: number;
+}
+
+export type UpdateRedeemBatchParams = Partial<CreateRedeemBatchParams> & {
+  status?: number;
+};
+
+export interface RedeemBatchQueryParams extends PaginationParams {
+  app_id?: string;
+  batch_no?: string;
+  status?: number;
+}
+
+export interface AgisoBatchRule {
+  platform: string;
+  keyword: string;
+  batch_id: number;
+}
+
+export function getRedeemBatchListApi(params?: RedeemBatchQueryParams) {
+  return requestClient.get<PaginationResult<RedeemBatchResult>>(
+    '/api/v1/access/redeem/batches',
+    { params },
+  );
+}
+
+export function getRedeemBatchDetailApi(pk: number) {
+  return requestClient.get<RedeemBatchResult>(
+    `/api/v1/access/redeem/batches/${pk}`,
+  );
+}
+
+export function createRedeemBatchApi(data: CreateRedeemBatchParams) {
+  return requestClient.post<RedeemBatchResult>(
+    '/api/v1/access/redeem/batches',
+    data,
+  );
+}
+
+export function updateRedeemBatchApi(
+  pk: number,
+  data: UpdateRedeemBatchParams,
+) {
+  return requestClient.put(`/api/v1/access/redeem/batches/${pk}`, data);
+}
+
+export function getAgisoBatchRulesApi() {
+  return requestClient.get<AgisoBatchRule[]>(
+    '/api/v1/access/redeem/agiso-rules',
+  );
+}
+
+export function setAgisoBatchRulesApi(data: { rules: AgisoBatchRule[] }) {
+  return requestClient.put<AgisoBatchRule[]>(
+    '/api/v1/access/redeem/agiso-rules',
+    data,
+  );
 }
 
 // ==================== User Subscription (用户订阅) ====================

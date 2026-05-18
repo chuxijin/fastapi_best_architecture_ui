@@ -56,27 +56,39 @@ export const schema: VbenFormSchema[] = [
     rules: 'required',
   },
   {
-    component: 'Input',
-    componentProps: { placeholder: '如 all_svip' },
-    fieldName: 'pack_code',
+    component: 'Select',
+    componentProps: {
+      allowClear: true,
+      listHeight: 360,
+      maxTagCount: 'responsive',
+      mode: 'multiple',
+      optionFilterProp: 'label',
+      options: [],
+      placeholder: '请选择关联 Pack',
+      popupMatchSelectWidth: 560,
+      showSearch: true,
+      style: { width: '100%' },
+    },
+    fieldName: 'pack_codes',
     label: '关联 Pack',
     rules: 'required',
   },
   {
     component: 'Select',
     componentProps: {
-      mode: 'tags',
-      placeholder: '可输入多个领域 code, 回车确认',
-      options: [
-        { label: 'kaoyan 考研', value: 'kaoyan' },
-        { label: 'kaogong 考公', value: 'kaogong' },
-        { label: 'cet 四六级', value: 'cet' },
-        { label: 'jiaozi 教资', value: 'jiaozi' },
-      ],
+      allowClear: true,
+      listHeight: 360,
+      maxTagCount: 'responsive',
+      mode: 'multiple',
+      optionFilterProp: 'label',
+      options: [],
+      placeholder: '请选择关联领域',
+      popupMatchSelectWidth: 520,
+      showSearch: true,
+      style: { width: '100%' },
     },
     fieldName: 'domain_codes',
     label: '关联领域',
-    rules: 'required',
   },
   {
     component: 'InputNumber',
@@ -88,15 +100,8 @@ export const schema: VbenFormSchema[] = [
   {
     component: 'InputNumber',
     componentProps: { min: 0, placeholder: '单位: 分' },
-    fieldName: 'price',
+    fieldName: 'price_cents',
     label: '现价(分)',
-    rules: 'required',
-  },
-  {
-    component: 'InputNumber',
-    componentProps: { min: 0, placeholder: '单位: 分' },
-    fieldName: 'original_price',
-    label: '原价(分)',
     rules: 'required',
   },
   {
@@ -115,7 +120,17 @@ export function useColumns(
     { field: 'id', title: 'ID', width: 80 },
     { field: 'code', title: '模板编码', minWidth: 200 },
     { field: 'name', title: '模板名称', minWidth: 160 },
-    { field: 'pack_code', title: 'Pack', width: 120 },
+    {
+      field: 'pack_codes',
+      title: 'Pack',
+      minWidth: 160,
+      formatter: ({ row }: any) =>
+        (
+          row.pack_codes ||
+          row.packs?.map((pack: any) => pack.code) ||
+          []
+        ).join(', '),
+    },
     {
       field: 'domain_codes',
       title: '领域',
@@ -138,7 +153,7 @@ export function useColumns(
       formatter: ({ cellValue }) => `${cellValue} 天`,
     },
     {
-      field: 'price',
+      field: 'price_cents',
       title: '现价',
       width: 100,
       formatter: ({ cellValue }) =>

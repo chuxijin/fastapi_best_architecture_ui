@@ -184,49 +184,31 @@ onMounted(() => {
             <TabPane key="base" tab="基础信息">
               <Descriptions :column="2" bordered size="small">
                 <DescriptionsItem label="模板编码">
-{{
-                  detail.code
-                }}
-</DescriptionsItem>
+                  {{ detail.code }}
+                </DescriptionsItem>
                 <DescriptionsItem label="模板名称">
-{{
-                  detail.name
-                }}
-</DescriptionsItem>
+                  {{ detail.name }}
+                </DescriptionsItem>
                 <DescriptionsItem label="Pack">
-{{
-                  detail.pack_code
-                }}
-</DescriptionsItem>
-                <DescriptionsItem label="有效天数"
-                  >
-{{ detail.duration_days }} 天
-</DescriptionsItem
-                >
-                <DescriptionsItem label="现价"
-                  >
-¥{{ (detail.price / 100).toFixed(2) }}
-</DescriptionsItem
-                >
-                <DescriptionsItem label="原价"
-                  >
-¥{{
-                    (detail.original_price / 100).toFixed(2)
-                  }}
-</DescriptionsItem
-                >
+                  {{ detail.pack_code }}
+                </DescriptionsItem>
+                <DescriptionsItem label="有效天数">
+                  {{ detail.duration_days }} 天
+                </DescriptionsItem>
+                <DescriptionsItem label="现价">
+                  ¥{{ (Number(detail.price_cents ?? detail.price ?? 0) / 100).toFixed(2) }}
+                </DescriptionsItem>
+                <DescriptionsItem label="原价">
+                  ¥{{ (Number(detail.original_price ?? 0) / 100).toFixed(2) }}
+                </DescriptionsItem>
                 <DescriptionsItem label="关联领域">
                   <Tag v-for="d in detail.domain_codes" :key="d" color="blue">
-{{
-                    d
-                  }}
-</Tag>
+                    {{ d }}
+                  </Tag>
                 </DescriptionsItem>
                 <DescriptionsItem label="描述">
-{{
-                  detail.description || '-'
-                }}
-</DescriptionsItem>
+                  {{ detail.description || '-' }}
+                </DescriptionsItem>
               </Descriptions>
             </TabPane>
 

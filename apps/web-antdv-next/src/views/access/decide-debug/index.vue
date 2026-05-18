@@ -92,11 +92,9 @@ async function handleRun(): Promise<void> {
             />
           </FormItem>
           <FormItem>
-            <Button type="primary" :loading="loading" @click="handleRun"
-              >
-运行决策
-</Button
-            >
+            <Button type="primary" :loading="loading" @click="handleRun">
+              运行决策
+            </Button>
           </FormItem>
         </Form>
       </Form>
