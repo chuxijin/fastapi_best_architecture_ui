@@ -1264,28 +1264,24 @@ onBeforeUnmount(() => {
                   @change="handlePresetChange"
                 />
                 <a-button @click="fetchPresets(false)">刷新</a-button>
-                <a-button type="dashed" @click="openPresetModal"
-                  >
-保存当前
-</a-button
-                >
+                <a-button type="dashed" @click="openPresetModal">
+                  保存当前
+                </a-button>
               </div>
               <div class="preset-actions">
                 <a-button
                   :disabled="!selectedPreset"
                   @click="handleUpdatePreset"
-                  >
-覆盖当前预设
-</a-button
                 >
+                  覆盖当前预设
+                </a-button>
                 <a-button
                   danger
                   :disabled="!selectedPreset"
                   @click="handleDeletePreset"
-                  >
-删除当前预设
-</a-button
                 >
+                  删除当前预设
+                </a-button>
               </div>
             </a-form-item>
 
@@ -1867,10 +1863,9 @@ onBeforeUnmount(() => {
                     <a-button
                       size="small"
                       @click.stop="refreshJobDetail(record.job_id, false)"
-                      >
-刷新
-</a-button
                     >
+                      刷新
+                    </a-button>
                     <a-button
                       size="small"
                       type="primary"

@@ -91,7 +91,7 @@ export interface UpdateAppDeviceParams {
 // ==================== 套餐管理 ====================
 export interface AppPackageParams {
   application_id?: number;
-  is_active?: boolean;
+  status?: string;
   page?: number;
   size?: number;
 }
@@ -109,7 +109,8 @@ export interface AppPackageResult {
   discount_start_time?: string;
   discount_end_time?: string;
   max_devices: number;
-  is_active: boolean;
+  status: string;
+  template_code?: string;
   sort_order: number;
   created_time: string;
   updated_time?: string;
@@ -125,6 +126,7 @@ export interface CreateAppPackageParams {
   discount_start_time?: string;
   discount_end_time?: string;
   max_devices?: number;
+  template_code?: string;
   sort_order?: number;
 }
 
@@ -137,7 +139,8 @@ export interface UpdateAppPackageParams {
   discount_start_time?: string;
   discount_end_time?: string;
   max_devices?: number;
-  is_active?: boolean;
+  status?: string;
+  template_code?: string;
   sort_order?: number;
 }
 
@@ -286,7 +289,8 @@ export interface UpdateAppVersionParams {
 export interface AppAuthorizationParams {
   application_id?: number;
   device_id?: number;
-  status?: number;
+  source?: string;
+  status?: string;
   page?: number;
   size?: number;
 }
@@ -295,12 +299,13 @@ export interface AppAuthorizationResult {
   id: number;
   application_id: number;
   device_id: number;
-  auth_type: number;
-  status: number;
-  start_time: string;
-  end_time?: string;
+  source: string;
+  status: string;
+  valid_from: string;
+  valid_to?: string;
   remaining_days?: number;
-  auth_source?: string;
+  source_ref?: string;
+  template_code?: string;
   remark?: string;
   created_time: string;
   updated_time?: string;
@@ -309,16 +314,18 @@ export interface AppAuthorizationResult {
 export interface CreateAppAuthorizationParams {
   application_id: number;
   device_id: number;
-  auth_type: number;
-  start_time: string;
-  end_time?: string;
-  auth_source?: string;
+  source: string;
+  valid_from: string;
+  valid_to?: string;
+  source_ref?: string;
+  template_code?: string;
   remark?: string;
 }
 
 export interface UpdateAppAuthorizationParams {
-  status?: number;
-  end_time?: string;
+  status?: string;
+  valid_to?: string;
+  template_code?: string;
   remark?: string;
 }
 
@@ -329,9 +336,9 @@ export interface CheckAuthorizationParams {
 
 export interface AuthorizationCheckResult {
   is_authorized: boolean;
-  status?: number;
+  status?: string;
   remaining_days?: number;
-  end_time?: string;
+  valid_to?: string;
   message: string;
 }
 
@@ -369,17 +376,18 @@ export interface DeviceAuthorizationHistory {
   authorizations: Array<{
     app_key: string;
     application_name: string;
-    auth_source?: string;
-    auth_type: number;
-    auth_type_text: string;
     created_time: string;
-    end_time: string;
     id: number;
     remaining_days?: number;
     remark?: string;
-    start_time: string;
-    status: number;
+    source?: string;
+    source_ref?: string;
+    source_text: string;
+    status: string;
     status_text: string;
+    template_code?: string;
+    valid_from: string;
+    valid_to: string;
   }>;
   total_count: number;
 }
@@ -643,6 +651,7 @@ export interface ManualAuthorizeParams {
   application_id: number;
   device_id: string;
   duration_days: number;
+  template_code?: string;
   remark?: string;
 }
 
@@ -662,7 +671,7 @@ export async function redeemCodeAuthorizeApi(data: RedeemCodeAuthorizeParams) {
 
 // 修改授权时间
 export interface UpdateAuthTimeParams {
-  end_time?: string;
+  valid_to?: string;
   remark?: string;
 }
 

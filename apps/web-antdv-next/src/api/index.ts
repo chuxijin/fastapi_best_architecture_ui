@@ -1,3 +1,4 @@
+export * from './access';
 export * from './app-auth';
 export * from './category';
 export * from './cms';
@@ -6,6 +7,7 @@ export * from './coulddrive';
 export * from './data-permission';
 export * from './dept';
 export * from './gongkao';
+export * from './growth';
 export * from './job';
 export * from './knowledge-store';
 export * from './log';
@@ -17,3 +19,4 @@ export * from './role';
 export * from './scheduler';
 export * from './social';
 export * from './upload';
+export * from './user-message';

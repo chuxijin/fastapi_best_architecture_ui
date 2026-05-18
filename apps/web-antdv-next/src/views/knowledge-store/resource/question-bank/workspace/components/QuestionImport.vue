@@ -882,25 +882,22 @@ const resultColumns = [
                       <VbenButton
                         size="sm"
                         @click="markReviewQuestion('approved')"
-                        >
-通过
-</VbenButton
                       >
+                        通过
+                      </VbenButton>
                       <VbenButton
                         size="sm"
                         @click="markReviewQuestion('pending_review')"
-                        >
-待审
-</VbenButton
                       >
+                        待审
+                      </VbenButton>
                       <VbenButton
                         size="sm"
                         danger
                         @click="markReviewQuestion('rejected')"
-                        >
-拒绝
-</VbenButton
                       >
+                        拒绝
+                      </VbenButton>
                     </div>
                   </div>
 
@@ -1120,18 +1117,16 @@ const resultColumns = [
                     <VbenButton
                       size="sm"
                       @click.stop="markReviewMaterial('approved')"
-                      >
-过
-</VbenButton
                     >
+                      过
+                    </VbenButton>
                     <VbenButton
                       size="sm"
                       danger
                       @click.stop="markReviewMaterial('rejected')"
-                      >
-拒
-</VbenButton
                     >
+                      拒
+                    </VbenButton>
                   </div>
                   <Input
                     v-model:value="material.title"

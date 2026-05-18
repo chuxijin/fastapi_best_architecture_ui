@@ -222,7 +222,7 @@ const [ManualAuthModal, manualAuthModalApi] = useVbenModal({
 
       await manualAuthorizeDeviceApi({
         application_id: Number(manualAuthForm.value.application_id),
-        device_id: currentDevice.value!.device_id,
+        device_id: currentDevice.value?.device_id ?? '',
         duration_days: durationDays,
         remark: '手动授权',
       });
@@ -266,7 +266,7 @@ const [RedeemAuthModal, redeemAuthModalApi] = useVbenModal({
 
       await redeemCodeAuthorizeApi({
         code: redeemAuthForm.value.redeem_code,
-        device_id: currentDevice.value!.device_id,
+        device_id: currentDevice.value?.device_id ?? '',
       });
 
       message.success('兑换码授权成功');
@@ -307,8 +307,8 @@ const historyColumns = [
   },
   {
     title: '授权类型',
-    dataIndex: 'auth_type_text',
-    key: 'auth_type_text',
+    dataIndex: 'source_text',
+    key: 'source_text',
     width: 100,
   },
   {
@@ -324,14 +324,14 @@ const historyColumns = [
   },
   {
     title: '开始时间',
-    dataIndex: 'start_time',
-    key: 'start_time',
+    dataIndex: 'valid_from',
+    key: 'valid_from',
     width: 150,
   },
   {
     title: '结束时间',
-    dataIndex: 'end_time',
-    key: 'end_time',
+    dataIndex: 'valid_to',
+    key: 'valid_to',
     width: 150,
   },
   {
@@ -347,8 +347,8 @@ const historyColumns = [
   },
   {
     title: '授权来源',
-    dataIndex: 'auth_source',
-    key: 'auth_source',
+    dataIndex: 'source_ref',
+    key: 'source_ref',
     width: 120,
     ellipsis: true,
   },
@@ -410,7 +410,7 @@ const initOptions = async () => {
 
 // 修改授权时间
 const editAuthForm = ref({
-  end_time: '',
+  valid_to: '',
   remark: '',
 });
 
@@ -427,7 +427,7 @@ const [EditAuthModal, editAuthModalApi] = useVbenModal({
       }
 
       await updateAuthorizationTimeApi(currentAuth.value.id, {
-        end_time: editAuthForm.value.end_time || undefined,
+        valid_to: editAuthForm.value.valid_to || undefined,
         remark: editAuthForm.value.remark || undefined,
       });
 
@@ -447,10 +447,10 @@ const [EditAuthModal, editAuthModalApi] = useVbenModal({
     if (isOpen && currentAuth.value) {
       // 设置默认值
       editAuthForm.value = {
-        end_time:
-          currentAuth.value.end_time === '永久'
+        valid_to:
+          currentAuth.value.valid_to === '永久'
             ? ''
-            : currentAuth.value.end_time.replace(' ', 'T'),
+            : currentAuth.value.valid_to.replace(' ', 'T'),
         remark: currentAuth.value.remark || '',
       };
     }
@@ -661,14 +661,14 @@ onMounted(() => {
             <label class="mb-1 block text-sm font-medium">当前授权信息</label>
             <div v-if="currentAuth" class="rounded bg-gray-50 p-3">
               <p><strong>应用:</strong> {{ currentAuth.application_name }}</p>
-              <p><strong>当前结束时间:</strong> {{ currentAuth.end_time }}</p>
+              <p><strong>当前结束时间:</strong> {{ currentAuth.valid_to }}</p>
               <p><strong>当前状态:</strong> {{ currentAuth.status_text }}</p>
             </div>
           </div>
           <div>
             <label class="mb-1 block text-sm font-medium">新的结束时间</label>
             <input
-              v-model="editAuthForm.end_time"
+              v-model="editAuthForm.valid_to"
               type="datetime-local"
               class="w-full rounded border px-3 py-2"
               placeholder="留空表示永久授权"

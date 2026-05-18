@@ -19,6 +19,15 @@ const routes: RouteRecordRaw[] = [
           icon: 'mdi:image-multiple-outline',
         },
       },
+      {
+        name: 'CmsMessage',
+        path: '/cms/message',
+        component: () => import('#/views/cms/message/index.vue'),
+        meta: {
+          title: '消息管理',
+          icon: 'mdi:message-text-outline',
+        },
+      },
     ],
   },
 ];

@@ -23,12 +23,12 @@ export const querySchema: VbenFormSchema[] = [
     componentProps: {
       allowClear: true,
       options: [
-        { label: '启用', value: true },
-        { label: '停用', value: false },
+        { label: '启用', value: 'active' },
+        { label: '停用', value: 'inactive' },
       ],
       placeholder: '请选择状态',
     },
-    fieldName: 'is_active',
+    fieldName: 'status',
     label: '状态',
   },
 ];
@@ -236,17 +236,18 @@ export function useColumns(
       width: 100,
     },
     {
-      field: 'is_active',
+      field: 'status',
       title: '状态',
       width: 100,
       slots: {
         default: ({ row }: any) => {
+          const isActive = row.status === 'active';
           return h(
             Tag,
             {
-              color: row.is_active ? 'green' : 'red',
+              color: isActive ? 'green' : 'red',
             },
-            () => (row.is_active ? '启用' : '停用'),
+            () => (isActive ? '启用' : '停用'),
           );
         },
       },

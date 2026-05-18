@@ -217,11 +217,9 @@ const [Drawer, drawerApi] = useVbenDrawer({
       </template>
       <template #operation_default="{ row }">
         <div class="flex justify-center gap-2">
-          <AButton size="small" type="primary" @click="handleEdit(row)"
-            >
-编辑
-</AButton
-          >
+          <AButton size="small" type="primary" @click="handleEdit(row)">
+            编辑
+          </AButton>
           <AButton size="small" @click="handleStats(row)">统计</AButton>
           <AButton size="small" danger @click="handleDelete(row)">删除</AButton>
         </div>

@@ -5,7 +5,7 @@ const routes: RouteRecordRaw[] = [
     name: 'AppAuth',
     path: '/app-auth',
     meta: {
-      title: '应用授权',
+      title: 'PC 应用授权',
       icon: 'material-symbols:verified-user',
       order: 2,
     },

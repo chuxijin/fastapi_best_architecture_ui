@@ -95,25 +95,17 @@ function formatCtr(ctr: number): string {
       </div>
       <ADescriptions v-if="stats" :column="2" bordered size="small">
         <ADescriptionsItem label="曝光数">
-{{
-          stats.show_count
-        }}
-</ADescriptionsItem>
+          {{ stats.show_count }}
+        </ADescriptionsItem>
         <ADescriptionsItem label="点击数">
-{{
-          stats.click_count
-        }}
-</ADescriptionsItem>
+          {{ stats.click_count }}
+        </ADescriptionsItem>
         <ADescriptionsItem label="关闭数">
-{{
-          stats.close_count
-        }}
-</ADescriptionsItem>
+          {{ stats.close_count }}
+        </ADescriptionsItem>
         <ADescriptionsItem label="点击率(CTR)">
-{{
-          formatCtr(stats.ctr)
-        }}
-</ADescriptionsItem>
+          {{ formatCtr(stats.ctr) }}
+        </ADescriptionsItem>
       </ADescriptions>
       <div v-else class="text-center text-gray-400 py-8">暂无数据</div>
     </ASpin>
