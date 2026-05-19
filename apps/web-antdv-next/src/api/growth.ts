@@ -9,28 +9,28 @@ export interface ExperienceRuleResult {
   event_code: string;
   name: string;
   exp_delta: number;
-  family_code: string | null;
-  cycle_day: number | null;
+  family_code: null | string;
+  cycle_day: null | number;
   min_practice_count: number;
   min_practice_duration: number;
   sort: number;
   status: number;
-  description: string | null;
+  description: null | string;
   created_time: string;
-  updated_time?: string | null;
+  updated_time?: null | string;
 }
 
 export interface CreateExperienceRuleParams {
   event_code: string;
   name: string;
   exp_delta: number;
-  family_code?: string | null;
-  cycle_day?: number | null;
+  family_code?: null | string;
+  cycle_day?: null | number;
   min_practice_count?: number;
   min_practice_duration?: number;
   sort?: number;
   status?: number;
-  description?: string | null;
+  description?: null | string;
 }
 
 export type UpdateExperienceRuleParams = Partial<CreateExperienceRuleParams> & {

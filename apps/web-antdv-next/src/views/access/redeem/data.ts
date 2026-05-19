@@ -136,7 +136,11 @@ export function useColumns(
       fixed: 'right',
       slots: {
         default: ({ row }: any) =>
-          h('a', { onClick: () => onActionClick({ code: 'edit', row }) }, '编辑'),
+          h(
+            'a',
+            { onClick: () => onActionClick({ code: 'edit', row }) },
+            '编辑',
+          ),
       },
     },
   ];

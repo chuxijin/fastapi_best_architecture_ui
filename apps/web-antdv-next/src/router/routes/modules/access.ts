@@ -50,6 +50,15 @@ const routes: RouteRecordRaw[] = [
         },
       },
       {
+        name: 'AccessGrant',
+        path: 'grant',
+        component: () => import('#/views/access/grant/index.vue'),
+        meta: {
+          title: '权益直接授予',
+          icon: 'material-symbols:admin-panel-settings',
+        },
+      },
+      {
         name: 'AccessPack',
         path: 'pack',
         component: () => import('#/views/access/pack/index.vue'),

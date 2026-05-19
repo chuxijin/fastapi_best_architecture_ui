@@ -153,3 +153,72 @@ export function useColumns(
     },
   ];
 }
+
+export const createSchema: VbenFormSchema[] = [
+  {
+    component: 'InputNumber',
+    componentProps: { placeholder: '请输入用户 ID', min: 1, style: { width: '100%' } },
+    fieldName: 'user_id',
+    label: '用户 ID',
+    rules: 'required',
+  },
+  {
+    component: 'Select',
+    componentProps: {
+      allowClear: true,
+      showSearch: true,
+      optionFilterProp: 'label',
+      placeholder: '请选择订阅模板',
+    },
+    fieldName: 'template_code',
+    label: '订阅模板',
+    rules: 'required',
+  },
+  {
+    component: 'DatePicker',
+    componentProps: {
+      showTime: true,
+      placeholder: '开始时间',
+      valueFormat: 'YYYY-MM-DDTHH:mm:ss[Z]',
+      style: { width: '100%' },
+    },
+    fieldName: 'valid_from',
+    label: '生效开始时间',
+    rules: 'required',
+  },
+  {
+    component: 'DatePicker',
+    componentProps: {
+      showTime: true,
+      placeholder: '结束时间，不选表示永久',
+      valueFormat: 'YYYY-MM-DDTHH:mm:ss[Z]',
+      style: { width: '100%' },
+    },
+    fieldName: 'valid_to',
+    label: '生效到期时间',
+  },
+  {
+    component: 'Select',
+    componentProps: {
+      options: [
+        { label: '管理员手动发放 (admin)', value: 'admin' },
+        { label: '赠送 (gift)', value: 'gift' },
+        { label: '激活码 (actcode)', value: 'actcode' },
+        { label: '迁移 (migration)', value: 'migration' },
+        { label: '任务奖励 (quest)', value: 'quest' },
+        { label: '订单支付 (order)', value: 'order' },
+      ],
+      placeholder: '请选择来源',
+    },
+    fieldName: 'source',
+    label: '订阅来源',
+    rules: 'required',
+  },
+  {
+    component: 'Input',
+    componentProps: { placeholder: '请填写来源引用（如：赠送原因或订单号）' },
+    fieldName: 'source_ref',
+    label: '来源引用',
+  },
+];
+

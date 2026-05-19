@@ -57,10 +57,9 @@ export const querySchema: VbenFormSchema[] = [
 export const schema: VbenFormSchema[] = [
   {
     component: 'Select',
-    componentProps: { options: FAMILY_OPTIONS },
+    componentProps: { options: FAMILY_OPTIONS, allowClear: true, placeholder: '不限制则留空' },
     fieldName: 'family_code',
     label: '家族',
-    rules: 'required',
   },
   {
     component: 'Input',
@@ -138,7 +137,7 @@ export function useColumns(
           h(
             Tag,
             { color: FAMILY_COLOR[row.family_code] || 'default' },
-            () => row.family_code,
+            () => row.family_code || '通用',
           ),
       },
     },
@@ -162,16 +161,22 @@ export function useColumns(
           ),
       },
     },
-    { 
-      field: 'cycle_day', 
-      title: '周期', 
+    {
+      field: 'cycle_day',
+      title: '周期',
       width: 100,
-      formatter: ({ cellValue }) => cellValue ? `第 ${cellValue} 天` : '无限',
+      formatter: ({ cellValue }) => (cellValue ? `第 ${cellValue} 天` : '无限'),
     },
     {
       field: 'min_practice_count',
       title: '最低做题',
       width: 100,
+    },
+    {
+      field: 'min_practice_duration',
+      title: '最低时长',
+      width: 100,
+      formatter: ({ cellValue }) => (cellValue ? `${cellValue} 秒` : '无限制'),
     },
     {
       field: 'sort',

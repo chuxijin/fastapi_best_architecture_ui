@@ -14,14 +14,17 @@ import { $t } from '@vben/locales';
 
 import { Form, FormItem, Input, InputNumber, message } from 'ant-design-vue';
 
+import { useVbenForm } from '#/adapter/form';
 import { useVbenVxeGrid } from '#/adapter/vxe-table';
 import {
+  createUserSubscriptionApi,
   extendSubscriptionApi,
+  getSubscriptionTemplateListApi,
   getUserSubscriptionListApi,
   revokeSubscriptionApi,
 } from '#/api/access';
 
-import { querySchema, useColumns } from './data';
+import { createSchema, querySchema, useColumns } from './data';
 
 const formOptions: VbenFormProps = {
   collapsed: true,
@@ -112,6 +115,103 @@ const [RevokeModal, revokeModalApi] = useVbenModal({
   },
 });
 
+const templateOptions = ref<Array<{ label: string; value: string }>>([]);
+const optionPageSize = 200;
+let optionsLoaded = false;
+
+async function loadTemplateOptions() {
+  if (optionsLoaded) return;
+  try {
+    const templates: any[] = [];
+    let page = 1;
+
+    while (true) {
+      const data = await getSubscriptionTemplateListApi({
+        page,
+        size: optionPageSize,
+        status: 'active',
+      });
+      templates.push(...data.items);
+
+      if (templates.length >= data.total || data.items.length < optionPageSize) {
+        break;
+      }
+      page += 1;
+    }
+
+    templateOptions.value = templates.map((item) => ({
+      label: `${item.code} · ${item.name} (${item.duration_days}天)`,
+      value: item.code,
+    }));
+
+    await formApi.updateSchema([
+      {
+        componentProps: {
+          allowClear: true,
+          optionFilterProp: 'label',
+          options: templateOptions.value,
+          placeholder: '请选择订阅模板',
+          popupMatchSelectWidth: 560,
+          showSearch: true,
+          style: { width: '100%' },
+        },
+        fieldName: 'template_code',
+      },
+    ]);
+    optionsLoaded = true;
+  } catch (e) {
+    console.error('Failed to load templates:', e);
+  }
+}
+
+const [CreateForm, formApi] = useVbenForm({
+  layout: 'vertical',
+  showDefaultActions: false,
+  schema: createSchema,
+});
+
+const [CreateModal, createModalApi] = useVbenModal({
+  title: '手动发放用户订阅',
+  onConfirm: async () => {
+    try {
+      const values = await formApi.getValues<any>();
+      const payload = {
+        user_id: values.user_id,
+        template_code: values.template_code,
+        valid_period: {
+          valid_from: values.valid_from,
+          valid_to: values.valid_to || null,
+        },
+        source: values.source,
+        source_ref: values.source_ref || null,
+      };
+      await createUserSubscriptionApi(payload);
+      message.success('用户订阅发放成功');
+      createModalApi.close();
+      onRefresh();
+    } catch (error) {
+      console.error(error);
+    }
+  },
+  onOpenChange: async (isOpen: boolean) => {
+    if (isOpen) {
+      formApi.resetForm();
+      const now = new Date();
+      // Format as YYYY-MM-DDTHH:mm:ssZ to match schema format
+      const isoString = now.toISOString().replace(/\.\d+Z$/, 'Z');
+      formApi.setValues({
+        valid_from: isoString,
+        source: 'admin',
+      });
+      await loadTemplateOptions();
+    }
+  },
+});
+
+function handleCreate() {
+  createModalApi.open();
+}
+
 function onActionClick({
   code,
   row,
@@ -135,7 +235,11 @@ function onActionClick({
 
 <template>
   <Page auto-content-height>
-    <Grid />
+    <Grid>
+      <template #toolbar-tools>
+        <a-button type="primary" @click="handleCreate">手动发放订阅</a-button>
+      </template>
+    </Grid>
     <ExtendModal>
       <Form layout="vertical">
         <FormItem label="续期天数" required>
@@ -158,5 +262,8 @@ function onActionClick({
         </FormItem>
       </Form>
     </RevokeModal>
+    <CreateModal>
+      <CreateForm />
+    </CreateModal>
   </Page>
 </template>

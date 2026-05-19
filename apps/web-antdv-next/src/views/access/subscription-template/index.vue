@@ -64,14 +64,17 @@ const gridOptions: VxeTableGridOptions<SubscriptionTemplateResult> = {
           size: page.pageSize,
           ...formValues,
         });
-        
+
         // 补齐 packs 等详细信息以供列表显示
         const items = await Promise.all(
           data.items.map(async (item) => {
             try {
               const detail = await getSubscriptionTemplateDetailApi(item.id);
               // 如果后端将 domain_codes 存在 metadata 中，提取出来方便显示
-              const domain_codes = (detail as any).metadata?.domain_codes || (detail as any).domain_codes || [];
+              const domain_codes =
+                (detail as any).metadata?.domain_codes ||
+                (detail as any).domain_codes ||
+                [];
               return { ...item, ...detail, domain_codes };
             } catch {
               return item;
@@ -215,11 +218,14 @@ const [Modal, modalApi] = useVbenModal({
       const values =
         await formApi.getValues<CreateSubscriptionTemplateParams>();
       values.pack_codes = values.pack_codes || [];
-      
+
       // 提取 domain_codes 存入 metadata
       const rawValues = await formApi.getValues();
       const domainCodes = (rawValues as any).domain_codes || [];
-      const metadata = { ...((values as any).metadata || {}), domain_codes: domainCodes };
+      const metadata = {
+        ...((values as any).metadata || {}),
+        domain_codes: domainCodes,
+      };
       (values as any).metadata = metadata;
 
       const id = formData.value?.id;
@@ -251,11 +257,18 @@ const [Modal, modalApi] = useVbenModal({
       const data = modalApi.getData<FormParams>();
       const packCodes =
         data?.pack_codes || data?.packs?.map((pack) => pack.code) || [];
-      const domainCodes = (data as any)?.metadata?.domain_codes || (data as any)?.domain_codes || [];
+      const domainCodes =
+        (data as any)?.metadata?.domain_codes ||
+        (data as any)?.domain_codes ||
+        [];
       formData.value = data;
       formApi.resetForm();
       if (data) {
-        formApi.setValues({ ...data, pack_codes: packCodes, domain_codes: domainCodes });
+        formApi.setValues({
+          ...data,
+          pack_codes: packCodes,
+          domain_codes: domainCodes,
+        });
       }
     }
   },

@@ -125,11 +125,9 @@ export function useColumns(
       title: 'Pack',
       minWidth: 160,
       formatter: ({ row }: any) =>
-        (
-          row.pack_codes ||
-          row.packs?.map((pack: any) => pack.code) ||
-          []
-        ).join(', '),
+        (row.pack_codes || row.packs?.map((pack: any) => pack.code) || []).join(
+          ', ',
+        ),
     },
     {
       field: 'domain_codes',

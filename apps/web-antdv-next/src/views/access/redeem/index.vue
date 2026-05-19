@@ -277,9 +277,7 @@ onMounted(async () => {
     <Grid>
       <template #toolbar-tools>
         <a-button @click="openRulesModal">阿奇索规则</a-button>
-        <a-button type="primary" @click="handleCreate">
-          新建兑换批次
-        </a-button>
+        <a-button type="primary" @click="handleCreate"> 新建兑换批次 </a-button>
       </template>
     </Grid>
 
@@ -345,8 +343,8 @@ onMounted(async () => {
 }
 
 .redeem-rules__desc {
-  color: #6b7280;
   line-height: 22px;
+  color: #6b7280;
 }
 
 .redeem-rules__list {

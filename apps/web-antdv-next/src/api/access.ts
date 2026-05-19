@@ -441,6 +441,20 @@ export interface ExtendSubscriptionParams {
   days: number;
   reason?: string;
 }
+export interface CreateSubscriptionParams {
+  user_id: number;
+  template_code: string;
+  valid_period: {
+    valid_from: string;
+    valid_to: string | null;
+  };
+  source: string;
+  source_ref?: null | string;
+}
+
+export function createUserSubscriptionApi(data: CreateSubscriptionParams) {
+  return requestClient.post('/api/v1/access/subscriptions', data);
+}
 
 export function getUserSubscriptionListApi(
   params?: UserSubscriptionQueryParams,
@@ -506,3 +520,52 @@ export function getAccessDashboardStatsApi() {
     '/api/v1/access/dashboard/stats',
   );
 }
+
+// ==================== Direct Grant (直接授予) ====================
+
+export interface DirectGrantResult {
+  id: number;
+  user_id: number;
+  username: null | string;
+  entitlement_id: number;
+  entitlement_code: string;
+  entitlement_name: null | string;
+  valid_from: string;
+  valid_to: null | string;
+  status: string;
+  source: string;
+  created_time: string;
+}
+
+export interface DirectGrantQueryParams extends PaginationParams {
+  user_id?: number;
+  entitlement_code?: string;
+  source?: string;
+  status?: string;
+}
+
+export interface CreateDirectGrantParams {
+  user_id: number;
+  entitlement_code: string;
+  valid_period: {
+    valid_from: string;
+    valid_to: string | null;
+  };
+  source: string;
+}
+
+export function getDirectGrantListApi(params?: DirectGrantQueryParams) {
+  return requestClient.get<PaginationResult<DirectGrantResult>>(
+    '/api/v1/access/grants',
+    { params },
+  );
+}
+
+export function createDirectGrantApi(data: CreateDirectGrantParams) {
+  return requestClient.post('/api/v1/access/grants', data);
+}
+
+export function deleteDirectGrantApi(pk: number) {
+  return requestClient.delete(`/api/v1/access/grants/${pk}`);
+}
+

@@ -196,7 +196,11 @@ onMounted(() => {
                   {{ detail.duration_days }} 天
                 </DescriptionsItem>
                 <DescriptionsItem label="现价">
-                  ¥{{ (Number(detail.price_cents ?? detail.price ?? 0) / 100).toFixed(2) }}
+                  ¥{{
+                    (
+                      Number(detail.price_cents ?? detail.price ?? 0) / 100
+                    ).toFixed(2)
+                  }}
                 </DescriptionsItem>
                 <DescriptionsItem label="原价">
                   ¥{{ (Number(detail.original_price ?? 0) / 100).toFixed(2) }}

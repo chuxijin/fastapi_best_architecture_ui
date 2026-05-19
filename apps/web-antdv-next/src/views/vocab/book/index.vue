@@ -1,55 +1,42 @@
 <script lang="ts" setup>
 import type { VbenFormProps } from '@vben/common-ui';
-
-import type {
-  OnActionClickParams,
-  VxeTableGridOptions,
-} from '#/adapter/vxe-table';
-import type {
-  CreateExperienceRuleParams,
-  ExperienceRuleResult,
-} from '#/api/growth';
+import type { OnActionClickParams, VxeTableGridOptions } from '#/adapter/vxe-table';
+import type { VocabBookResult, CreateVocabBookParams } from '#/api/vocab';
 
 import { computed, ref } from 'vue';
-
 import { Page, useVbenModal } from '@vben/common-ui';
-import { $t } from '@vben/locales';
-
 import { message } from 'ant-design-vue';
 
 import { useVbenForm } from '#/adapter/form';
 import { useVbenVxeGrid } from '#/adapter/vxe-table';
 import {
-  createExperienceRuleApi,
-  deleteExperienceRuleApi,
-  getExperienceRuleListApi,
-  updateExperienceRuleApi,
-} from '#/api/growth';
+  createVocabBookApi,
+  deleteVocabBookApi,
+  getVocabBookApi,
+  getVocabBookListApi,
+  updateVocabBookApi,
+} from '#/api/vocab';
 
 import { querySchema, schema, useColumns } from './data';
 
 const formOptions: VbenFormProps = {
   collapsed: true,
   showCollapseButton: true,
-  submitButtonOptions: { content: $t('common.search') },
   schema: querySchema,
 };
 
-const gridOptions: VxeTableGridOptions<ExperienceRuleResult> = {
+const gridOptions: VxeTableGridOptions<VocabBookResult> = {
   rowConfig: { keyField: 'id' },
-  checkboxConfig: { highlight: true },
   height: 'auto',
   toolbarConfig: {
-    export: true,
     refresh: { code: 'query' },
-    custom: true,
     zoom: true,
   },
   columns: useColumns(onActionClick),
   proxyConfig: {
     ajax: {
       query: async ({ page }, formValues) => {
-        return await getExperienceRuleListApi({
+        return await getVocabBookListApi({
           page: page.currentPage,
           size: page.pageSize,
           ...formValues,
@@ -65,16 +52,14 @@ function onRefresh() {
   gridApi.query();
 }
 
-interface FormParams extends CreateExperienceRuleParams {
+interface FormParams extends CreateVocabBookParams {
   id?: number;
 }
 
 const formData = ref<FormParams>();
 
 const modalTitle = computed(() =>
-  formData.value?.id
-    ? $t('ui.actionTitle.edit', ['经验规则'])
-    : $t('ui.actionTitle.create', ['经验规则']),
+  formData.value?.id ? '编辑词书' : '创建词书',
 );
 
 const [Form, formApi] = useVbenForm({
@@ -87,20 +72,14 @@ const [Modal, modalApi] = useVbenModal({
   title: modalTitle.value,
   onConfirm: async () => {
     try {
-      const values = await formApi.getValues<CreateExperienceRuleParams>();
+      const values = await formApi.getValues<CreateVocabBookParams>();
       const id = formData.value?.id;
       if (id) {
-        await updateExperienceRuleApi(id, values);
-        message.success({
-          content: $t('ui.actionMessage.editSuccess', [values.name]),
-          key: 'action_process_msg',
-        });
+        await updateVocabBookApi(id, values);
+        message.success('更新成功');
       } else {
-        await createExperienceRuleApi(values);
-        message.success({
-          content: $t('ui.actionMessage.createSuccess', [values.name]),
-          key: 'action_process_msg',
-        });
+        await createVocabBookApi(values);
+        message.success('创建成功');
       }
       modalApi.close();
       onRefresh();
@@ -110,7 +89,7 @@ const [Modal, modalApi] = useVbenModal({
   },
   onOpenChange: async (isOpen: boolean) => {
     if (isOpen) {
-      const data = modalApi.getData<FormParams | undefined>();
+      const data = modalApi.getData<FormParams>();
       formData.value = data;
       formApi.resetForm();
       if (data) {
@@ -120,23 +99,19 @@ const [Modal, modalApi] = useVbenModal({
   },
 });
 
-function onActionClick({
-  code,
-  row,
-}: OnActionClickParams<ExperienceRuleResult>) {
+function onActionClick({ code, row }: OnActionClickParams<VocabBookResult>) {
   switch (code) {
     case 'delete': {
-      deleteExperienceRuleApi(row.id).then(() => {
-        message.success({
-          content: $t('ui.actionMessage.deleteSuccess', [row.name]),
-          key: 'action_process_msg',
-        });
+      deleteVocabBookApi(row.id).then(() => {
+        message.success('删除成功');
         onRefresh();
       });
       break;
     }
     case 'edit': {
-      modalApi.setData(row as any).open();
+      getVocabBookApi(row.id).then((data) => {
+        modalApi.setData(data).open();
+      });
       break;
     }
   }
@@ -151,7 +126,7 @@ function handleCreate() {
   <Page auto-content-height>
     <Grid>
       <template #toolbar-tools>
-        <a-button type="primary" @click="handleCreate">新建规则</a-button>
+        <a-button type="primary" @click="handleCreate">新建词书</a-button>
       </template>
     </Grid>
     <Modal>
