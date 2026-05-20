@@ -109,8 +109,8 @@ async function loadEntitlementOptions() {
       },
     ]);
     optionsLoaded = true;
-  } catch (e) {
-    console.error('Failed to load entitlements:', e);
+  } catch (error) {
+    console.error('Failed to load entitlements:', error);
   }
 }
 

@@ -1,13 +1,16 @@
 <script lang="ts" setup>
 import type { VbenFormProps } from '@vben/common-ui';
+
 import type {
   OnActionClickParams,
   VxeTableGridOptions,
 } from '#/adapter/vxe-table';
-import type { VocabWordResult, CreateVocabWordParams } from '#/api/vocab';
+import type { CreateVocabWordParams, VocabWordResult } from '#/api/vocab';
 
 import { computed, ref } from 'vue';
+
 import { Page, useVbenModal } from '@vben/common-ui';
+
 import { message, Upload } from 'ant-design-vue';
 
 import { useVbenForm } from '#/adapter/form';
@@ -142,8 +145,8 @@ async function handleBeforeUpload(file: File) {
       key: 'import',
     });
     onRefresh();
-  } catch (err: any) {
-    message.error({ content: err.message || '导入失败', key: 'import' });
+  } catch (error: any) {
+    message.error({ content: error.message || '导入失败', key: 'import' });
   }
   return false;
 }
@@ -161,7 +164,9 @@ async function handleBeforeUpload(file: File) {
           <a-button type="default">导入 Excel</a-button>
         </Upload>
         <a-button type="primary" class="ml-2" @click="handleCreate"
-          >新建单词</a-button
+          >
+新建单词
+</a-button
         >
       </template>
     </Grid>

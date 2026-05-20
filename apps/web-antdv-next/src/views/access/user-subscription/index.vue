@@ -162,8 +162,8 @@ async function loadTemplateOptions() {
       },
     ]);
     optionsLoaded = true;
-  } catch (e) {
-    console.error('Failed to load templates:', e);
+  } catch (error) {
+    console.error('Failed to load templates:', error);
   }
 }
 
