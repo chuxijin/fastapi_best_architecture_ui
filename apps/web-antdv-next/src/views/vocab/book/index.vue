@@ -1,6 +1,9 @@
 <script lang="ts" setup>
 import type { VbenFormProps } from '@vben/common-ui';
-import type { OnActionClickParams, VxeTableGridOptions } from '#/adapter/vxe-table';
+import type {
+  OnActionClickParams,
+  VxeTableGridOptions,
+} from '#/adapter/vxe-table';
 import type { VocabBookResult, CreateVocabBookParams } from '#/api/vocab';
 
 import { computed, ref } from 'vue';

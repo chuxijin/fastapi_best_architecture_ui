@@ -5,15 +5,15 @@ import { requestClient } from '#/api/request';
 export interface VocabBookResult {
   id: number;
   name: string;
-  description: string | null;
-  cover_image: string | null;
+  description: null | string;
+  cover_image: null | string;
   category: string;
   word_count: number;
   is_official: boolean;
   status: number;
   created_by: number;
   created_time: string;
-  updated_time: string | null;
+  updated_time: null | string;
 }
 
 export interface CreateVocabBookParams {
@@ -48,7 +48,10 @@ export async function createVocabBookApi(data: CreateVocabBookParams) {
   return requestClient.post<VocabBookResult>('/vocab/admin/books', data);
 }
 
-export async function updateVocabBookApi(id: number, data: UpdateVocabBookParams) {
+export async function updateVocabBookApi(
+  id: number,
+  data: UpdateVocabBookParams,
+) {
   return requestClient.put(`/vocab/admin/books/${id}`, data);
 }
 
@@ -61,11 +64,11 @@ export async function deleteVocabBookApi(id: number) {
 export interface VocabWordResult {
   id: number;
   word: string;
-  phonetic_us: string | null;
-  phonetic_uk: string | null;
-  audio_us_url: string | null;
-  audio_uk_url: string | null;
-  common_meaning: string | null;
+  phonetic_us: null | string;
+  phonetic_uk: null | string;
+  audio_us_url: null | string;
+  audio_uk_url: null | string;
+  common_meaning: null | string;
   frequency: number;
   definitions: any[];
   examples: any[];
@@ -107,7 +110,10 @@ export async function createVocabWordApi(data: CreateVocabWordParams) {
   return requestClient.post<VocabWordResult>('/vocab/admin/words', data);
 }
 
-export async function updateVocabWordApi(id: number, data: UpdateVocabWordParams) {
+export async function updateVocabWordApi(
+  id: number,
+  data: UpdateVocabWordParams,
+) {
   return requestClient.put(`/vocab/admin/words/${id}`, data);
 }
 

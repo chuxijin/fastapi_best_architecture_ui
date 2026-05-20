@@ -80,7 +80,10 @@ async function loadEntitlementOptions() {
       });
       entitlements.push(...data.items);
 
-      if (entitlements.length >= data.total || data.items.length < optionPageSize) {
+      if (
+        entitlements.length >= data.total ||
+        data.items.length < optionPageSize
+      ) {
         break;
       }
       page += 1;
@@ -157,10 +160,7 @@ function handleCreate() {
   createModalApi.open();
 }
 
-function onActionClick({
-  code,
-  row,
-}: OnActionClickParams<DirectGrantResult>) {
+function onActionClick({ code, row }: OnActionClickParams<DirectGrantResult>) {
   if (code === 'revoke') {
     deleteDirectGrantApi(row.id).then(() => {
       message.success('权益授予已撤销');

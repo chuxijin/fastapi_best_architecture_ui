@@ -1,4 +1,5 @@
 import type { VbenFormSchema } from '@vben/common-ui';
+
 import type { OnActionClickParams, VxeGridProps } from '#/adapter/vxe-table';
 import type { VocabWordResult } from '#/api/vocab';
 
@@ -63,28 +64,24 @@ export function useColumns(
       width: 140,
       slots: {
         default: ({ row }) => {
-          return h(
-            'div',
-            { class: 'flex gap-2' },
-            [
-              h(
-                'a',
-                {
-                  class: 'text-primary cursor-pointer',
-                  onClick: () => onActionClick({ code: 'edit', row }),
-                },
-                '编辑',
-              ),
-              h(
-                'a',
-                {
-                  class: 'text-error cursor-pointer',
-                  onClick: () => onActionClick({ code: 'delete', row }),
-                },
-                '删除',
-              ),
-            ],
-          );
+          return h('div', { class: 'flex gap-2' }, [
+            h(
+              'a',
+              {
+                class: 'text-primary cursor-pointer',
+                onClick: () => onActionClick({ code: 'edit', row }),
+              },
+              '编辑',
+            ),
+            h(
+              'a',
+              {
+                class: 'text-error cursor-pointer',
+                onClick: () => onActionClick({ code: 'delete', row }),
+              },
+              '删除',
+            ),
+          ]);
         },
       },
     },

@@ -446,7 +446,7 @@ export interface CreateSubscriptionParams {
   template_code: string;
   valid_period: {
     valid_from: string;
-    valid_to: string | null;
+    valid_to: null | string;
   };
   source: string;
   source_ref?: null | string;
@@ -549,7 +549,7 @@ export interface CreateDirectGrantParams {
   entitlement_code: string;
   valid_period: {
     valid_from: string;
-    valid_to: string | null;
+    valid_to: null | string;
   };
   source: string;
 }
@@ -568,4 +568,3 @@ export function createDirectGrantApi(data: CreateDirectGrantParams) {
 export function deleteDirectGrantApi(pk: number) {
   return requestClient.delete(`/api/v1/access/grants/${pk}`);
 }
-

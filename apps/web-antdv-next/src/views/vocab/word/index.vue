@@ -1,6 +1,9 @@
 <script lang="ts" setup>
 import type { VbenFormProps } from '@vben/common-ui';
-import type { OnActionClickParams, VxeTableGridOptions } from '#/adapter/vxe-table';
+import type {
+  OnActionClickParams,
+  VxeTableGridOptions,
+} from '#/adapter/vxe-table';
 import type { VocabWordResult, CreateVocabWordParams } from '#/api/vocab';
 
 import { computed, ref } from 'vue';
@@ -127,10 +130,17 @@ async function handleBeforeUpload(file: File) {
   formData.append('file', file);
   try {
     message.loading({ content: '正在导入...', key: 'import' });
-    const res = await requestClient.post('/vocab/admin/import-excel', formData, {
-      headers: { 'Content-Type': 'multipart/form-data' },
+    const res = await requestClient.post(
+      '/vocab/admin/import-excel',
+      formData,
+      {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      },
+    );
+    message.success({
+      content: `导入完成：成功 ${res.success_count}，跳过 ${res.skip_count}，失败 ${res.error_count}`,
+      key: 'import',
     });
-    message.success({ content: `导入完成：成功 ${res.success_count}，跳过 ${res.skip_count}，失败 ${res.error_count}`, key: 'import' });
     onRefresh();
   } catch (err: any) {
     message.error({ content: err.message || '导入失败', key: 'import' });
@@ -143,10 +153,16 @@ async function handleBeforeUpload(file: File) {
   <Page auto-content-height>
     <Grid>
       <template #toolbar-tools>
-        <Upload :before-upload="handleBeforeUpload" :show-upload-list="false" accept=".xlsx">
+        <Upload
+          :before-upload="handleBeforeUpload"
+          :show-upload-list="false"
+          accept=".xlsx"
+        >
           <a-button type="default">导入 Excel</a-button>
         </Upload>
-        <a-button type="primary" class="ml-2" @click="handleCreate">新建单词</a-button>
+        <a-button type="primary" class="ml-2" @click="handleCreate"
+          >新建单词</a-button
+        >
       </template>
     </Grid>
     <Modal>

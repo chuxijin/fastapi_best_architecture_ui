@@ -40,7 +40,11 @@ export const querySchema: VbenFormSchema[] = [
 export const createSchema: VbenFormSchema[] = [
   {
     component: 'InputNumber',
-    componentProps: { placeholder: '请输入用户 ID', min: 1, style: { width: '100%' } },
+    componentProps: {
+      placeholder: '请输入用户 ID',
+      min: 1,
+      style: { width: '100%' },
+    },
     fieldName: 'user_id',
     label: '用户 ID',
     rules: 'required',
@@ -163,7 +167,11 @@ export function useColumns(
       width: 110,
       slots: {
         default: ({ row }: any) =>
-          h(Tag, { color: 'blue' }, () => SOURCE_LABEL[row.source] || row.source),
+          h(
+            Tag,
+            { color: 'blue' },
+            () => SOURCE_LABEL[row.source] || row.source,
+          ),
       },
     },
     {

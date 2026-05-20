@@ -1,8 +1,10 @@
 import type { VbenFormSchema } from '@vben/common-ui';
+
 import type { OnActionClickParams, VxeGridProps } from '#/adapter/vxe-table';
 import type { VocabBookResult } from '#/api/vocab';
 
 import { h } from 'vue';
+
 import { Tag } from 'ant-design-vue';
 
 export const querySchema: VbenFormSchema[] = [
@@ -113,28 +115,24 @@ export function useColumns(
       width: 140,
       slots: {
         default: ({ row }) => {
-          return h(
-            'div',
-            { class: 'flex gap-2' },
-            [
-              h(
-                'a',
-                {
-                  class: 'text-primary cursor-pointer',
-                  onClick: () => onActionClick({ code: 'edit', row }),
-                },
-                '编辑',
-              ),
-              h(
-                'a',
-                {
-                  class: 'text-error cursor-pointer',
-                  onClick: () => onActionClick({ code: 'delete', row }),
-                },
-                '删除',
-              ),
-            ],
-          );
+          return h('div', { class: 'flex gap-2' }, [
+            h(
+              'a',
+              {
+                class: 'text-primary cursor-pointer',
+                onClick: () => onActionClick({ code: 'edit', row }),
+              },
+              '编辑',
+            ),
+            h(
+              'a',
+              {
+                class: 'text-error cursor-pointer',
+                onClick: () => onActionClick({ code: 'delete', row }),
+              },
+              '删除',
+            ),
+          ]);
         },
       },
     },

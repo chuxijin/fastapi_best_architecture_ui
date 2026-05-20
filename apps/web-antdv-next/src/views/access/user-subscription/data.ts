@@ -157,7 +157,11 @@ export function useColumns(
 export const createSchema: VbenFormSchema[] = [
   {
     component: 'InputNumber',
-    componentProps: { placeholder: '请输入用户 ID', min: 1, style: { width: '100%' } },
+    componentProps: {
+      placeholder: '请输入用户 ID',
+      min: 1,
+      style: { width: '100%' },
+    },
     fieldName: 'user_id',
     label: '用户 ID',
     rules: 'required',
@@ -221,4 +225,3 @@ export const createSchema: VbenFormSchema[] = [
     label: '来源引用',
   },
 ];
-

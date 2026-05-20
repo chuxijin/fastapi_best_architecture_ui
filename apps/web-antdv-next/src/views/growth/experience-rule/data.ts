@@ -57,7 +57,11 @@ export const querySchema: VbenFormSchema[] = [
 export const schema: VbenFormSchema[] = [
   {
     component: 'Select',
-    componentProps: { options: FAMILY_OPTIONS, allowClear: true, placeholder: '不限制则留空' },
+    componentProps: {
+      options: FAMILY_OPTIONS,
+      allowClear: true,
+      placeholder: '不限制则留空',
+    },
     fieldName: 'family_code',
     label: '家族',
   },

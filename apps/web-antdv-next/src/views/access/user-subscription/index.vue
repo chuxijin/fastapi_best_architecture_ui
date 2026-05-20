@@ -133,7 +133,10 @@ async function loadTemplateOptions() {
       });
       templates.push(...data.items);
 
-      if (templates.length >= data.total || data.items.length < optionPageSize) {
+      if (
+        templates.length >= data.total ||
+        data.items.length < optionPageSize
+      ) {
         break;
       }
       page += 1;
