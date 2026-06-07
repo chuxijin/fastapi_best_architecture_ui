@@ -210,3 +210,71 @@ export const emailSchema: VbenFormSchema[] = [
     rules: 'required',
   },
 ];
+
+export const officialAccountSchema: VbenFormSchema[] = [
+  {
+    component: 'Input',
+    defaultValue: '有岸上',
+    fieldName: 'OFFICIAL_ACCOUNT_NAME',
+    label: '公众号名称',
+    rules: 'required',
+  },
+  {
+    component: 'Input',
+    fieldName: 'OFFICIAL_ACCOUNT_ORIGINAL_ID',
+    label: '公众号原始 ID',
+    description: '用于打开公众号主页，格式通常为 gh_xxx',
+  },
+  {
+    component: 'Input',
+    fieldName: 'OFFICIAL_ACCOUNT_WECHAT_ID',
+    label: '公众号微信号',
+    description: '用于打开公众号会话',
+  },
+  {
+    component: 'Input',
+    defaultValue: '激活',
+    fieldName: 'OFFICIAL_ACCOUNT_REPLY_KEYWORD',
+    label: '公众号回复词',
+    rules: 'required',
+  },
+  {
+    component: 'Input',
+    fieldName: 'OFFICIAL_ACCOUNT_ARTICLE_URL',
+    label: '公众号文章链接',
+    description: '可选，用于打开购买或激活说明文章',
+  },
+  {
+    component: 'RadioGroup',
+    componentProps: {
+      options: getDictOptions(DictEnum.SYS_CHOOSE, { asString: true }),
+      optionType: 'button',
+    },
+    defaultValue: 'true',
+    fieldName: 'OFFICIAL_ACCOUNT_ENABLE_CHAT',
+    label: '启用公众号会话',
+    rules: 'required',
+  },
+  {
+    component: 'RadioGroup',
+    componentProps: {
+      options: getDictOptions(DictEnum.SYS_CHOOSE, { asString: true }),
+      optionType: 'button',
+    },
+    defaultValue: 'true',
+    fieldName: 'OFFICIAL_ACCOUNT_ENABLE_PROFILE',
+    label: '启用公众号主页',
+    rules: 'required',
+  },
+  {
+    component: 'RadioGroup',
+    componentProps: {
+      options: getDictOptions(DictEnum.SYS_CHOOSE, { asString: true }),
+      optionType: 'button',
+    },
+    defaultValue: 'false',
+    fieldName: 'OFFICIAL_ACCOUNT_ENABLE_ARTICLE',
+    label: '启用公众号文章',
+    rules: 'required',
+  },
+];

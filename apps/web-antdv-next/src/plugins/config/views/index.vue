@@ -5,6 +5,7 @@ import { Page } from '@vben/common-ui';
 
 import Email from '#/plugins/config/views/email.vue';
 import Login from '#/plugins/config/views/login.vue';
+import OfficialAccount from '#/plugins/config/views/official-account.vue';
 import UserSecurity from '#/plugins/config/views/user-security.vue';
 
 const activeKey = ref('0');
@@ -12,6 +13,7 @@ const activeKey = ref('0');
 const userSecurityRef = ref();
 const loginRef = ref();
 const emailRef = ref();
+const officialAccountRef = ref();
 
 const tabItems = [
   {
@@ -29,6 +31,11 @@ const tabItems = [
     key: '2',
     label: '邮件配置',
     icon: () => h('span', { class: 'icon-[ic--outline-email] -mb-1 size-5' }),
+  },
+  {
+    key: '3',
+    label: '公众号配置',
+    icon: () => h('span', { class: 'icon-[carbon--logo-wechat] -mb-1 size-5' }),
   },
 ];
 
@@ -49,6 +56,12 @@ watch(activeKey, async (newValue) => {
     await nextTick();
     if (emailRef.value) {
       await emailRef.value.fetchConfigList();
+    }
+  }
+  if (newValue === '3') {
+    await nextTick();
+    if (officialAccountRef.value) {
+      await officialAccountRef.value.fetchConfigList();
     }
   }
 });
@@ -79,6 +92,10 @@ onMounted(async () => {
           <UserSecurity v-if="item.key === '0'" ref="userSecurityRef" />
           <Login v-else-if="item.key === '1'" ref="loginRef" />
           <Email v-else-if="item.key === '2'" ref="emailRef" />
+          <OfficialAccount
+            v-else-if="item.key === '3'"
+            ref="officialAccountRef"
+          />
         </template>
       </a-tabs>
     </a-card>

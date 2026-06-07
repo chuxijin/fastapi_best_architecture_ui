@@ -3,7 +3,7 @@ import type { Recordable } from '@vben/types';
 import { requestClient } from '#/api/request';
 
 export interface ConfigParams {
-  id: string;
+  id?: string;
   name: string;
   type?: string;
   key: string;
@@ -21,6 +21,10 @@ export async function getAllConfigApi(params: Recordable<any>) {
   return requestClient.get<ConfigResult[]>('/api/v1/sys/configs/all', {
     params,
   });
+}
+
+export async function createConfigApi(params: ConfigParams) {
+  return requestClient.post('/api/v1/sys/configs', params);
 }
 
 export async function updateConfigApi(params: ConfigParams[]) {
