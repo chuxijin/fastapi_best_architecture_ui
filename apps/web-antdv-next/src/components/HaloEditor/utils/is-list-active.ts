@@ -1,10 +1,11 @@
+import type { NodeConfig } from '@HaloEditor/tiptap';
+
 import {
   callOrReturn,
   Editor,
   getExtensionField,
   isActive,
-  type NodeConfig,
-} from "@HaloEditor/tiptap";
+} from '@HaloEditor/tiptap';
 
 /**
  * Check if a list is active
@@ -26,14 +27,14 @@ export const isListActive = (editor: Editor) => {
     };
 
     const group = callOrReturn(
-      getExtensionField<NodeConfig["group"]>(extension, "group", context)
+      getExtensionField<NodeConfig['group']>(extension, 'group', context),
     );
 
-    if (typeof group !== "string") {
+    if (typeof group !== 'string') {
       return false;
     }
 
-    return group.split(" ").includes("list");
+    return group.split(' ').includes('list');
   });
 
   return listExtensions.some((extension) => {

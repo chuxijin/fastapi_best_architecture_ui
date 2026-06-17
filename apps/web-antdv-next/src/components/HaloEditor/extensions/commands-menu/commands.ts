@@ -1,19 +1,20 @@
-import { computePosition, flip, shift } from "@floating-ui/dom";
-import Suggestion, { type SuggestionOptions } from "@tiptap/suggestion";
+import type { Editor, Range } from '@HaloEditor/tiptap';
+import type { CommandMenuItemType } from '@HaloEditor/types';
+import type { SuggestionOptions } from '@tiptap/suggestion';
+
+import { computePosition, flip, shift } from '@floating-ui/dom';
 import {
   Extension,
   PluginKey,
   posToDOMRect,
   VueRenderer,
-  type AnyExtension,
-  type Editor,
-  type Range,
-} from "@HaloEditor/tiptap";
-import type { CommandMenuItemType } from "@HaloEditor/types";
-import CommandsView from "./CommandsView.vue";
+} from '@HaloEditor/tiptap';
+import Suggestion from '@tiptap/suggestion';
+
+import CommandsView from './CommandsView.vue';
 
 export const ExtensionCommandsMenu = Extension.create({
-  name: "commands-menu",
+  name: 'commands-menu',
 
   addProseMirrorPlugins() {
     const commandMenuItems = getToolbarItemsFromExtensions(this.editor);
@@ -26,20 +27,20 @@ export const ExtensionCommandsMenu = Extension.create({
         props,
       }: {
         editor: Editor;
-        range: Range;
         props: CommandMenuItemType;
+        range: Range;
       }) => {
         props.command({ editor, range });
       },
       items: ({ query }: { query: string }) => {
         return commandMenuItems.filter((item) =>
           [...item.keywords, item.title].some((keyword) =>
-            keyword.includes(query)
-          )
+            keyword.includes(query),
+          ),
         );
       },
       render: () => {
-        let component: VueRenderer | null = null;
+        let component: null | VueRenderer = null;
         return {
           onStart: (props) => {
             component = new VueRenderer(CommandsView, {
@@ -55,9 +56,9 @@ export const ExtensionCommandsMenu = Extension.create({
             if (!(component.element instanceof HTMLElement)) {
               return;
             }
-            component.element.style.position = "absolute";
+            component.element.style.position = 'absolute';
 
-            document.body.appendChild(component.element);
+            document.body.append(component.element);
 
             updatePosition(props.editor, component.element);
           },
@@ -85,7 +86,7 @@ export const ExtensionCommandsMenu = Extension.create({
             if (!component) {
               return false;
             }
-            if (props.event.key === "Escape") {
+            if (props.event.key === 'Escape') {
               if (!component.element) {
                 return false;
               }
@@ -113,13 +114,13 @@ export const ExtensionCommandsMenu = Extension.create({
 
     return [
       Suggestion({
-        pluginKey: new PluginKey("commands-menu-english"),
-        char: "/",
+        pluginKey: new PluginKey('commands-menu-english'),
+        char: '/',
         ...suggestionPlugin,
       }),
       Suggestion({
-        pluginKey: new PluginKey("commands-menu-chinese"),
-        char: "、",
+        pluginKey: new PluginKey('commands-menu-chinese'),
+        char: '、',
         ...suggestionPlugin,
       }),
     ];
@@ -132,39 +133,39 @@ const updatePosition = (editor: Editor, element: HTMLElement) => {
       posToDOMRect(
         editor.view,
         editor.state.selection.from,
-        editor.state.selection.to
+        editor.state.selection.to,
       ),
   };
 
   computePosition(virtualElement, element, {
-    placement: "bottom-start",
-    strategy: "absolute",
+    placement: 'bottom-start',
+    strategy: 'absolute',
     middleware: [shift(), flip()],
   }).then(({ x, y, strategy }) => {
     element.style.position = strategy;
     element.style.left = `${x}px`;
     element.style.top = `${y}px`;
-    element.style.zIndex = "1000";
+    element.style.zIndex = '1000';
   });
 };
 
 const getToolbarItemsFromExtensions = (editor: Editor) => {
   const extensionManager = editor?.extensionManager;
-  return extensionManager.extensions
-    .reduce((acc: CommandMenuItemType[], extension: AnyExtension) => {
-      const { getCommandMenuItems } = extension.options;
+  const acc: CommandMenuItemType[] = [];
+  for (const extension of extensionManager.extensions) {
+    const { getCommandMenuItems } = extension.options;
 
-      if (!getCommandMenuItems) {
-        return acc;
-      }
+    if (!getCommandMenuItems) {
+      continue;
+    }
 
-      const items = getCommandMenuItems();
+    const items = getCommandMenuItems();
 
-      if (Array.isArray(items)) {
-        return [...acc, ...items];
-      }
-
-      return [...acc, items];
-    }, [])
-    .sort((a, b) => a.priority - b.priority);
+    if (Array.isArray(items)) {
+      acc.push(...items);
+    } else {
+      acc.push(items);
+    }
+  }
+  return acc.toSorted((a, b) => a.priority - b.priority);
 };

@@ -1,10 +1,10 @@
-import {
-  ExtensionCodeBlock,
-  type ExtensionCodeBlockOptions,
-} from "#/components/HaloEditor";
-import type { BundledLanguage, BundledTheme } from "shiki";
-import { fixedLanguages, shikiLanguages } from "./shiki";
-import { ShikiPlugin } from "./shiki-plugin";
+import type { BundledLanguage, BundledTheme } from 'shiki';
+
+import type { ExtensionCodeBlockOptions } from '../../extensions/code-block/code-block';
+
+import { ExtensionCodeBlock } from '../../extensions/code-block/code-block';
+import { fixedLanguages, shikiLanguages } from './shiki';
+import { ShikiPlugin } from './shiki-plugin';
 
 export interface CodeBlockShikiOptions extends ExtensionCodeBlockOptions {
   defaultLanguage: BundledLanguage | null | undefined;
@@ -17,7 +17,7 @@ export default ExtensionCodeBlock.extend<CodeBlockShikiOptions>({
       ...this.parent?.(),
       languages: [...fixedLanguages, ...shikiLanguages],
       defaultLanguage: null,
-      defaultTheme: "github-light",
+      defaultTheme: 'github-light',
     };
   },
 

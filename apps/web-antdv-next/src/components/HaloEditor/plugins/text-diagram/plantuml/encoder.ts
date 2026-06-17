@@ -1,4 +1,6 @@
-import pako from "pako";
+/* eslint-disable unicorn/prefer-code-point */
+
+import pako from 'pako';
 
 /**
  * Compresses the given string to a PlantUML URL
@@ -12,7 +14,7 @@ export function compress(s: string) {
   // Encoded in UTF-8
   // const utf8 = unescape(encodeURIComponent(s));
   const utf8 = new TextEncoder().encode(s);
-  console.log("UTF-8:" + utf8);
+  console.log('UTF-8:' + utf8);
   // Compressed using Deflate algorithm
   const deflate = pako.deflateRaw(utf8, {
     level: 9,
@@ -32,7 +34,7 @@ export function compress(s: string) {
 }
 
 function encode64(data: Uint8Array) {
-  let r = "";
+  let r = '';
   for (let i = 0; i < data.length; i += 3) {
     if (i + 2 == data.length) {
       r += append3bytes(data[i], data[i + 1], 0);
@@ -48,13 +50,13 @@ function encode64(data: Uint8Array) {
 function append3bytes(b1: number, b2: number, b3: number) {
   const c1 = b1 >> 2;
   const c2 = ((b1 & 0x3) << 4) | (b2 >> 4);
-  const c3 = ((b2 & 0xf) << 2) | (b3 >> 6);
-  const c4 = b3 & 0x3f;
-  let r = "";
-  r += encode6bit(c1 & 0x3f);
-  r += encode6bit(c2 & 0x3f);
-  r += encode6bit(c3 & 0x3f);
-  r += encode6bit(c4 & 0x3f);
+  const c3 = ((b2 & 0xF) << 2) | (b3 >> 6);
+  const c4 = b3 & 0x3F;
+  let r = '';
+  r += encode6bit(c1 & 0x3F);
+  r += encode6bit(c2 & 0x3F);
+  r += encode6bit(c3 & 0x3F);
+  r += encode6bit(c4 & 0x3F);
   return r;
 }
 
@@ -72,10 +74,10 @@ function encode6bit(b: number) {
   }
   b -= 26;
   if (b == 0) {
-    return "-";
+    return '-';
   }
   if (b == 1) {
-    return "_";
+    return '_';
   }
-  return "?";
+  return '?';
 }

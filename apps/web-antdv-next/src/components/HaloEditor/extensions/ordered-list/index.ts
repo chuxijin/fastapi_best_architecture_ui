@@ -1,15 +1,14 @@
-import {
-  ListItem,
-  OrderedList as TiptapOrderedList,
-  type OrderedListOptions,
-} from "@tiptap/extension-list";
-import { markRaw } from "vue";
-import MingcuteListOrderedLine from "~icons/mingcute/list-ordered-line";
-import type { Editor, Range } from "@HaloEditor/tiptap";
-import type { ExtensionOptions } from "@HaloEditor/types";
+import type { Editor, Range } from '@HaloEditor/tiptap';
+import type { ExtensionOptions } from '@HaloEditor/types';
+import type { OrderedListOptions } from '@tiptap/extension-list';
 
-export type ExtensionOrderedListOptions = Partial<OrderedListOptions> &
-  ExtensionOptions;
+import { markRaw } from 'vue';
+
+import { OrderedList as TiptapOrderedList } from '@tiptap/extension-list';
+import MingcuteListOrderedLine from '~icons/mingcute/list-ordered-line';
+
+export type ExtensionOrderedListOptions = ExtensionOptions &
+  Partial<OrderedListOptions>;
 
 export const ExtensionOrderedList =
   TiptapOrderedList.extend<ExtensionOrderedListOptions>({
@@ -20,8 +19,8 @@ export const ExtensionOrderedList =
           return {
             priority: 140,
             icon: markRaw(MingcuteListOrderedLine),
-            title: "editor.common.ordered_list",
-            keywords: ["orderedlist", "youxuliebiao"],
+            title: 'editor.common.ordered_list',
+            keywords: ['orderedlist', 'youxuliebiao'],
             command: ({ editor, range }: { editor: Editor; range: Range }) => {
               editor
                 .chain()

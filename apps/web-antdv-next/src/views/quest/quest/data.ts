@@ -11,10 +11,16 @@ const questStatusMap: Record<number, { color: string; label: string }> = {
   3: { color: 'error', label: '已结束' },
 };
 
+const questTypeMap: Record<string, { color: string; label: string }> = {
+  manual: { color: 'blue', label: '手动领取' },
+  auto: { color: 'green', label: '自动触发' },
+};
+
 const rewardTypeMap: Record<string, { color: string; label: string }> = {
   feature: { color: 'cyan', label: '功能权益' },
   points: { color: 'gold', label: '经验/积分' },
   vip: { color: 'purple', label: '会员' },
+  chaoji_course: { color: 'orange', label: '超级考研课程' },
 };
 
 export const querySchema: VbenFormSchema[] = [
@@ -25,6 +31,7 @@ export const querySchema: VbenFormSchema[] = [
     componentProps: {
       placeholder: '任务名称或任务码',
     },
+    formItemClass: 'md:col-span-1',
   },
   {
     component: 'Select',
@@ -39,8 +46,34 @@ export const querySchema: VbenFormSchema[] = [
         { label: '已结束', value: 3 },
       ],
     },
+    formItemClass: 'md:col-span-1',
+  },
+  {
+    component: 'Select',
+    fieldName: 'quest_type',
+    label: '任务类型',
+    componentProps: {
+      allowClear: true,
+      options: [
+        { label: '手动领取', value: 'manual' },
+        { label: '自动触发', value: 'auto' },
+      ],
+    },
+    formItemClass: 'md:col-span-1',
   },
 ];
+
+function mapToOptions(map: Record<string | number, { color: string; label: string }>) {
+  return Object.entries(map).map(([key, item]) => {
+    const num = Number(key);
+    const value = Number.isNaN(num) ? key : num;
+    return { value, ...item };
+  });
+}
+
+const questStatusOptions = mapToOptions(questStatusMap);
+const questTypeOptions = mapToOptions(questTypeMap);
+const rewardTypeOptions = mapToOptions(rewardTypeMap);
 
 export function useColumns(
   onActionClick?: OnActionClickFn<QuestResult>,
@@ -48,19 +81,25 @@ export function useColumns(
   return [
     { field: 'seq', title: $t('common.table.id'), type: 'seq', width: 50 },
     { field: 'code', title: '任务码', width: 160 },
+    {
+      field: 'quest_type',
+      title: '任务类型',
+      width: 100,
+      cellRender: { name: 'CellTag', options: questTypeOptions },
+    },
     { field: 'name', title: '任务名称', minWidth: 180 },
     { field: 'brief', title: '简介', minWidth: 180 },
     {
       field: 'status',
       title: '状态',
       width: 90,
-      cellRender: { name: 'CellTag', props: { colorMap: questStatusMap } },
+      cellRender: { name: 'CellTag', options: questStatusOptions },
     },
     {
       field: 'reward_type',
       title: '奖励类型',
       width: 110,
-      cellRender: { name: 'CellTag', props: { colorMap: rewardTypeMap } },
+      cellRender: { name: 'CellTag', options: rewardTypeOptions },
     },
     {
       field: 'quota_progress',
@@ -107,6 +146,19 @@ export const schema: VbenFormSchema[] = [
     componentProps: {
       placeholder: '人类可读, 用于检索/分享',
       maxLength: 64,
+    },
+  },
+  {
+    component: 'Select',
+    fieldName: 'quest_type',
+    label: '任务类型',
+    defaultValue: 'manual',
+    rules: 'required',
+    componentProps: {
+      options: [
+        { label: '手动领取', value: 'manual' },
+        { label: '自动触发', value: 'auto' },
+      ],
     },
   },
   {
@@ -159,6 +211,7 @@ export const schema: VbenFormSchema[] = [
         { label: '经验/积分', value: 'points' },
         { label: '会员', value: 'vip' },
         { label: '功能权益', value: 'feature' },
+        { label: '超级考研课程', value: 'chaoji_course' },
       ],
     },
   },
@@ -215,16 +268,66 @@ export const schema: VbenFormSchema[] = [
     componentProps: { placeholder: '数字越小越靠前' },
   },
   {
-    component: 'Textarea',
-    fieldName: 'reward_data_text',
-    label: '奖励数据(JSON)',
-    componentProps: {
-      rows: 4,
-      placeholder: '示例: {"amount": 100, "family_code": "default"}',
-    },
-    help: '该字段会原样作为 reward_data 传给后端的奖励分发器',
+    component: 'InputNumber',
+    fieldName: 'reward_amount',
+    label: '积分数量',
+    defaultValue: 0,
+    componentProps: { min: 0 },
+    formItemClass: 'reward-field reward-field-points',
+  },
+  {
+    component: 'InputNumber',
+    fieldName: 'reward_days',
+    label: '会员天数',
+    defaultValue: 0,
+    componentProps: { min: 1 },
+    formItemClass: 'reward-field reward-field-vip',
+  },
+  {
+    component: 'Input',
+    fieldName: 'reward_feature_code',
+    label: '权益标识',
+    formItemClass: 'reward-field reward-field-feature',
+  },
+  {
+    component: 'InputNumber',
+    fieldName: 'reward_product_id',
+    label: '商品 ID',
+    componentProps: { min: 1 },
+    formItemClass: 'reward-field reward-field-chaoji_course',
   },
 ];
 
+// 奖励类型对应的表单字段配置
+export const rewardFieldMap: Record<
+  string,
+  { field: string; label: string; placeholder: string }[]
+> = {
+  points: [
+    {
+      field: 'reward_amount',
+      label: '积分数量',
+      placeholder: '发放的经验/积分数量',
+    },
+  ],
+  vip: [
+    { field: 'reward_days', label: '会员天数', placeholder: '赠送的会员天数' },
+  ],
+  feature: [
+    {
+      field: 'reward_feature_code',
+      label: '权益标识',
+      placeholder: '功能权益标识码, 如 premium_question',
+    },
+  ],
+  chaoji_course: [
+    {
+      field: 'reward_product_id',
+      label: '商品 ID',
+      placeholder: '超级考研商品 ID',
+    },
+  ],
+};
+
 // 状态映射用于其他组件
-export { questStatusMap, rewardTypeMap };
+export { questStatusMap, questTypeMap, rewardTypeMap };

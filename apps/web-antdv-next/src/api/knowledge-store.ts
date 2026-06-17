@@ -18,6 +18,9 @@ export interface BankResult {
   bank_type: number;
   scene_mask: number;
   parent_id: null | number;
+  chapter_source_bank_id?: null | number;
+  sort_order?: number;
+  year?: null | number;
   status: number;
   scope: number;
   q_count_cache: number;
@@ -40,6 +43,9 @@ export interface BankParams {
   bank_type?: number;
   scene_mask?: number;
   parent_id?: null | number;
+  chapter_source_bank_id?: null | number;
+  sort_order?: number;
+  year?: null | number;
   status?: number;
   scope?: number;
 }
@@ -54,6 +60,38 @@ export interface BankQueryParams {
 }
 
 export interface DeleteBankParams {
+  ids: number[];
+}
+
+export interface BankMountResult {
+  id: number;
+  collection_id: number;
+  item_id: number;
+  sort_order: number;
+  status: number;
+  collection_name: null | string;
+  item_name: null | string;
+  item_bank_type: null | number;
+  created_by: number;
+  updated_by: null | number;
+  created_time: string;
+  updated_time: null | string;
+}
+
+export interface BankMountParams {
+  collection_id: number;
+  item_id: number;
+  sort_order?: number;
+  status?: number;
+}
+
+export interface BankMountQueryParams {
+  collection_id?: number;
+  item_id?: number;
+  status?: number;
+}
+
+export interface DeleteBankMountParams {
   ids: number[];
 }
 
@@ -75,6 +113,27 @@ export async function updateBankApi(pk: number, data: BankParams) {
 
 export async function deleteBankApi(data: DeleteBankParams) {
   return requestClient.delete('/api/v1/qbank/banks', { data });
+}
+
+export async function getBankMountListApi(params?: BankMountQueryParams) {
+  return requestClient.get<BankMountResult[]>('/api/v1/qbank/bank-mounts', {
+    params,
+  });
+}
+
+export async function createBankMountApi(data: BankMountParams) {
+  return requestClient.post('/api/v1/qbank/bank-mounts', data);
+}
+
+export async function updateBankMountApi(
+  pk: number,
+  data: Partial<BankMountParams>,
+) {
+  return requestClient.put(`/api/v1/qbank/bank-mounts/${pk}`, data);
+}
+
+export async function deleteBankMountApi(data: DeleteBankMountParams) {
+  return requestClient.delete('/api/v1/qbank/bank-mounts', { data });
 }
 
 export interface ChapterResult {
@@ -176,9 +235,7 @@ export interface QuestionListItem {
 export type QuestionResult = QuestionListItem;
 
 export interface QuestionOptionItem {
-  id?: number;
   option_code: string;
-  content_id?: number;
   content: string;
   sort_order: number;
   is_active: boolean;
@@ -188,7 +245,7 @@ export interface QuestionDetail {
   id: number;
   type: QuestionType;
   stem: string;
-  options_data: null | Record<string, OptionData>;
+  options: QuestionOptionItem[];
   difficulty: DifficultyType;
   default_score: number | string;
   knowledge_point: null | string[];

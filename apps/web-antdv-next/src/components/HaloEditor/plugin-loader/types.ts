@@ -1,7 +1,7 @@
-import type { AnyExtension } from "@tiptap/core";
+import type { AnyExtension } from '@tiptap/core';
 
 export interface PluginExtensionPoint {
-  "default:editor:extension:create"?: () =>
+  'default:editor:extension:create'?: () =>
     | AnyExtension[]
     | Promise<AnyExtension[]>;
   [key: string]: ((...args: any[]) => any) | undefined;

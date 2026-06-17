@@ -194,6 +194,50 @@ export class WebhookApi {
     );
   }
 
+  async createEventType(data: CreateEventTypeParam) {
+    return this.request.post<WebhookEventType>(
+      '/api/v1/sys/webhook/event-types',
+      data,
+    );
+  }
+
+  async deleteEndpoints(pks: number[]) {
+    return this.request.delete('/api/v1/sys/webhook/endpoints', {
+      data: { pks },
+    });
+  }
+
+  async deleteEventTypes(pks: number[]) {
+    return this.request.delete('/api/v1/sys/webhook/event-types', {
+      data: { pks },
+    });
+  }
+
+  async getDeliveryDetail(id: number) {
+    return this.request.get<WebhookDelivery>(
+      `/api/v1/sys/webhook/deliveries/${id}`,
+    );
+  }
+
+  async getDeliveryList(
+    params?: DeliveryListParam & { page?: number; size?: number },
+  ) {
+    return this.request.get<{
+      items: WebhookDelivery[];
+      page: number;
+      size: number;
+      total: number;
+    }>('/api/v1/sys/webhook/deliveries', { params });
+  }
+
+  async getEndpointDetail(id: number) {
+    return this.request.get<WebhookEndpoint>(
+      `/api/v1/sys/webhook/endpoints/${id}`,
+    );
+  }
+
+  // ---------- 投递记录 ----------
+
   async getEndpointList(
     params?: EndpointListParam & { page?: number; size?: number },
   ) {
@@ -205,20 +249,61 @@ export class WebhookApi {
     }>('/api/v1/sys/webhook/endpoints', { params });
   }
 
-  async getEndpointDetail(id: number) {
-    return this.request.get<WebhookEndpoint>(
-      `/api/v1/sys/webhook/endpoints/${id}`,
+  async getEventLogDetail(id: number) {
+    return this.request.get<WebhookEventLog>(
+      `/api/v1/sys/webhook/event-logs/${id}`,
     );
   }
 
-  async updateEndpoint(id: number, data: UpdateEndpointParam) {
-    return this.request.put(`/api/v1/sys/webhook/endpoints/${id}`, data);
+  async getEventLogList(
+    params?: EventLogListParam & { page?: number; size?: number },
+  ) {
+    return this.request.get<{
+      items: WebhookEventLog[];
+      page: number;
+      size: number;
+      total: number;
+    }>('/api/v1/sys/webhook/event-logs', { params });
   }
 
-  async deleteEndpoints(pks: number[]) {
-    return this.request.delete('/api/v1/sys/webhook/endpoints', {
-      data: { pks },
-    });
+  async getEventTypeDetail(id: number) {
+    return this.request.get<WebhookEventType>(
+      `/api/v1/sys/webhook/event-types/${id}`,
+    );
+  }
+
+  // ---------- 入站事件日志 ----------
+
+  async getEventTypeList(
+    params?: EventTypeListParam & { page?: number; size?: number },
+  ) {
+    return this.request.get<{
+      items: WebhookEventType[];
+      page: number;
+      size: number;
+      total: number;
+    }>('/api/v1/sys/webhook/event-types', { params });
+  }
+
+  async processPending(batchSize = 50) {
+    return this.request.post<{ message: string; processed: number; }>(
+      '/api/v1/sys/webhook/deliveries/process',
+      null,
+      { params: { batch_size: batchSize } },
+    );
+  }
+
+  // ---------- 事件类型 ----------
+
+  async publishEvent(data: PublishEventParam) {
+    return this.request.post<PublishResult>(
+      '/api/v1/sys/webhook/publish',
+      data,
+    );
+  }
+
+  async retryDelivery(id: number) {
+    return this.request.post(`/api/v1/sys/webhook/deliveries/${id}/retry`);
   }
 
   async rotateSecret(id: number) {
@@ -233,99 +318,14 @@ export class WebhookApi {
     );
   }
 
-  // ---------- 投递记录 ----------
-
-  async getDeliveryList(
-    params?: DeliveryListParam & { page?: number; size?: number },
-  ) {
-    return this.request.get<{
-      items: WebhookDelivery[];
-      page: number;
-      size: number;
-      total: number;
-    }>('/api/v1/sys/webhook/deliveries', { params });
-  }
-
-  async getDeliveryDetail(id: number) {
-    return this.request.get<WebhookDelivery>(
-      `/api/v1/sys/webhook/deliveries/${id}`,
-    );
-  }
-
-  async retryDelivery(id: number) {
-    return this.request.post(`/api/v1/sys/webhook/deliveries/${id}/retry`);
-  }
-
-  async processPending(batchSize = 50) {
-    return this.request.post<{ processed: number; message: string }>(
-      '/api/v1/sys/webhook/deliveries/process',
-      null,
-      { params: { batch_size: batchSize } },
-    );
-  }
-
-  // ---------- 入站事件日志 ----------
-
-  async getEventLogList(
-    params?: EventLogListParam & { page?: number; size?: number },
-  ) {
-    return this.request.get<{
-      items: WebhookEventLog[];
-      page: number;
-      size: number;
-      total: number;
-    }>('/api/v1/sys/webhook/event-logs', { params });
-  }
-
-  async getEventLogDetail(id: number) {
-    return this.request.get<WebhookEventLog>(
-      `/api/v1/sys/webhook/event-logs/${id}`,
-    );
-  }
-
-  // ---------- 事件类型 ----------
-
-  async createEventType(data: CreateEventTypeParam) {
-    return this.request.post<WebhookEventType>(
-      '/api/v1/sys/webhook/event-types',
-      data,
-    );
-  }
-
-  async getEventTypeList(
-    params?: EventTypeListParam & { page?: number; size?: number },
-  ) {
-    return this.request.get<{
-      items: WebhookEventType[];
-      page: number;
-      size: number;
-      total: number;
-    }>('/api/v1/sys/webhook/event-types', { params });
-  }
-
-  async getEventTypeDetail(id: number) {
-    return this.request.get<WebhookEventType>(
-      `/api/v1/sys/webhook/event-types/${id}`,
-    );
-  }
-
-  async updateEventType(id: number, data: UpdateEventTypeParam) {
-    return this.request.put(`/api/v1/sys/webhook/event-types/${id}`, data);
-  }
-
-  async deleteEventTypes(pks: number[]) {
-    return this.request.delete('/api/v1/sys/webhook/event-types', {
-      data: { pks },
-    });
+  async updateEndpoint(id: number, data: UpdateEndpointParam) {
+    return this.request.put(`/api/v1/sys/webhook/endpoints/${id}`, data);
   }
 
   // ---------- 手动发布 ----------
 
-  async publishEvent(data: PublishEventParam) {
-    return this.request.post<PublishResult>(
-      '/api/v1/sys/webhook/publish',
-      data,
-    );
+  async updateEventType(id: number, data: UpdateEventTypeParam) {
+    return this.request.put(`/api/v1/sys/webhook/event-types/${id}`, data);
   }
 }
 

@@ -1,30 +1,32 @@
-import type { Attachment, UploadRequestConfig } from "@HaloEditor/utils/upload";
-import { markRaw } from "vue";
-import MdiImagePlus from "~icons/mdi/image-plus";
-import MingcutePhotoAlbumLine from "~icons/mingcute/photo-album-line";
-import { BlockActionSeparator } from "@HaloEditor/components";
-import MingcuteDelete2Line from "@HaloEditor/components/icon/MingcuteDelete2Line.vue";
-import ToolboxItem from "@HaloEditor/components/toolbox/ToolboxItem.vue";
-import { i18n } from "@HaloEditor/locales";
+import type { Editor, Range } from '@HaloEditor/tiptap';
+import type { EditorState } from '@HaloEditor/tiptap/pm';
+import type { ExtensionOptions, NodeBubbleMenuType } from '@HaloEditor/types';
+import type { Attachment, UploadRequestConfig } from '@HaloEditor/utils/upload';
+
+import { markRaw } from 'vue';
+
+import { BlockActionSeparator } from '@HaloEditor/components';
+import MingcuteDelete2Line from '@HaloEditor/components/icon/MingcuteDelete2Line.vue';
+import ToolboxItem from '@HaloEditor/components/toolbox/ToolboxItem.vue';
+import { i18n } from '@HaloEditor/locales';
 import {
   isActive,
   Node,
   PluginKey,
   VueNodeViewRenderer,
-  type Editor,
-  type Range,
-} from "@HaloEditor/tiptap";
-import type { EditorState } from "@HaloEditor/tiptap/pm";
-import type { ExtensionOptions, NodeBubbleMenuType } from "@HaloEditor/types";
-import { deleteNode } from "@HaloEditor/utils";
-import BubbleItemAddImage from "./BubbleItemAddImage.vue";
-import BubbleItemGap from "./BubbleItemGap.vue";
-import BubbleItemGroupSize from "./BubbleItemGroupSize.vue";
-import BubbleItemLayout from "./BubbleItemLayout.vue";
-import { ExtensionGalleryBubble } from "./gallery-bubble";
-import GalleryView from "./GalleryView.vue";
+} from '@HaloEditor/tiptap';
+import { deleteNode } from '@HaloEditor/utils';
+import MdiImagePlus from '~icons/mdi/image-plus';
+import MingcutePhotoAlbumLine from '~icons/mingcute/photo-album-line';
 
-declare module "@HaloEditor/tiptap" {
+import BubbleItemAddImage from './BubbleItemAddImage.vue';
+import BubbleItemGap from './BubbleItemGap.vue';
+import BubbleItemGroupSize from './BubbleItemGroupSize.vue';
+import BubbleItemLayout from './BubbleItemLayout.vue';
+import { ExtensionGalleryBubble } from './gallery-bubble';
+import GalleryView from './GalleryView.vue';
+
+declare module '@HaloEditor/tiptap' {
   interface Commands<ReturnType> {
     gallery: {
       setGallery: (options?: { images?: string[] }) => ReturnType;
@@ -33,20 +35,20 @@ declare module "@HaloEditor/tiptap" {
 }
 
 export type ExtensionGalleryImageItem = {
-  src: string;
   aspectRatio: number;
+  src: string;
 };
 
-export const GALLERY_BUBBLE_MENU_KEY = new PluginKey("galleryBubbleMenu");
+export const GALLERY_BUBBLE_MENU_KEY = new PluginKey('galleryBubbleMenu');
 
 export type ExtensionGalleryOptions = ExtensionOptions & {
-  groupSize?: number;
-  gap?: number;
   allowBase64: boolean;
+  gap?: number;
+  groupSize?: number;
   HTMLAttributes: Record<string, unknown>;
   uploadImage?: (
     file: File,
-    options?: UploadRequestConfig
+    options?: UploadRequestConfig,
   ) => Promise<Attachment>;
 };
 
@@ -56,9 +58,9 @@ export const ExtensionGallery = Node.create<
     images: ExtensionGalleryImageItem[];
   }
 >({
-  name: "gallery",
+  name: 'gallery',
 
-  group: "block",
+  group: 'block',
 
   atom: true,
 
@@ -73,10 +75,10 @@ export const ExtensionGallery = Node.create<
       images: {
         default: [],
         parseHTML: (element) => {
-          return Array.from(element.querySelectorAll("img")).map((img) => {
+          return [...element.querySelectorAll('img')].map((img) => {
             return {
-              src: img.getAttribute("src") || "",
-              aspectRatio: Number(img.getAttribute("data-aspect-ratio")) || 0,
+              src: img.getAttribute('src') || '',
+              aspectRatio: Number(img.dataset.aspectRatio) || 0,
             };
           });
         },
@@ -84,20 +86,20 @@ export const ExtensionGallery = Node.create<
       groupSize: {
         default: 3,
         parseHTML: (element) => {
-          return Number(element.getAttribute("data-group-size")) || 3;
+          return Number(element.dataset.groupSize) || 3;
         },
       },
       layout: {
-        default: "auto",
+        default: 'auto',
         parseHTML: (element) => {
-          return element.getAttribute("data-layout") || "auto";
+          return element.dataset.layout || 'auto';
         },
       },
       gap: {
         default: 8,
         parseHTML: (element) => {
-          const gap = Number(element.getAttribute("data-gap"));
-          if (isNaN(gap) || gap < 0) {
+          const gap = Number(element.dataset.gap);
+          if (Number.isNaN(gap) || gap < 0) {
             return 0;
           }
           return gap;
@@ -126,59 +128,52 @@ export const ExtensionGallery = Node.create<
   renderHTML({ node }) {
     const images: ExtensionGalleryImageItem[] = node.attrs.images || [];
     const groupSize = node.attrs.groupSize || this.options?.groupSize || 3;
-    const layout = node.attrs.layout || "auto";
+    const layout = node.attrs.layout || 'auto';
     const gap = node.attrs.gap || this.options?.gap || 0;
-    const imageGroups: ExtensionGalleryImageItem[][] = images.reduce(
-      (
-        acc: ExtensionGalleryImageItem[][],
-        image: ExtensionGalleryImageItem,
-        index: number
-      ) => {
-        const groupIndex = Math.floor(index / groupSize);
-        acc[groupIndex] = acc[groupIndex] || [];
-        acc[groupIndex].push(image);
-        return acc;
-      },
-      []
-    );
+    const imageGroups: ExtensionGalleryImageItem[][] = [];
+    for (const [index, image] of images.entries()) {
+      const groupIndex = Math.floor(index / groupSize);
+      imageGroups[groupIndex] = imageGroups[groupIndex] || [];
+      imageGroups[groupIndex].push(image);
+    }
     const imageGroupElements = imageGroups.map(
       (items: ExtensionGalleryImageItem[]) => [
-        "div",
+        'div',
         {
-          "data-type": "gallery-group",
+          'data-type': 'gallery-group',
           style: `display: flex; flex-direction: row; justify-content: center; gap: ${gap}px;`,
         },
         ...items.map((image: ExtensionGalleryImageItem) => {
           return [
-            "div",
+            'div',
             {
-              style: `flex: ${layout === "square" ? "1" : image.aspectRatio} 1 0%;${layout === "square" ? "aspect-ratio: 1/1;" : ""}`,
-              "data-aspect-ratio": image.aspectRatio.toString(),
+              style: `flex: ${layout === 'square' ? '1' : image.aspectRatio} 1 0%;${layout === 'square' ? 'aspect-ratio: 1/1;' : ''}`,
+              'data-aspect-ratio': image.aspectRatio.toString(),
             },
             [
-              "img",
+              'img',
               {
                 src: image.src,
-                "data-type": "gallery-image",
+                'data-type': 'gallery-image',
                 style:
-                  "width: 100%; height: 100%; margin: 0; object-fit: cover;",
+                  'width: 100%; height: 100%; margin: 0; object-fit: cover;',
               },
             ],
           ];
         }),
-      ]
+      ],
     );
 
     return [
-      "div",
+      'div',
       {
-        "data-type": "gallery",
-        "data-group-size": groupSize.toString(),
-        "data-layout": layout,
-        "data-gap": gap?.toString(),
+        'data-type': 'gallery',
+        'data-group-size': groupSize.toString(),
+        'data-layout': layout,
+        'data-gap': gap?.toString(),
       },
       [
-        "div",
+        'div',
         { style: `display: grid; gap: ${gap}px;` },
         ...imageGroupElements,
       ],
@@ -217,7 +212,7 @@ export const ExtensionGallery = Node.create<
           props: {
             editor,
             icon: markRaw(MingcutePhotoAlbumLine),
-            title: i18n.global.t("editor.extensions.gallery.title"),
+            title: i18n.global.t('editor.extensions.gallery.title'),
             action: () => {
               editor.chain().focus().setGallery({ images: [] }).run();
             },
@@ -228,8 +223,8 @@ export const ExtensionGallery = Node.create<
         return {
           priority: 96,
           icon: markRaw(MingcutePhotoAlbumLine),
-          title: "editor.extensions.commands_menu.gallery",
-          keywords: ["gallery", "hualang", "tupian", "images"],
+          title: 'editor.extensions.commands_menu.gallery',
+          keywords: ['gallery', 'hualang', 'tupian', 'images'],
           command: ({ editor, range }: { editor: Editor; range: Range }) => {
             editor
               .chain()
@@ -247,16 +242,16 @@ export const ExtensionGallery = Node.create<
             return isActive(state, ExtensionGallery.name);
           },
           options: {
-            placement: "top-start",
+            placement: 'top-start',
           },
           items: [
             {
               priority: 10,
               component: markRaw(BubbleItemAddImage),
-              key: "add-image",
+              key: 'add-image',
               props: {
                 icon: markRaw(MdiImagePlus),
-                title: i18n.global.t("editor.extensions.gallery.add_image"),
+                title: i18n.global.t('editor.extensions.gallery.add_image'),
               },
             },
             {
@@ -279,7 +274,7 @@ export const ExtensionGallery = Node.create<
               priority: 60,
               props: {
                 icon: markRaw(MingcuteDelete2Line),
-                title: i18n.global.t("editor.common.button.delete"),
+                title: i18n.global.t('editor.common.button.delete'),
                 action: ({ editor }) => {
                   deleteNode(ExtensionGallery.name, editor);
                 },

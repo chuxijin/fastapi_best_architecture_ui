@@ -1,174 +1,177 @@
-import type { HardBreakOptions } from "@tiptap/extension-hard-break";
-import type { HorizontalRuleOptions } from "@tiptap/extension-horizontal-rule";
+import type { Extensions } from '@HaloEditor/tiptap';
+import type { ExtensionOptions } from '@HaloEditor/types';
+import type { HardBreakOptions } from '@tiptap/extension-hard-break';
+import type { HorizontalRuleOptions } from '@tiptap/extension-horizontal-rule';
 import type {
   CharacterCountOptions,
   DropcursorOptions,
   PlaceholderOptions,
-} from "@tiptap/extensions";
-import { ListItem } from "@tiptap/extension-list";
-import { Extension, type Extensions } from "@HaloEditor/tiptap";
-import type { ExtensionOptions } from "@HaloEditor/types";
-import { filterDuplicateExtensions } from "../utils";
-import { ExtensionAlign } from "./align";
-import type { ExtensionAudioOptions } from "./audio";
-import { ExtensionAudio } from "./audio";
-import type { ExtensionBlockPositionOptions } from "./block-position";
-import { ExtensionBlockPosition } from "./block-position";
-import {
-  ExtensionBlockquote,
-  type ExtensionBlockquoteOptions,
-} from "./blockquote";
-import { ExtensionBold, type ExtensionBoldOptions } from "./bold";
-import {
-  ExtensionBulletList,
-  type ExtensionBulletListOptions,
-} from "./bullet-list";
-import { ExtensionCharacterCount } from "./character-count";
-import {
-  ExtensionClearFormat,
-  type ExtensionClearFormatOptions,
-} from "./clear-format";
-import { ExtensionCode, type ExtensionCodeOptions } from "./code";
-import { type ExtensionCodeBlockOptions } from "./code-block";
-import { ExtensionCodeBlockShiki as ExtensionCodeBlock } from "../plugins/shiki";
-import { ExtensionColor, type ExtensionColorOptions } from "./color";
-import { ExtensionColumns, type ExtensionColumnsOptions } from "./columns";
-import { ExtensionCommandsMenu } from "./commands-menu";
-import { ExtensionDetails, type ExtensionDetailsOptions } from "./details";
-import { ExtensionDocument } from "./document";
-import { ExtensionDropcursor } from "./drop-cursor";
-import { ExtensionFigure, type ExtensionFigureOptions } from "./figure";
-import { ExtensionFontSize, type ExtensionFontSizeOptions } from "./font-size";
-import { ExtensionFormatBrush } from "./format-brush";
-import { ExtensionGallery, type ExtensionGalleryOptions } from "./gallery";
-import { ExtensionGapCursor } from "./gap-cursor";
-import { ExtensionHardBreak } from "./hard-break";
-import { ExtensionHeading, type ExtensionHeadingOptions } from "./heading";
-import {
-  ExtensionHighlight,
-  type ExtensionHighlightOptions,
-} from "./highlight";
-import { ExtensionHistory } from "./history";
-import { ExtensionHorizontalRule } from "./horizontal-rule";
-import { ExtensionIframe } from "./iframe";
-import { ExtensionImage, type ExtensionImageOptions } from "./image";
-import { ExtensionIndent, type ExtensionIndentOptions } from "./indent";
-import { ExtensionItalic, type ExtensionItalicOptions } from "./italic";
-import { ExtensionLink, type ExtensionLinkOptions } from "./link";
-import { ExtensionListExtra } from "./list-extra";
-import {
-  ExtensionListKeymap,
-  type ExtensionListKeymapOptions,
-} from "./list-keymap";
-import {
-  ExtensionNodeSelected,
-  type ExtensionNodeSelectedOptions,
-} from "./node-selected";
-import {
-  ExtensionOrderedList,
-  type ExtensionOrderedListOptions,
-} from "./ordered-list";
-import {
-  ExtensionParagraph,
-  type ExtensionParagraphOptions,
-} from "./paragraph";
-import { ExtensionPlaceholder } from "./placeholder";
-import { ExtensionRangeSelection } from "./range-selection";
-import { ExtensionSearchAndReplace } from "./search-and-replace";
-import { ExtensionSmartScroll, type SmartScrollOptions } from "./smart-scroll";
-import { ExtensionStrike, type ExtensionStrikeOptions } from "./strike";
-import {
-  ExtensionSubscript,
-  type ExtensionSubscriptOptions,
-} from "./subscript";
-import {
-  ExtensionSuperscript,
-  type ExtensionSuperscriptOptions,
-} from "./superscript";
-import { ExtensionTable, type ExtensionTableOptions } from "./table";
-import { ExtensionTaskList, type ExtensionTaskListOptions } from "./task-list";
-import { ExtensionText, type ExtensionTextOptions } from "./text";
-import {
-  ExtensionTextAlign,
-  type ExtensionTextAlignOptions,
-} from "./text-align";
-import {
-  ExtensionTextStyle,
-  type ExtensionTextStyleOptions,
-} from "./text-style";
-import { ExtensionTrailingNode } from "./trailing-node";
-import {
-  ExtensionUnderline,
-  type ExtensionUnderlineOptions,
-} from "./underline";
-import { ExtensionUpload } from "./upload";
-import { ExtensionVideo, type ExtensionVideoOptions } from "./video";
+} from '@tiptap/extensions';
 
-import { ExtensionKatexInline, ExtensionKatexBlock } from "../plugins/katex";
-import { ExtensionTextDiagram } from "../plugins/text-diagram";
-import { HTMLEditedExtension, MarkdownEditedExtension } from "../plugins/hybrid-edit";
-import { HighlightBlock } from "../plugins/highlight-block";
-import { HyperlinkCardExtension, HyperlinkInlineCardExtension, TextBubbleExtension } from "../plugins/hyperlink-card/editor";
+import type { ExtensionAudioOptions } from './audio';
+import type { ExtensionBlockPositionOptions } from './block-position';
+import type { ExtensionBlockquoteOptions } from './blockquote';
+import type { ExtensionBoldOptions } from './bold';
+import type { ExtensionBulletListOptions } from './bullet-list';
+import type { ExtensionClearFormatOptions } from './clear-format';
+import type { ExtensionCodeOptions } from './code';
+import type { ExtensionCodeBlockOptions } from './code-block';
+import type { ExtensionColorOptions } from './color';
+import type { ExtensionColumnsOptions } from './columns';
+import type { ExtensionDetailsOptions } from './details';
+import type { ExtensionFigureOptions } from './figure';
+import type { ExtensionFontSizeOptions } from './font-size';
+import type { ExtensionGalleryOptions } from './gallery';
+import type { ExtensionHeadingOptions } from './heading';
+import type { ExtensionHighlightOptions } from './highlight';
+import type { ExtensionImageOptions } from './image';
+import type { ExtensionIndentOptions } from './indent';
+import type { ExtensionItalicOptions } from './italic';
+import type { ExtensionLinkOptions } from './link';
+import type { ExtensionListKeymapOptions } from './list-keymap';
+import type { ExtensionNodeSelectedOptions } from './node-selected';
+import type { ExtensionOrderedListOptions } from './ordered-list';
+import type { ExtensionParagraphOptions } from './paragraph';
+import type { SmartScrollOptions } from './smart-scroll';
+import type { ExtensionStrikeOptions } from './strike';
+import type { ExtensionSubscriptOptions } from './subscript';
+import type { ExtensionSuperscriptOptions } from './superscript';
+import type { ExtensionTableOptions } from './table';
+import type { ExtensionTaskListOptions } from './task-list';
+import type { ExtensionTextOptions } from './text';
+import type { ExtensionTextAlignOptions } from './text-align';
+import type { ExtensionTextStyleOptions } from './text-style';
+import type { ExtensionUnderlineOptions } from './underline';
+import type { ExtensionVideoOptions } from './video';
+
+import { Extension } from '@HaloEditor/tiptap';
+import { ListItem } from '@tiptap/extension-list';
+
+import { HighlightBlock } from '../plugins/highlight-block';
+import {
+  HTMLEditedExtension,
+  MarkdownEditedExtension,
+} from '../plugins/hybrid-edit';
+import {
+  HyperlinkCardExtension,
+  HyperlinkInlineCardExtension,
+  TextBubbleExtension,
+} from '../plugins/hyperlink-card/editor';
+import { ExtensionKatexBlock, ExtensionKatexInline } from '../plugins/katex';
+import { ExtensionCodeBlockShiki as ExtensionCodeBlock } from '../plugins/shiki';
+import { ExtensionTextDiagram } from '../plugins/text-diagram';
+import { filterDuplicateExtensions } from '../utils';
+import { ExtensionAlign } from './align';
+import { ExtensionAudio } from './audio';
+import { ExtensionBlockPosition } from './block-position';
+import { ExtensionBlockquote } from './blockquote';
+import { ExtensionBold } from './bold';
+import { ExtensionBulletList } from './bullet-list';
+import { ExtensionCharacterCount } from './character-count';
+import { ExtensionClearFormat } from './clear-format';
+import { ExtensionCode } from './code';
+import { ExtensionColor } from './color';
+import { ExtensionColumns } from './columns';
+import { ExtensionCommandsMenu } from './commands-menu';
+import { ExtensionDetails } from './details';
+import { ExtensionDocument } from './document';
+import { ExtensionDropcursor } from './drop-cursor';
+import { ExtensionFigure } from './figure';
+import { ExtensionFontSize } from './font-size';
+import { ExtensionFormatBrush } from './format-brush';
+import { ExtensionGallery } from './gallery';
+import { ExtensionGapCursor } from './gap-cursor';
+import { ExtensionHardBreak } from './hard-break';
+import { ExtensionHeading } from './heading';
+import { ExtensionHighlight } from './highlight';
+import { ExtensionHistory } from './history';
+import { ExtensionHorizontalRule } from './horizontal-rule';
+import { ExtensionIframe } from './iframe';
+import { ExtensionImage } from './image';
+import { ExtensionIndent } from './indent';
+import { ExtensionItalic } from './italic';
+import { ExtensionLink } from './link';
+import { ExtensionListExtra } from './list-extra';
+import { ExtensionListKeymap } from './list-keymap';
+import { ExtensionNodeSelected } from './node-selected';
+import { ExtensionOrderedList } from './ordered-list';
+import { ExtensionParagraph } from './paragraph';
+import { ExtensionPlaceholder } from './placeholder';
+import { ExtensionRangeSelection } from './range-selection';
+import { ExtensionSearchAndReplace } from './search-and-replace';
+import { ExtensionSmartScroll } from './smart-scroll';
+import { ExtensionStrike } from './strike';
+import { ExtensionSubscript } from './subscript';
+import { ExtensionSuperscript } from './superscript';
+import { ExtensionTable } from './table';
+import { ExtensionTaskList } from './task-list';
+import { ExtensionText } from './text';
+import { ExtensionTextAlign } from './text-align';
+import { ExtensionTextStyle } from './text-style';
+import { ExtensionTrailingNode } from './trailing-node';
+import { ExtensionUnderline } from './underline';
+import { ExtensionUpload } from './upload';
+import { ExtensionVideo } from './video';
 
 export interface ExtensionsKitOptions {
-  audio: Partial<ExtensionAudioOptions> | false;
-  blockquote: Partial<ExtensionBlockquoteOptions> | false;
-  bold: Partial<ExtensionBoldOptions> | false;
-  bulletList: Partial<ExtensionBulletListOptions> | false;
-  characterCount: Partial<CharacterCountOptions> | false;
-  clearFormat: Partial<ExtensionClearFormatOptions> | false;
-  code: Partial<ExtensionCodeOptions> | false;
-  codeBlock: Partial<ExtensionOptions & ExtensionCodeBlockOptions> | false;
-  color: Partial<ExtensionColorOptions> | false;
-  columns: Partial<ExtensionColumnsOptions> | false;
+  audio: false | Partial<ExtensionAudioOptions>;
+  blockquote: false | Partial<ExtensionBlockquoteOptions>;
+  bold: false | Partial<ExtensionBoldOptions>;
+  bulletList: false | Partial<ExtensionBulletListOptions>;
+  characterCount: false | Partial<CharacterCountOptions>;
+  clearFormat: false | Partial<ExtensionClearFormatOptions>;
+  code: false | Partial<ExtensionCodeOptions>;
+  codeBlock: false | Partial<ExtensionCodeBlockOptions & ExtensionOptions>;
+  color: false | Partial<ExtensionColorOptions>;
+  columns: false | Partial<ExtensionColumnsOptions>;
   commandsMenu?: false;
-  details: Partial<ExtensionDetailsOptions> | false;
+  details: false | Partial<ExtensionDetailsOptions>;
   document?: boolean;
-  dropCursor: Partial<DropcursorOptions> | false;
-  figure: Partial<ExtensionFigureOptions> | false;
-  fontSize: Partial<ExtensionFontSizeOptions> | false;
-  formatBrush: Partial<ExtensionOptions> | false;
-  gallery: Partial<ExtensionGalleryOptions> | false;
+  dropCursor: false | Partial<DropcursorOptions>;
+  figure: false | Partial<ExtensionFigureOptions>;
+  fontSize: false | Partial<ExtensionFontSizeOptions>;
+  formatBrush: false | Partial<ExtensionOptions>;
+  gallery: false | Partial<ExtensionGalleryOptions>;
   gapCursor?: boolean;
-  hardBreak: Partial<HardBreakOptions> | false;
-  heading: Partial<ExtensionHeadingOptions> | false;
-  highlight: Partial<ExtensionHighlightOptions> | false;
-  history: Partial<ExtensionOptions> | false;
-  horizontalRule: Partial<HorizontalRuleOptions> | false;
-  iframe: Partial<ExtensionOptions> | false;
-  image: Partial<ExtensionImageOptions> | false;
-  indent: Partial<ExtensionIndentOptions> | false;
-  italic: Partial<ExtensionItalicOptions> | false;
-  link: Partial<ExtensionLinkOptions> | false;
-  listKeymap: Partial<ExtensionListKeymapOptions> | false;
-  nodeSelected: Partial<ExtensionNodeSelectedOptions> | false;
-  orderedList: Partial<ExtensionOrderedListOptions> | false;
-  paragraph: Partial<ExtensionParagraphOptions> | false;
-  placeholder: Partial<PlaceholderOptions> | false;
+  hardBreak: false | Partial<HardBreakOptions>;
+  heading: false | Partial<ExtensionHeadingOptions>;
+  highlight: false | Partial<ExtensionHighlightOptions>;
+  history: false | Partial<ExtensionOptions>;
+  horizontalRule: false | Partial<HorizontalRuleOptions>;
+  iframe: false | Partial<ExtensionOptions>;
+  image: false | Partial<ExtensionImageOptions>;
+  indent: false | Partial<ExtensionIndentOptions>;
+  italic: false | Partial<ExtensionItalicOptions>;
+  link: false | Partial<ExtensionLinkOptions>;
+  listKeymap: false | Partial<ExtensionListKeymapOptions>;
+  nodeSelected: false | Partial<ExtensionNodeSelectedOptions>;
+  orderedList: false | Partial<ExtensionOrderedListOptions>;
+  paragraph: false | Partial<ExtensionParagraphOptions>;
+  placeholder: false | Partial<PlaceholderOptions>;
   rangeSelection?: boolean;
   searchAndReplace?: boolean;
-  smartScroll: Partial<SmartScrollOptions> | false;
-  strike: Partial<ExtensionStrikeOptions> | false;
-  subscript: Partial<ExtensionSubscriptOptions> | false;
-  superscript: Partial<ExtensionSuperscriptOptions> | false;
-  table: Partial<ExtensionTableOptions> | false;
-  taskList: Partial<ExtensionTaskListOptions> | false;
-  text: Partial<ExtensionTextOptions> | false;
-  textAlign: Partial<ExtensionTextAlignOptions> | false;
-  textStyle: Partial<ExtensionTextStyleOptions> | false;
+  smartScroll: false | Partial<SmartScrollOptions>;
+  strike: false | Partial<ExtensionStrikeOptions>;
+  subscript: false | Partial<ExtensionSubscriptOptions>;
+  superscript: false | Partial<ExtensionSuperscriptOptions>;
+  table: false | Partial<ExtensionTableOptions>;
+  taskList: false | Partial<ExtensionTaskListOptions>;
+  text: false | Partial<ExtensionTextOptions>;
+  textAlign: false | Partial<ExtensionTextAlignOptions>;
+  textStyle: false | Partial<ExtensionTextStyleOptions>;
   trailingNode?: boolean;
-  underline: Partial<ExtensionUnderlineOptions> | false;
+  underline: false | Partial<ExtensionUnderlineOptions>;
   upload?: boolean;
-  video: Partial<ExtensionVideoOptions> | false;
-  listExtra: Partial<ExtensionOptions> | false;
-  blockPosition: Partial<ExtensionBlockPositionOptions> | false;
-  align: Partial<ExtensionOptions> | false;
+  video: false | Partial<ExtensionVideoOptions>;
+  listExtra: false | Partial<ExtensionOptions>;
+  blockPosition: false | Partial<ExtensionBlockPositionOptions>;
+  align: false | Partial<ExtensionOptions>;
   katex?: boolean; // 新增 katex 开关支持
   customExtensions?: Extensions;
 }
 
 export const ExtensionsKit = Extension.create<ExtensionsKitOptions>({
-  name: "halo-extensions-kit",
+  name: 'halo-extensions-kit',
   addExtensions() {
     const internalExtensions: Extensions = [];
 
@@ -178,7 +181,7 @@ export const ExtensionsKit = Extension.create<ExtensionsKitOptions>({
 
     if (this.options.blockquote !== false) {
       internalExtensions.push(
-        ExtensionBlockquote.configure(this.options.blockquote)
+        ExtensionBlockquote.configure(this.options.blockquote),
       );
     }
 
@@ -188,19 +191,19 @@ export const ExtensionsKit = Extension.create<ExtensionsKitOptions>({
 
     if (this.options.bulletList !== false) {
       internalExtensions.push(
-        ExtensionBulletList.configure(this.options.bulletList)
+        ExtensionBulletList.configure(this.options.bulletList),
       );
     }
 
     if (this.options.characterCount !== false) {
       internalExtensions.push(
-        ExtensionCharacterCount.configure(this.options.characterCount)
+        ExtensionCharacterCount.configure(this.options.characterCount),
       );
     }
 
     if (this.options.clearFormat !== false) {
       internalExtensions.push(
-        ExtensionClearFormat.configure(this.options.clearFormat)
+        ExtensionClearFormat.configure(this.options.clearFormat),
       );
     }
 
@@ -210,7 +213,7 @@ export const ExtensionsKit = Extension.create<ExtensionsKitOptions>({
 
     if (this.options.codeBlock !== false) {
       internalExtensions.push(
-        ExtensionCodeBlock.configure(this.options.codeBlock as any)
+        ExtensionCodeBlock.configure(this.options.codeBlock as any),
       );
     }
 
@@ -236,7 +239,7 @@ export const ExtensionsKit = Extension.create<ExtensionsKitOptions>({
 
     if (this.options.dropCursor !== false) {
       internalExtensions.push(
-        ExtensionDropcursor.configure(this.options.dropCursor)
+        ExtensionDropcursor.configure(this.options.dropCursor),
       );
     }
 
@@ -246,13 +249,13 @@ export const ExtensionsKit = Extension.create<ExtensionsKitOptions>({
 
     if (this.options.fontSize !== false) {
       internalExtensions.push(
-        ExtensionFontSize.configure(this.options.fontSize)
+        ExtensionFontSize.configure(this.options.fontSize),
       );
     }
 
     if (this.options.formatBrush !== false) {
       internalExtensions.push(
-        ExtensionFormatBrush.configure(this.options.formatBrush)
+        ExtensionFormatBrush.configure(this.options.formatBrush),
       );
     }
 
@@ -266,7 +269,7 @@ export const ExtensionsKit = Extension.create<ExtensionsKitOptions>({
 
     if (this.options.hardBreak !== false) {
       internalExtensions.push(
-        ExtensionHardBreak.configure(this.options.hardBreak)
+        ExtensionHardBreak.configure(this.options.hardBreak),
       );
     }
 
@@ -276,7 +279,7 @@ export const ExtensionsKit = Extension.create<ExtensionsKitOptions>({
 
     if (this.options.highlight !== false) {
       internalExtensions.push(
-        ExtensionHighlight.configure(this.options.highlight)
+        ExtensionHighlight.configure(this.options.highlight),
       );
     }
 
@@ -286,7 +289,7 @@ export const ExtensionsKit = Extension.create<ExtensionsKitOptions>({
 
     if (this.options.horizontalRule !== false) {
       internalExtensions.push(
-        ExtensionHorizontalRule.configure(this.options.horizontalRule)
+        ExtensionHorizontalRule.configure(this.options.horizontalRule),
       );
     }
 
@@ -312,31 +315,31 @@ export const ExtensionsKit = Extension.create<ExtensionsKitOptions>({
 
     if (this.options.listKeymap !== false) {
       internalExtensions.push(
-        ExtensionListKeymap.configure(this.options.listKeymap)
+        ExtensionListKeymap.configure(this.options.listKeymap),
       );
     }
 
     if (this.options.nodeSelected !== false) {
       internalExtensions.push(
-        ExtensionNodeSelected.configure(this.options.nodeSelected)
+        ExtensionNodeSelected.configure(this.options.nodeSelected),
       );
     }
 
     if (this.options.orderedList !== false) {
       internalExtensions.push(
-        ExtensionOrderedList.configure(this.options.orderedList)
+        ExtensionOrderedList.configure(this.options.orderedList),
       );
     }
 
     if (this.options.paragraph !== false) {
       internalExtensions.push(
-        ExtensionParagraph.configure(this.options.paragraph)
+        ExtensionParagraph.configure(this.options.paragraph),
       );
     }
 
     if (this.options.placeholder !== false) {
       internalExtensions.push(
-        ExtensionPlaceholder.configure(this.options.placeholder)
+        ExtensionPlaceholder.configure(this.options.placeholder),
       );
     }
 
@@ -350,7 +353,7 @@ export const ExtensionsKit = Extension.create<ExtensionsKitOptions>({
 
     if (this.options.smartScroll !== false) {
       internalExtensions.push(
-        ExtensionSmartScroll.configure(this.options.smartScroll)
+        ExtensionSmartScroll.configure(this.options.smartScroll),
       );
     }
 
@@ -360,13 +363,13 @@ export const ExtensionsKit = Extension.create<ExtensionsKitOptions>({
 
     if (this.options.subscript !== false) {
       internalExtensions.push(
-        ExtensionSubscript.configure(this.options.subscript)
+        ExtensionSubscript.configure(this.options.subscript),
       );
     }
 
     if (this.options.superscript !== false) {
       internalExtensions.push(
-        ExtensionSuperscript.configure(this.options.superscript)
+        ExtensionSuperscript.configure(this.options.superscript),
       );
     }
 
@@ -376,7 +379,7 @@ export const ExtensionsKit = Extension.create<ExtensionsKitOptions>({
 
     if (this.options.taskList !== false) {
       internalExtensions.push(
-        ExtensionTaskList.configure(this.options.taskList)
+        ExtensionTaskList.configure(this.options.taskList),
       );
     }
 
@@ -386,13 +389,13 @@ export const ExtensionsKit = Extension.create<ExtensionsKitOptions>({
 
     if (this.options.textAlign !== false) {
       internalExtensions.push(
-        ExtensionTextAlign.configure(this.options.textAlign)
+        ExtensionTextAlign.configure(this.options.textAlign),
       );
     }
 
     if (this.options.textStyle !== false) {
       internalExtensions.push(
-        ExtensionTextStyle.configure(this.options.textStyle)
+        ExtensionTextStyle.configure(this.options.textStyle),
       );
     }
 
@@ -402,7 +405,7 @@ export const ExtensionsKit = Extension.create<ExtensionsKitOptions>({
 
     if (this.options.underline !== false) {
       internalExtensions.push(
-        ExtensionUnderline.configure(this.options.underline)
+        ExtensionUnderline.configure(this.options.underline),
       );
     }
 
@@ -416,13 +419,13 @@ export const ExtensionsKit = Extension.create<ExtensionsKitOptions>({
 
     if (this.options.listExtra !== false) {
       internalExtensions.push(
-        ExtensionListExtra.configure(this.options.listExtra)
+        ExtensionListExtra.configure(this.options.listExtra),
       );
     }
 
     if (this.options.blockPosition !== false) {
       internalExtensions.push(
-        ExtensionBlockPosition.configure(this.options.blockPosition)
+        ExtensionBlockPosition.configure(this.options.blockPosition),
       );
     }
 
@@ -434,15 +437,17 @@ export const ExtensionsKit = Extension.create<ExtensionsKitOptions>({
     if (this.options.katex !== false) {
       internalExtensions.push(ExtensionKatexInline, ExtensionKatexBlock);
     }
-    
-    // 默认开启其余三个插件
-    internalExtensions.push(ExtensionTextDiagram, HTMLEditedExtension, MarkdownEditedExtension);
-    
-    // 自定义高亮块
-    internalExtensions.push(HighlightBlock);
 
-    // 超链接卡片插件能力
-    internalExtensions.push(HyperlinkCardExtension, HyperlinkInlineCardExtension, TextBubbleExtension);
+    // 默认开启其余三个插件
+    internalExtensions.push(
+      ExtensionTextDiagram,
+      HTMLEditedExtension,
+      MarkdownEditedExtension,
+      HighlightBlock,
+      HyperlinkCardExtension,
+      HyperlinkInlineCardExtension,
+      TextBubbleExtension,
+    );
 
     const extensions =
       filterDuplicateExtensions([

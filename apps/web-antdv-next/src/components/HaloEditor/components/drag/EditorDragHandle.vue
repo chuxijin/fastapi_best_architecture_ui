@@ -1,27 +1,33 @@
 <script lang="ts" setup>
-import { offset } from "@floating-ui/dom";
-import { VDropdown, vTooltip } from "#/stubs/halo-components";
-import { DragHandle } from "@tiptap/extension-drag-handle-vue-3";
-import { sortBy } from "es-toolkit";
-import { computed, ref, shallowRef, type PropType } from "vue";
-import MaterialSymbolsAddRounded from "~icons/material-symbols/add-rounded";
-import MaterialSymbolsDragIndicator from "~icons/material-symbols/drag-indicator";
-import { i18n } from "@HaloEditor/locales";
+import type {
+  DragButtonItemProps,
+  DragButtonType,
+  ExtensionOptions,
+} from '@HaloEditor/types';
+
+import type { PropType } from 'vue';
+
+import { computed, ref, shallowRef } from 'vue';
+
+import { offset } from '@floating-ui/dom';
+import { i18n } from '@HaloEditor/locales';
 import {
   Editor,
   NodeSelection,
   PMNode,
   TextSelection,
   VueEditor,
-} from "@HaloEditor/tiptap";
-import type {
-  DragButtonItemProps,
-  DragButtonType,
-  ExtensionOptions,
-} from "@HaloEditor/types";
-import { isBlockEmpty } from "@HaloEditor/utils";
-import defaultDragItems from "./default-drag";
-import EditorDragMenu from "./EditorDragMenu.vue";
+} from '@HaloEditor/tiptap';
+import { isBlockEmpty } from '@HaloEditor/utils';
+import { DragHandle } from '@tiptap/extension-drag-handle-vue-3';
+import { sortBy } from 'es-toolkit';
+import MaterialSymbolsAddRounded from '~icons/material-symbols/add-rounded';
+import MaterialSymbolsDragIndicator from '~icons/material-symbols/drag-indicator';
+
+import { VDropdown, vTooltip } from '#/stubs/halo-components';
+
+import defaultDragItems from './default-drag';
+import EditorDragMenu from './EditorDragMenu.vue';
 
 const { editor } = defineProps({
   editor: {
@@ -30,7 +36,7 @@ const { editor } = defineProps({
   },
 });
 
-const currentNode = shallowRef<PMNode | null>(null);
+const currentNode = shallowRef<null | PMNode>(null);
 const currentPos = shallowRef<number>(0);
 const showMenu = ref(false);
 
@@ -43,15 +49,15 @@ const isEmptyNode = computed(() => {
 
 const handleInsertBlock = () => {
   if (isEmptyNode.value) {
-    editor.chain().insertContent("/").focus().run();
+    editor.chain().insertContent('/').focus().run();
   } else {
     const insertPos = currentPos.value + (currentNode.value?.nodeSize ?? 0);
     editor.commands.insertContentAt(
       insertPos,
-      [{ type: "paragraph", content: [{ type: "text", text: "/" }] }],
+      [{ type: 'paragraph', content: [{ type: 'text', text: '/' }] }],
       {
         updateSelection: true,
-      }
+      },
     );
     editor.commands.focus(insertPos + 2, {
       scrollIntoView: true,
@@ -63,7 +69,7 @@ const handleNodeChange = ({
   node,
   pos,
 }: {
-  node: PMNode | null;
+  node: null | PMNode;
   pos: number;
 }) => {
   currentNode.value = node;
@@ -72,7 +78,7 @@ const handleNodeChange = ({
 
 const handleMenuShow = () => {
   const { tr } = editor.state;
-  tr.setMeta("lockDragHandle", true);
+  tr.setMeta('lockDragHandle', true);
   if (currentPos.value !== undefined) {
     const $pos = tr.doc.resolve(currentPos.value);
     tr.setSelection(new NodeSelection($pos));
@@ -82,7 +88,7 @@ const handleMenuShow = () => {
 
 const handleMenuHide = () => {
   const { tr } = editor.state;
-  tr.setMeta("lockDragHandle", false);
+  tr.setMeta('lockDragHandle', false);
   const { selection } = editor.state;
   if (!selection.empty) {
     const $pos = tr.doc.resolve(selection.to);
@@ -108,7 +114,7 @@ const dragMenuItems = computed(() => {
     for (const item of Array.isArray(dragButtonItems)
       ? dragButtonItems
       : [dragButtonItems]) {
-      if (item.extendsKey && item.extendsKey.trim() !== "") {
+      if (item.extendsKey && item.extendsKey.trim() !== '') {
         extendsDragButtonItems.push(item);
         continue;
       }
@@ -118,7 +124,7 @@ const dragMenuItems = computed(() => {
 
   const mergedDragButtonItems = mergeDragButtonItems(
     rootDragButtonItems,
-    extendsDragButtonItems
+    extendsDragButtonItems,
   );
 
   return sortDragButtonItems(mergedDragButtonItems);
@@ -140,7 +146,7 @@ const dragMenuItems = computed(() => {
  */
 const mergeDragButtonItems = (
   rootDragButtonItems: DragButtonType[],
-  extendsDragButtonItems: DragButtonType[]
+  extendsDragButtonItems: DragButtonType[],
 ): DragButtonType[] => {
   const mergedDragButtonItems: DragButtonType[] = [];
   const extendsDragButtonItemsMap: Map<string, DragButtonItemProps[]> =
@@ -190,7 +196,7 @@ const mergeDragButtonItems = (
  */
 const mergeRootDragButtonItemsProps = (
   rootDragButtonItem: DragButtonType,
-  extendsDragButton: DragButtonType
+  extendsDragButton: DragButtonType,
 ) => {
   mergeRootDragButtonVisibleProps(rootDragButtonItem, extendsDragButton);
   mergeRootDragButtonIsActiveProps(rootDragButtonItem, extendsDragButton);
@@ -209,7 +215,7 @@ const mergeRootDragButtonItemsProps = (
  */
 const mergeRootDragButtonItemsChildrenProps = (
   rootDragButtonItem: DragButtonType,
-  extendsDragButtonItem: DragButtonType
+  extendsDragButtonItem: DragButtonType,
 ) => {
   const extendsChildrenItems = extendsDragButtonItem.children?.items ?? [];
   if (extendsChildrenItems.length === 0) {
@@ -230,7 +236,7 @@ const mergeRootDragButtonItemsChildrenProps = (
     return item.extendsKey === undefined;
   });
   const extendsItems = items.filter((item) => {
-    return item.extendsKey && item.extendsKey.trim() !== "";
+    return item.extendsKey && item.extendsKey.trim() !== '';
   });
 
   const mergedItems = mergeDragButtonItems(originalItems, extendsItems);
@@ -250,7 +256,7 @@ const mergeRootDragButtonItemsChildrenProps = (
  */
 const mergeRootDragButtonDisabledProps = (
   rootDragButtonItem: DragButtonType,
-  extendsDragButton: DragButtonType
+  extendsDragButton: DragButtonType,
 ) => {
   const { disabled: extendsDisabled } = extendsDragButton;
   const { disabled: rootDisabled } = rootDragButtonItem;
@@ -260,7 +266,7 @@ const mergeRootDragButtonDisabledProps = (
     pos,
   }: {
     editor: Editor;
-    node: PMNode | null;
+    node: null | PMNode;
     pos: number;
   }) => {
     if (extendsDisabled) {
@@ -285,7 +291,7 @@ const mergeRootDragButtonDisabledProps = (
  */
 const mergeRootDragButtonIsActiveProps = (
   rootDragButtonItem: DragButtonType,
-  extendsDragButton: DragButtonType
+  extendsDragButton: DragButtonType,
 ) => {
   const { isActive: extendsIsActive } = extendsDragButton;
   const { isActive: rootIsActive } = rootDragButtonItem;
@@ -295,7 +301,7 @@ const mergeRootDragButtonIsActiveProps = (
     pos,
   }: {
     editor: Editor;
-    node: PMNode | null;
+    node: null | PMNode;
     pos: number;
   }) => {
     if (extendsIsActive) {
@@ -320,7 +326,7 @@ const mergeRootDragButtonIsActiveProps = (
  */
 const mergeRootDragButtonActionProps = (
   rootDragButtonItem: DragButtonType,
-  extendsDragButton: DragButtonType
+  extendsDragButton: DragButtonType,
 ) => {
   const { action: extendsAction } = extendsDragButton;
   const { action: rootAction } = rootDragButtonItem;
@@ -333,10 +339,10 @@ const mergeRootDragButtonActionProps = (
     pos,
     close,
   }: {
-    editor: Editor;
-    node: PMNode | null;
-    pos: number;
     close: () => void;
+    editor: Editor;
+    node: null | PMNode;
+    pos: number;
   }) => {
     if (extendsAction) {
       const extendsActionResult = await extendsAction({
@@ -366,7 +372,7 @@ const mergeRootDragButtonActionProps = (
  */
 const mergeRootDragButtonVisibleProps = (
   rootDragButtonItem: DragButtonType,
-  extendsDragButton: DragButtonType
+  extendsDragButton: DragButtonType,
 ) => {
   const { visible: extendsVisible } = extendsDragButton;
   const { visible: rootVisible } = rootDragButtonItem;
@@ -376,7 +382,7 @@ const mergeRootDragButtonVisibleProps = (
     pos,
   }: {
     editor: Editor;
-    node: PMNode | null;
+    node: null | PMNode;
     pos: number;
   }) => {
     if (extendsVisible) {
@@ -399,7 +405,7 @@ const mergeRootDragButtonVisibleProps = (
  * @returns Sorted items by priority (lower priority values appear first)
  */
 const sortDragButtonItems = (items: DragButtonType[]): DragButtonType[] => {
-  return sortBy(items, ["priority"]);
+  return sortBy(items, ['priority']);
 };
 </script>
 

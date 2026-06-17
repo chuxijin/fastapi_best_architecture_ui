@@ -62,10 +62,8 @@ export function useColumns(
       width: 80,
       slots: {
         default: ({ row }: { row: GkContentListResult }) => {
-          return h(
-            Tag,
-            { color: row.is_published ? 'green' : 'default' },
-            () => (row.is_published ? '已发布' : '草稿'),
+          return h(Tag, { color: row.is_published ? 'green' : 'default' }, () =>
+            row.is_published ? '已发布' : '草稿',
           );
         },
       },

@@ -1,7 +1,8 @@
-import { defineComponent, h, type App, type PropType } from "vue";
+import { defineComponent, h } from 'vue';
+import type { App, PropType } from 'vue';
 
 const AttachmentSelectorModal = defineComponent({
-  name: "AttachmentSelectorModal",
+  name: 'AttachmentSelectorModal',
   props: {
     accepts: {
       type: Array as PropType<string[]>,
@@ -16,77 +17,78 @@ const AttachmentSelectorModal = defineComponent({
       default: 0,
     },
   },
-  emits: ["close", "select"],
+  emits: ['close', 'select'],
   setup(props, { emit }) {
     const handleClose = () => {
-      emit("close");
+      emit('close');
     };
 
     return () =>
       h(
-        "div",
+        'div',
         {
-          class: "fixed inset-0 z-[1200] flex items-center justify-center bg-black/30 p-4",
+          class:
+            'fixed inset-0 z-[1200] flex items-center justify-center bg-black/30 p-4',
           onClick: handleClose,
         },
         [
           h(
-            "div",
+            'div',
             {
-              class: "w-full max-w-md rounded-xl bg-white p-6 shadow-xl",
+              class: 'w-full max-w-md rounded-xl bg-white p-6 shadow-xl',
               onClick: (event: MouseEvent) => {
                 event.stopPropagation();
               },
             },
             [
               h(
-                "div",
+                'div',
                 {
-                  class: "text-base font-semibold text-gray-900",
+                  class: 'text-base font-semibold text-gray-900',
                 },
-                "Attachment selector unavailable"
+                'Attachment selector unavailable',
               ),
               h(
-                "p",
+                'p',
                 {
-                  class: "mt-2 text-sm text-gray-600",
+                  class: 'mt-2 text-sm text-gray-600',
                 },
-                "The current frontend project has not connected the Halo attachment library yet."
+                'The current frontend project has not connected the Halo attachment library yet.',
               ),
               props.accepts.length
                 ? h(
-                    "p",
+                    'p',
                     {
-                      class: "mt-2 text-xs text-gray-500",
+                      class: 'mt-2 text-xs text-gray-500',
                     },
-                    `accepts: ${props.accepts.join(", ")}`
+                    `accepts: ${props.accepts.join(', ')}`,
                   )
                 : null,
               h(
-                "div",
+                'div',
                 {
-                  class: "mt-6 flex justify-end",
+                  class: 'mt-6 flex justify-end',
                 },
                 [
                   h(
-                    "button",
+                    'button',
                     {
-                      type: "button",
+                      type: 'button',
                       class:
-                        "rounded-md border border-gray-200 px-4 py-2 text-sm text-gray-700 transition-colors hover:bg-gray-50",
+                        'rounded-md border border-gray-200 px-4 py-2 text-sm text-gray-700 transition-colors hover:bg-gray-50',
                       onClick: handleClose,
                     },
-                    "Close"
+                    'Close',
                   ),
-                ]
+                ],
               ),
-            ]
+            ],
           ),
-        ]
+        ],
       );
   },
 });
 
 export function registerHaloGlobalStubs(app: App) {
-  app.component("AttachmentSelectorModal", AttachmentSelectorModal);
+  app.component('AttachmentSelectorModal', AttachmentSelectorModal);
 }

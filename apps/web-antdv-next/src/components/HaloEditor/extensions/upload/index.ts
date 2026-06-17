@@ -1,24 +1,32 @@
-import { i18n } from "@HaloEditor/locales";
-import { Editor, Extension, Plugin, PluginKey, PMNode, Slice } from "@HaloEditor/tiptap";
+import { i18n } from '@HaloEditor/locales';
+import {
+  Editor,
+  Extension,
+  Plugin,
+  PluginKey,
+  PMNode,
+  Slice,
+} from '@HaloEditor/tiptap';
 import {
   batchUploadExternalLink,
   containsFileClipboardIdentifier,
   handleFileEvent,
   isExternalAsset,
-} from "@HaloEditor/utils/upload";
-import { ExtensionAudio } from "../audio";
-import { ExtensionImage } from "../image";
-import { ExtensionVideo } from "../video";
+} from '@HaloEditor/utils/upload';
+
+import { ExtensionAudio } from '../audio';
+import { ExtensionImage } from '../image';
+import { ExtensionVideo } from '../video';
 
 export const ExtensionUpload = Extension.create({
-  name: "upload",
+  name: 'upload',
 
   addProseMirrorPlugins() {
     const { editor }: { editor: Editor } = this;
 
     return [
       new Plugin({
-        key: new PluginKey("upload"),
+        key: new PluginKey('upload'),
         props: {
           handlePaste: (view, event: ClipboardEvent, slice: Slice) => {
             if (view.props.editable && !view.props.editable(view.state)) {
@@ -33,13 +41,13 @@ export const ExtensionUpload = Extension.create({
             if (externalNodes.length > 0) {
               // Stubbed out Halo Dialog for native confirm for external asset transfers
               const performUpload = window.confirm(
-                i18n.global.t("editor.extensions.upload.operations.transfer_in_batch.description")
+                i18n.global.t(
+                  'editor.extensions.upload.operations.transfer_in_batch.description',
+                ),
               );
-              
+
               if (performUpload) {
-                batchUploadExternalLink(editor, externalNodes).then(() => {
-                  console.log("[Toast]", i18n.global.t("editor.common.toast.save_success"));
-                });
+                batchUploadExternalLink(editor, externalNodes).then(() => {});
               }
             }
 
@@ -53,9 +61,9 @@ export const ExtensionUpload = Extension.create({
               return false;
             }
 
-            const files = Array.from(event.clipboardData.files);
+            const files = [...event.clipboardData.files];
 
-            if (files.length) {
+            if (files.length > 0) {
               event.preventDefault();
               handleFileEvent(editor, files);
               return true;
@@ -79,8 +87,8 @@ export const ExtensionUpload = Extension.create({
 
             event.preventDefault();
 
-            const files = Array.from(event.dataTransfer.files) as File[];
-            if (files.length) {
+            const files = [...event.dataTransfer.files] as File[];
+            if (files.length > 0) {
               event.preventDefault();
               // TODO: For drag-and-drop uploaded files,
               // perhaps it is necessary to determine the
@@ -98,34 +106,34 @@ export const ExtensionUpload = Extension.create({
   },
 });
 
-function isExcelPasted(clipboardData: ClipboardEvent["clipboardData"]) {
+function isExcelPasted(clipboardData: ClipboardEvent['clipboardData']) {
   if (!clipboardData) {
     return false;
   }
 
   const types = clipboardData.types;
   if (
-    types.includes("application/vnd.ms-excel") ||
+    types.includes('application/vnd.ms-excel') ||
     types.includes(
-      "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
     )
   ) {
     return true;
   }
 
-  if (types.includes("text/html")) {
+  if (types.includes('text/html')) {
     try {
-      const html = clipboardData.getData("text/html");
+      const html = clipboardData.getData('text/html');
       if (
         html.includes('ProgId="Excel.Sheet"') ||
         html.includes('xmlns:x="urn:schemas-microsoft-com:office:excel"') ||
-        html.includes("urn:schemas-microsoft-com:office:spreadsheet") ||
-        html.includes("<x:ExcelWorkbook>")
+        html.includes('urn:schemas-microsoft-com:office:spreadsheet') ||
+        html.includes('<x:ExcelWorkbook>')
       ) {
         return true;
       }
-    } catch (e) {
-      console.warn("Failed to read clipboard HTML data:", e);
+    } catch (error) {
+      console.warn('Failed to read clipboard HTML data:', error);
     }
   }
 
@@ -133,28 +141,27 @@ function isExcelPasted(clipboardData: ClipboardEvent["clipboardData"]) {
 }
 
 export function getAllExternalNodes(
-  slice: Slice
-): { node: PMNode; pos: number; index: number; parent: PMNode | null }[] {
+  slice: Slice,
+): { index: number; node: PMNode; parent: null | PMNode; pos: number }[] {
   const externalNodes: {
-    node: PMNode;
-    pos: number;
     index: number;
-    parent: PMNode | null;
+    node: PMNode;
+    parent: null | PMNode;
+    pos: number;
   }[] = [];
   slice.content.descendants((node, pos, parent, index) => {
     if (
-      [ExtensionAudio.name, ExtensionVideo.name, ExtensionImage.name].includes(
-        node.type.name
-      )
+      [ExtensionAudio.name, ExtensionImage.name, ExtensionVideo.name].includes(
+        node.type.name,
+      ) &&
+      isExternalAsset(node.attrs.src)
     ) {
-      if (isExternalAsset(node.attrs.src)) {
-        externalNodes.push({
-          node,
-          pos,
-          parent,
-          index,
-        });
-      }
+      externalNodes.push({
+        node,
+        pos,
+        parent,
+        index,
+      });
     }
   });
   return externalNodes;

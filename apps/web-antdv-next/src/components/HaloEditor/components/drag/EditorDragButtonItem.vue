@@ -1,18 +1,24 @@
 <script lang="ts" setup>
-import { VDropdown } from "#/stubs/halo-components";
-import { computed, ref, type Component } from "vue";
-import MaterialSymbolsArrowForwardIosRounded from "~icons/material-symbols/arrow-forward-ios-rounded";
-import type { PMNode, VueEditor } from "@HaloEditor/tiptap";
-import type { DragButtonType } from "@HaloEditor/types";
-import { formatShortcut } from "@HaloEditor/utils";
-import EditorDragHandleMenu from "./EditorDragMenu.vue";
+import type { PMNode, VueEditor } from '@HaloEditor/tiptap';
+import type { DragButtonType } from '@HaloEditor/types';
+
+import type { Component } from 'vue';
+
+import { computed, ref } from 'vue';
+
+import { formatShortcut } from '@HaloEditor/utils';
+import MaterialSymbolsArrowForwardIosRounded from '~icons/material-symbols/arrow-forward-ios-rounded';
+
+import { VDropdown } from '#/stubs/halo-components';
+
+import EditorDragHandleMenu from './EditorDragMenu.vue';
 
 const props = defineProps<
-  DragButtonType & { editor: VueEditor; node: PMNode | null; pos: number }
+  DragButtonType & { editor: VueEditor; node: null | PMNode; pos: number }
 >();
 
 const emit = defineEmits<{
-  (e: "close"): () => void;
+  (e: 'close'): () => void;
 }>();
 
 const showChildren = ref(false);
@@ -48,7 +54,7 @@ const handleDragButtonItemClick = async () => {
     const resolvedCallback =
       callback instanceof Promise ? await callback : callback;
 
-    if (typeof resolvedCallback === "object" && resolvedCallback !== null) {
+    if (typeof resolvedCallback === 'object' && resolvedCallback !== null) {
       componentRef.value = resolvedCallback;
     }
 
@@ -62,7 +68,7 @@ const handleDragButtonItemClick = async () => {
 
 const handleCloseDropdown = () => {
   showChildren.value = false;
-  emit("close");
+  emit('close');
 };
 
 const isChildrenComponent = computed(() => {
@@ -70,7 +76,7 @@ const isChildrenComponent = computed(() => {
 });
 
 const displayTitle = computed(() => {
-  return typeof props.title === "function"
+  return typeof props.title === 'function'
     ? props.title({ editor: props.editor, node: props.node, pos: props.pos })
     : props.title;
 });
@@ -100,16 +106,20 @@ defineExpose({
     "
     class="inline-flex"
     :triggers="[]"
-    :placement="'right'"
+    placement="right"
     :shown="showChildren && isChildrenComponent"
     :distance="8"
     @hide="showChildren = false"
   >
-    <component :is="props.component" v-if="props.component" v-bind="omitProps(props)" />
+    <component
+      :is="props.component"
+      v-if="props.component"
+      v-bind="omitProps(props)"
+    />
     <template v-else>
       <div
+        class="flex w-full rounded px-2 py-2 text-sm text-gray-600 transition-colors"
         :class="[
-          'flex w-full rounded px-2 py-2 text-sm text-gray-600 transition-colors',
           {
             'bg-gray-200 !text-black': props.isActive?.({
               editor: props.editor,
@@ -161,11 +171,11 @@ defineExpose({
             v-bind="props"
             :items="props.children?.items ?? []"
             @close="handleCloseDropdown"
-          ></component>
+          />
         </KeepAlive>
         <EditorDragHandleMenu
           v-else
-          :class="'!min-w-full'"
+          class="!min-w-full"
           :editor="props.editor"
           :node="props.node"
           :pos="props.pos"

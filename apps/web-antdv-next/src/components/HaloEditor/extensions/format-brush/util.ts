@@ -1,5 +1,10 @@
-import type { EditorState, MarkRange, Transaction } from "@HaloEditor/tiptap";
-import { AddMarkStep, CellSelection, RemoveMarkStep } from "@HaloEditor/tiptap/pm";
+import type { EditorState, MarkRange, Transaction } from '@HaloEditor/tiptap';
+
+import {
+  AddMarkStep,
+  CellSelection,
+  RemoveMarkStep,
+} from '@HaloEditor/tiptap/pm';
 
 /**
  * get its marks through the first text node in the selector
@@ -28,7 +33,7 @@ export const getMarksByFirstTextNode = (state: EditorState): MarkRange[] => {
           from: pos,
           to: pos + node.nodeSize,
           mark,
-        }))
+        })),
       );
       return false;
     }
@@ -53,7 +58,7 @@ export const getMarksByFirstTextNode = (state: EditorState): MarkRange[] => {
 export const setMarks = (
   state: EditorState,
   marks: MarkRange[],
-  transaction?: Transaction
+  transaction?: Transaction,
 ): Transaction => {
   const { selection } = state;
   const tr = transaction || state.tr;
@@ -76,7 +81,7 @@ export const setMarks = (
         from,
         to,
       },
-      marks
+      marks,
     );
   }
 
@@ -90,7 +95,7 @@ export const setMarksByRange = (
     from: number;
     to: number;
   },
-  marks: MarkRange[]
+  marks: MarkRange[],
 ) => {
   const { from, to } = range;
   state.doc.nodesBetween(from, to, (node, pos) => {

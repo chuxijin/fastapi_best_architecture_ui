@@ -45,7 +45,11 @@ function toSimpleAttachment(attachment: any): AttachmentSimple | null {
     '';
 
   return {
-    alt: attachment.alt || attachment.spec?.displayName || attachment.metadata?.name || '',
+    alt:
+      attachment.alt ||
+      attachment.spec?.displayName ||
+      attachment.metadata?.name ||
+      '',
     caption: attachment.caption || '',
     name:
       attachment.alt ||
@@ -55,7 +59,11 @@ function toSimpleAttachment(attachment: any): AttachmentSimple | null {
       '资源文件',
     permalink,
     size: attachment.size || attachment.spec?.size || 0,
-    mediaType: attachment.type || attachment.mediaType || attachment.spec?.mediaType || '',
+    mediaType:
+      attachment.type ||
+      attachment.mediaType ||
+      attachment.spec?.mediaType ||
+      '',
     url: permalink,
   };
 }
@@ -63,8 +71,16 @@ function toSimpleAttachment(attachment: any): AttachmentSimple | null {
 export const utils = {
   attachment: {
     convertToSimple: (attachment: any) => toSimpleAttachment(attachment),
-    getAttachmentUrl: (attachment: any) => attachment?.status?.permalink || attachment?.permalink || attachment?.url || '',
-    getUrl: (attachment: any) => attachment?.status?.permalink || attachment?.permalink || attachment?.url || '',
+    getAttachmentUrl: (attachment: any) =>
+      attachment?.status?.permalink ||
+      attachment?.permalink ||
+      attachment?.url ||
+      '',
+    getUrl: (attachment: any) =>
+      attachment?.status?.permalink ||
+      attachment?.permalink ||
+      attachment?.url ||
+      '',
     isImage: (mediaType: string) => mediaType?.startsWith('image/'),
     isVideo: (mediaType: string) => mediaType?.startsWith('video/'),
     isAudio: (mediaType: string) => mediaType?.startsWith('audio/'),

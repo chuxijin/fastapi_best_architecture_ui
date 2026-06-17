@@ -4,39 +4,41 @@ import type {
   EditorView,
   ResolvedPos,
   Transaction,
-} from "@HaloEditor/tiptap";
+} from '@HaloEditor/tiptap';
+import type { ParentConfig } from '@HaloEditor/tiptap/core';
+import type { Command } from '@HaloEditor/tiptap/pm';
+
 import {
-  Extension,
   callOrReturn,
+  Extension,
   getExtensionField,
   isActive,
-  type ParentConfig,
-} from "@HaloEditor/tiptap/core";
+} from '@HaloEditor/tiptap/core';
 import {
   AllSelection,
   Decoration,
   DecorationSet,
+  keydownHandler,
   Plugin,
   PluginKey,
   TextSelection,
-  keydownHandler,
-  type Command,
-} from "@HaloEditor/tiptap/pm";
-import { deleteNodeByPos } from "@HaloEditor/utils";
-import { isEmpty } from "@HaloEditor/utils/is-node-empty";
-import GapCursorSelection from "./gap-cursor-selection";
+} from '@HaloEditor/tiptap/pm';
+import { deleteNodeByPos } from '@HaloEditor/utils';
+import { isEmpty } from '@HaloEditor/utils/is-node-empty';
 
-declare module "@tiptap/core" {
+import GapCursorSelection from './gap-cursor-selection';
+
+declare module '@tiptap/core' {
   interface NodeConfig<Options, Storage> {
     allowGapCursor?:
-      | boolean
-      | null
       | ((this: {
           name: string;
           options: Options;
+          parent: ParentConfig<NodeConfig<Options>>['allowGapCursor'];
           storage: Storage;
-          parent: ParentConfig<NodeConfig<Options>>["allowGapCursor"];
-        }) => boolean | null);
+        }) => boolean | null)
+      | boolean
+      | null;
   }
 }
 
@@ -55,12 +57,12 @@ declare module "@tiptap/core" {
  */
 export const ExtensionGapCursor = Extension.create({
   priority: 900,
-  name: "gapCursor",
+  name: 'gapCursor',
 
   addProseMirrorPlugins() {
     return [
       new Plugin({
-        key: new PluginKey("custom-gap-cursor"),
+        key: new PluginKey('custom-gap-cursor'),
         props: {
           decorations: drawGapCursor,
 
@@ -70,7 +72,7 @@ export const ExtensionGapCursor = Extension.create({
             // and then after handleClick returns false, it will turn into a TextSelection.
             // The reason for this issue is that createSelectionBetween is triggered first, at which point
             // GapCursorSelection.valid($head) validation fails, and then handleClick is triggered, at which point validation succeeds.
-            return $anchor.pos == $head.pos && GapCursorSelection.valid($head)
+            return $anchor.pos === $head.pos && GapCursorSelection.valid($head)
               ? new GapCursorSelection($head)
               : null;
           },
@@ -92,16 +94,16 @@ export const ExtensionGapCursor = Extension.create({
               return false;
             }
             view.dispatch(
-              view.state.tr.setSelection(new GapCursorSelection($pos))
+              view.state.tr.setSelection(new GapCursorSelection($pos)),
             );
             return true;
           },
 
           handleKeyDown: keydownHandler({
-            ArrowLeft: arrow("horiz", -1),
-            ArrowRight: arrow("horiz", 1),
-            ArrowUp: arrow("vert", -1),
-            ArrowDown: arrow("vert", 1),
+            ArrowLeft: arrow('horiz', -1),
+            ArrowRight: arrow('horiz', 1),
+            ArrowUp: arrow('vert', -1),
+            ArrowDown: arrow('vert', 1),
             Enter: (state, dispatch) => {
               const tr = createParagraphNearByGapCursor(state, false);
               if (tr && dispatch) {
@@ -114,7 +116,7 @@ export const ExtensionGapCursor = Extension.create({
               const { selection, tr } = state;
               if (
                 selection instanceof TextSelection &&
-                isActive(state, "paragraph") &&
+                isActive(state, 'paragraph') &&
                 isEmpty(selection.$from.parent) &&
                 selection.empty
               ) {
@@ -125,7 +127,7 @@ export const ExtensionGapCursor = Extension.create({
                 }
                 deleteNodeByPos($from)(tr);
                 if (dispatch) {
-                  const $found = arrowGapCursor(-1, "left", state)(tr);
+                  const $found = arrowGapCursor(-1, 'left', state)(tr);
                   if ($found) {
                     dispatch(tr);
                     return true;
@@ -186,7 +188,7 @@ export const ExtensionGapCursor = Extension.create({
             beforeinput: (view, event) => {
               const { state, dispatch } = view;
               if (
-                event.inputType != "insertCompositionText" ||
+                event.inputType !== 'insertCompositionText' ||
                 !(state.selection instanceof GapCursorSelection)
               ) {
                 return false;
@@ -214,7 +216,7 @@ export const ExtensionGapCursor = Extension.create({
 
     return {
       allowGapCursor:
-        callOrReturn(getExtensionField(extension, "allowGapCursor", context)) ??
+        callOrReturn(getExtensionField(extension, 'allowGapCursor', context)) ??
         null,
     };
   },
@@ -223,10 +225,10 @@ export const ExtensionGapCursor = Extension.create({
 function handleBackspaceAtStart(
   pos: number,
   state: EditorState,
-  dispatch: Dispatch
+  dispatch: Dispatch,
 ) {
   const { tr } = state;
-  if (pos == 0) {
+  if (pos === 0) {
     return false;
   }
 
@@ -252,16 +254,16 @@ function handleBackspaceAtStart(
 function handleInlineContent(
   $beforePos: ResolvedPos,
   state: EditorState,
-  dispatch: Dispatch
+  dispatch: Dispatch,
 ) {
-  if ($beforePos.parentOffset == 0 && $beforePos.pos > 1 && dispatch) {
+  if ($beforePos.parentOffset === 0 && $beforePos.pos > 1 && dispatch) {
     dispatch(state.tr.delete($beforePos.pos - 1, $beforePos.pos));
     return true;
   }
 
   if (dispatch) {
     dispatch(
-      state.tr.setSelection(TextSelection.create(state.doc, $beforePos.pos))
+      state.tr.setSelection(TextSelection.create(state.doc, $beforePos.pos)),
     );
   }
   return true;
@@ -276,9 +278,9 @@ function handleInlineContent(
  * @param {("vert" | "horiz")} axis - The axis of movement, either vertical ("vert") or horizontal ("horiz").
  * @param {number} dir - The direction of movement, positive (1) or negative (-1).
  */
-function arrow(axis: "vert" | "horiz", dir: number): Command {
+function arrow(axis: 'horiz' | 'vert', dir: number): Command {
   const dirStr =
-    axis == "vert" ? (dir > 0 ? "down" : "up") : dir > 0 ? "right" : "left";
+    axis === 'vert' ? (dir > 0 ? 'down' : 'up') : (dir > 0 ? 'right' : 'left');
   return (state, dispatch, view) => {
     const { tr } = state;
     if (arrowGapCursor(dir, dirStr, state, view)(tr) && dispatch) {
@@ -291,10 +293,10 @@ function arrow(axis: "vert" | "horiz", dir: number): Command {
 
 const arrowGapCursor = (
   dir: number,
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+
   dirStr: any,
   state: EditorState,
-  view?: EditorView
+  view?: EditorView,
 ) => {
   return (tr: Transaction) => {
     const sel = state.selection;
@@ -302,7 +304,7 @@ const arrowGapCursor = (
     let mustMove = sel.empty;
     if (sel instanceof TextSelection) {
       // Do nothing if the next node is not at the end of the document or is at the root node.
-      if ($start.depth == 0) {
+      if ($start.depth === 0) {
         return;
       }
       if (view && !view.endOfTextblock(dirStr)) {
@@ -315,7 +317,7 @@ const arrowGapCursor = (
         const pos = $start.pos;
         const start = $start.start(1) + 1;
         const end = $start.end(1) - 1;
-        if (pos != start && pos != end) {
+        if (pos !== start && pos !== end) {
           return;
         }
       }
@@ -346,7 +348,7 @@ const arrowGapCursor = (
  */
 function createParagraphNearByGapCursor(
   state: EditorState,
-  changeSelection = true
+  changeSelection = true,
 ) {
   const { tr } = state;
   if (!(state.selection instanceof GapCursorSelection)) {
@@ -395,8 +397,8 @@ function drawGapCursor(state: EditorState) {
   const isStart = state.selection.isStart;
   return DecorationSet.create(state.doc, [
     Decoration.node(pos, pos + node.nodeSize, {
-      key: "node-gap-cursor",
-      class: `card-gap-cursor ${isStart ? "start" : "end"}-card-gap-cursor`,
+      key: 'node-gap-cursor',
+      class: `card-gap-cursor ${isStart ? 'start' : 'end'}-card-gap-cursor`,
     }),
   ]);
 }

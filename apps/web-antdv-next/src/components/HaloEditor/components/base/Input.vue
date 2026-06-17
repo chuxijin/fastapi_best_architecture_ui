@@ -1,43 +1,42 @@
 <script lang="ts" setup>
-import { ref, watchEffect } from "vue";
-import MingcuteInformationLine from "~icons/mingcute/information-line";
+import { ref, watchEffect } from 'vue';
 
-const modelValue = defineModel<string | number | undefined>({
-  default: "",
-});
+import MingcuteInformationLine from '~icons/mingcute/information-line';
 
 const props = withDefaults(
   defineProps<{
-    type?: string;
-    label?: string;
+    autoFocus?: boolean;
     help?: boolean;
+    label?: string;
     placeholder?: string;
     tooltip?: string;
-    autoFocus?: boolean;
+    type?: string;
   }>(),
   {
-    type: "text",
+    type: 'text',
     label: undefined,
     help: undefined,
     placeholder: undefined,
     tooltip: undefined,
     autoFocus: false,
-  }
+  },
 );
 
 const emit = defineEmits<{
-  (event: "focus"): void;
+  (event: 'focus'): void;
 }>();
+
+const modelValue = defineModel<number | string | undefined>({
+  default: '',
+});
 
 const inputRef = ref<HTMLInputElement>();
 
 watchEffect(() => {
-  if (inputRef.value) {
-    if (props.autoFocus) {
-      setTimeout(() => {
-        inputRef.value?.focus();
-      }, 100);
-    }
+  if (inputRef.value && props.autoFocus) {
+    setTimeout(() => {
+      inputRef.value?.focus();
+    }, 100);
   }
 });
 </script>

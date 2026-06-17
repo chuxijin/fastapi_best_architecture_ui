@@ -1,4 +1,7 @@
-import { Editor, generateJSON, type Content } from "@HaloEditor/tiptap";
+ 
+import type { Content } from '@HaloEditor/tiptap';
+
+import { Editor, generateJSON } from '@HaloEditor/tiptap';
 
 export interface AttachmentSimple {
   url?: string;
@@ -7,10 +10,10 @@ export interface AttachmentSimple {
   caption?: string;
 }
 
-export type AttachmentLike = string | Record<string, any>;
+export type AttachmentLike = Record<string, any> | string;
 
 function convertToSimple(attachment: AttachmentLike): AttachmentSimple | null {
-  if (typeof attachment === "string") return null;
+  if (typeof attachment === 'string') return null;
   if (!attachment) return null;
   return {
     url: attachment.status?.permalink || attachment.url || attachment.permalink,
@@ -22,13 +25,13 @@ function convertToSimple(attachment: AttachmentLike): AttachmentSimple | null {
 
 export function convertToMediaContents(
   editor: Editor,
-  attachments: AttachmentLike[]
+  attachments: AttachmentLike[],
 ): Content[] {
   return attachments
     .map((attachment) => {
-      if (typeof attachment === "string") {
+      if (typeof attachment === 'string') {
         return {
-          type: "image",
+          type: 'image',
           attrs: {
             src: attachment,
           },
@@ -43,36 +46,36 @@ export function convertToMediaContents(
 
       const { mediaType, alt, url, caption } = attachmentSimple;
 
-      if (mediaType?.startsWith("image/")) {
+      if (mediaType?.startsWith('image/')) {
         return createFigureContent(editor, {
-          contentType: "image",
+          contentType: 'image',
           url,
           alt,
           caption,
         });
       }
 
-      if (mediaType?.startsWith("video/")) {
+      if (mediaType?.startsWith('video/')) {
         return createFigureContent(editor, {
-          contentType: "video",
+          contentType: 'video',
           url,
           caption,
         });
       }
 
-      if (mediaType?.startsWith("audio/")) {
+      if (mediaType?.startsWith('audio/')) {
         return createFigureContent(editor, {
-          contentType: "audio",
+          contentType: 'audio',
           url,
           caption,
         });
       }
 
       return {
-        type: "text",
+        type: 'text',
         marks: [
           {
-            type: "link",
+            type: 'link',
             attrs: {
               href: url,
             },
@@ -92,14 +95,14 @@ function createFigureContent(
     alt,
     caption,
   }: {
-    contentType: "image" | "video" | "audio";
-    url?: string;
     alt?: string;
     caption?: string;
-  }
+    contentType: 'audio' | 'image' | 'video';
+    url?: string;
+  },
 ) {
   const baseContent: Content = {
-    type: "figure",
+    type: 'figure',
     attrs: {
       contentType,
     },
@@ -117,10 +120,10 @@ function createFigureContent(
   if (caption) {
     const captionContent = generateJSON(
       caption,
-      editor.extensionManager.extensions
+      editor.extensionManager.extensions,
     );
     baseContent.content?.push({
-      type: "figureCaption",
+      type: 'figureCaption',
       content: captionContent.content[0].content,
     });
   }

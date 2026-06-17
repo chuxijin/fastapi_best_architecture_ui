@@ -1,14 +1,18 @@
 <script setup lang="ts">
-import { VDropdown } from "#/stubs/halo-components";
-import { computed } from "vue";
-import MdiImageSizeSelectActual from "~icons/mdi/image-size-select-actual";
-import MdiImageSizeSelectLarge from "~icons/mdi/image-size-select-large";
-import MdiImageSizeSelectSmall from "~icons/mdi/image-size-select-small";
-import Input from "@HaloEditor/components/base/Input.vue";
-import BubbleButton from "@HaloEditor/components/bubble/BubbleButton.vue";
-import { i18n } from "@HaloEditor/locales";
-import type { BubbleItemComponentProps } from "@HaloEditor/types";
-import { ExtensionVideo } from "./index";
+import type { BubbleItemComponentProps } from '@HaloEditor/types';
+
+import { computed } from 'vue';
+
+import Input from '@HaloEditor/components/base/Input.vue';
+import BubbleButton from '@HaloEditor/components/bubble/BubbleButton.vue';
+import { i18n } from '@HaloEditor/locales';
+import MdiImageSizeSelectActual from '~icons/mdi/image-size-select-actual';
+import MdiImageSizeSelectLarge from '~icons/mdi/image-size-select-large';
+import MdiImageSizeSelectSmall from '~icons/mdi/image-size-select-small';
+
+import { VDropdown } from '#/stubs/halo-components';
+
+import { ExtensionVideo } from './index';
 
 const props = defineProps<BubbleItemComponentProps>();
 
@@ -30,7 +34,7 @@ const height = computed({
   },
 });
 
-function handleSetSize(size: { width?: string; height?: string }) {
+function handleSetSize(size: { height?: string; width?: string }) {
   props.editor
     .chain()
     .updateAttributes(ExtensionVideo.name, size)
@@ -41,22 +45,22 @@ function handleSetSize(size: { width?: string; height?: string }) {
 
 const presetSizes = [
   {
-    width: "25%",
-    height: "auto",
+    width: '25%',
+    height: 'auto',
     icon: MdiImageSizeSelectSmall,
-    title: i18n.global.t("editor.extensions.video.small_size"),
+    title: i18n.global.t('editor.extensions.video.small_size'),
   },
   {
-    width: "50%",
-    height: "auto",
+    width: '50%',
+    height: 'auto',
     icon: MdiImageSizeSelectLarge,
-    title: i18n.global.t("editor.extensions.video.medium_size"),
+    title: i18n.global.t('editor.extensions.video.medium_size'),
   },
   {
-    width: "100%",
-    height: "auto",
+    width: '100%',
+    height: 'auto',
     icon: MdiImageSizeSelectActual,
-    title: i18n.global.t("editor.extensions.video.large_size"),
+    title: i18n.global.t('editor.extensions.video.large_size'),
   },
 ];
 </script>

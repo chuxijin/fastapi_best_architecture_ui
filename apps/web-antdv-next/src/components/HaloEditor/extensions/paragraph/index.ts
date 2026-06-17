@@ -1,22 +1,23 @@
-import TiptapParagraph, {
-  type ParagraphOptions,
-} from "@tiptap/extension-paragraph";
-import { markRaw } from "vue";
-import MingcuteLineHeightLine from "~icons/mingcute/line-height-line";
-import ToolbarItem from "@HaloEditor/components/toolbar/ToolbarItem.vue";
-import ToolbarSubItem from "@HaloEditor/components/toolbar/ToolbarSubItem.vue";
-import { i18n } from "@HaloEditor/locales";
+import type { Dispatch } from '@HaloEditor/tiptap';
+import type { ExtensionOptions, ToolbarItemType } from '@HaloEditor/types';
+import type { ParagraphOptions } from '@tiptap/extension-paragraph';
+
+import { markRaw } from 'vue';
+
+import ToolbarItem from '@HaloEditor/components/toolbar/ToolbarItem.vue';
+import ToolbarSubItem from '@HaloEditor/components/toolbar/ToolbarSubItem.vue';
+import { i18n } from '@HaloEditor/locales';
 import {
   Editor,
   EditorState,
+  isActive,
   ResolvedPos,
   TextSelection,
-  isActive,
-  type Dispatch,
-} from "@HaloEditor/tiptap";
-import type { ExtensionOptions, ToolbarItemType } from "@HaloEditor/types";
-import { deleteNodeByPos } from "@HaloEditor/utils";
-import { isListActive } from "@HaloEditor/utils/is-list-active";
+} from '@HaloEditor/tiptap';
+import { deleteNodeByPos } from '@HaloEditor/utils';
+import { isListActive } from '@HaloEditor/utils/is-list-active';
+import TiptapParagraph from '@tiptap/extension-paragraph';
+import MingcuteLineHeightLine from '~icons/mingcute/line-height-line';
 
 export type ExtensionParagraphOptions = ExtensionOptions &
   Partial<ParagraphOptions>;
@@ -54,7 +55,7 @@ export const ExtensionParagraph =
               isActive: !!editor.getAttributes(ExtensionParagraph.name)
                 ?.lineHeight,
               icon: markRaw(MingcuteLineHeightLine),
-              title: i18n.global.t("editor.common.line_height"),
+              title: i18n.global.t('editor.common.line_height'),
             },
             children: [0, 1, 1.5, 2, 2.5, 3].map((lineHeight) => {
               return {
@@ -65,9 +66,9 @@ export const ExtensionParagraph =
                   isActive:
                     editor.getAttributes(ExtensionParagraph.name)
                       ?.lineHeight === lineHeight,
-                  title: !lineHeight
-                    ? i18n.global.t("editor.common.text.default")
-                    : String(lineHeight),
+                  title: lineHeight
+                    ? String(lineHeight)
+                    : i18n.global.t('editor.common.text.default'),
                   action: () =>
                     editor
                       .chain()
@@ -115,7 +116,7 @@ export const ExtensionParagraph =
             $from,
             beforePos,
             state,
-            view.dispatch
+            view.dispatch,
           );
         },
       };
@@ -126,7 +127,7 @@ export function deleteCurrentNodeAndSetSelection(
   $from: ResolvedPos,
   beforePos: number,
   state: EditorState,
-  dispatch: Dispatch
+  dispatch: Dispatch,
 ) {
   const { tr } = state;
   if (deleteNodeByPos($from)(tr) && dispatch) {
@@ -143,7 +144,7 @@ export function handleDeletePreviousNode(
   $from: ResolvedPos,
   beforePos: number,
   state: EditorState,
-  dispatch: Dispatch
+  dispatch: Dispatch,
 ) {
   const { tr } = state;
   if (!dispatch) {

@@ -1,26 +1,27 @@
-import { Tooltip as VTooltipComponent } from "floating-vue";
-import { h, render } from "vue";
-import MdiPlus from "~icons/mdi/plus";
-import { i18n } from "@HaloEditor/locales";
+import { h, render } from 'vue';
+
+import { i18n } from '@HaloEditor/locales';
 import {
   addColumnAfter,
   Decoration,
   DecorationSet,
   Plugin,
   PluginKey,
-} from "@HaloEditor/tiptap/pm";
-import { mergeAttributes, Node } from "@HaloEditor/tiptap/vue-3";
-import { getCellsInRow, isColumnSelected, selectColumn } from "./util";
+} from '@HaloEditor/tiptap/pm';
+import { mergeAttributes, Node } from '@HaloEditor/tiptap/vue-3';
+import { Tooltip as VTooltipComponent } from 'floating-vue';
+import MdiPlus from '~icons/mdi/plus';
+
+import { getCellsInRow, isColumnSelected, selectColumn } from './util';
 
 export interface TableCellOptions {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   HTMLAttributes: Record<string, any>;
 }
 
 const TableHeader = Node.create<TableCellOptions>({
-  name: "tableHeader",
-  content: "block+",
-  tableRole: "header_cell",
+  name: 'tableHeader',
+  content: 'block+',
+  tableRole: 'header_cell',
   isolating: true,
   fakeSelection: true,
 
@@ -41,9 +42,9 @@ const TableHeader = Node.create<TableCellOptions>({
       colwidth: {
         default: [100],
         parseHTML: (element) => {
-          const colwidth = element.getAttribute("colwidth");
+          const colwidth = element.getAttribute('colwidth');
           const value = colwidth
-            ? colwidth.split(",").map((width) => parseInt(width, 10))
+            ? colwidth.split(',').map((width) => Number.parseInt(width, 10))
             : null;
           return value;
         },
@@ -55,12 +56,12 @@ const TableHeader = Node.create<TableCellOptions>({
   },
 
   parseHTML() {
-    return [{ tag: "th" }];
+    return [{ tag: 'th' }];
   },
 
   renderHTML({ HTMLAttributes }) {
     return [
-      "th",
+      'th',
       mergeAttributes(this.options.HTMLAttributes, HTMLAttributes),
       0,
     ];
@@ -82,7 +83,7 @@ const TableHeader = Node.create<TableCellOptions>({
     const storage = this.storage;
     return [
       new Plugin({
-        key: new PluginKey("table-header-control"),
+        key: new PluginKey('table-header-control'),
         props: {
           decorations(state) {
             const { doc, selection } = state;
@@ -92,41 +93,41 @@ const TableHeader = Node.create<TableCellOptions>({
               cells.forEach(({ pos }, index) => {
                 decorations.push(
                   Decoration.widget(pos + 1, () => {
-                    const key = "column" + index;
+                    const key = `column${index}`;
                     const colSelected = isColumnSelected(index)(selection);
-                    let className = "grip-column";
+                    let className = 'grip-column';
                     if (colSelected) {
-                      className += " selected";
+                      className += ' selected';
                     }
                     if (index === 0) {
-                      className += " first";
+                      className += ' first';
                     } else if (index === cells.length - 1) {
-                      className += " last";
+                      className += ' last';
                     }
 
                     let grip = storage.gripMap.get(key) as HTMLElement;
                     if (!grip) {
-                      grip = document.createElement("a");
+                      grip = document.createElement('a');
                       const instance = h(
                         VTooltipComponent,
                         {
-                          triggers: ["hover"],
+                          triggers: ['hover'],
                         },
                         {
-                          default: () => h(MdiPlus, { class: "plus-icon" }),
+                          default: () => h(MdiPlus, { class: 'plus-icon' }),
                           popper: () =>
                             i18n.global.t(
-                              "editor.menus.table.add_column_after"
+                              'editor.menus.table.add_column_after',
                             ),
-                        }
+                        },
                       );
                       render(instance, grip);
-                      grip.addEventListener("mousedown", (event) => {
+                      grip.addEventListener('mousedown', (event) => {
                         event.preventDefault();
                         event.stopImmediatePropagation();
 
                         editor.view.dispatch(
-                          selectColumn(index)(editor.state.tr)
+                          selectColumn(index)(editor.state.tr),
                         );
 
                         if (event.target !== grip) {
@@ -137,7 +138,7 @@ const TableHeader = Node.create<TableCellOptions>({
                     grip.className = className;
                     storage.gripMap.set(key, grip);
                     return grip;
-                  })
+                  }),
                 );
               });
             }

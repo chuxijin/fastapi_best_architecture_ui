@@ -1,20 +1,21 @@
 <script lang="ts" setup>
-import { computed } from "vue";
-import MingcuteDownSmallFill from "~icons/mingcute/down-small-fill";
+import { computed } from 'vue';
+
+import MingcuteDownSmallFill from '~icons/mingcute/down-small-fill';
 
 const props = withDefaults(
   defineProps<{
-    title?: string;
-    text?: string;
     isActive?: boolean;
     showMoreIndicator?: boolean;
+    text?: string;
+    title?: string;
   }>(),
   {
     showMoreIndicator: false,
     isActive: false,
     title: undefined,
     text: undefined,
-  }
+  },
 );
 
 const onlyIcon = computed(() => {
@@ -38,7 +39,7 @@ const onlyIcon = computed(() => {
     :title="title"
     class="text inline-flex items-center justify-center rounded-md text-gray-600 hover:bg-gray-100 active:!bg-gray-200 [&>svg]:size-5"
   >
-    <slot name="icon" />
+    <slot name="icon"></slot>
     <span v-if="text">{{ text }}</span>
     <MingcuteDownSmallFill v-if="showMoreIndicator" />
   </button>

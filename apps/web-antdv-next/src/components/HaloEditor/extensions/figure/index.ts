@@ -1,3 +1,6 @@
+import type { CommandProps } from '@HaloEditor/tiptap';
+import type { ExtensionOptions } from '@HaloEditor/types';
+
 import {
   findChildren,
   mergeAttributes,
@@ -5,14 +8,13 @@ import {
   Plugin,
   PluginKey,
   TextSelection,
-  type CommandProps,
-} from "@HaloEditor/tiptap";
-import type { ExtensionOptions } from "@HaloEditor/types";
-import { ExtensionParagraph } from "../paragraph";
-import { RangeSelection } from "../range-selection";
-import { ExtensionFigureCaption } from "./figure-caption";
+} from '@HaloEditor/tiptap';
 
-declare module "@HaloEditor/tiptap" {
+import { ExtensionParagraph } from '../paragraph';
+import { RangeSelection } from '../range-selection';
+import { ExtensionFigureCaption } from './figure-caption';
+
+declare module '@HaloEditor/tiptap' {
   interface Commands<ReturnType> {
     figure: {
       setFigure: (attrs?: Record<string, unknown>) => ReturnType;
@@ -27,9 +29,9 @@ export interface ExtensionFigureOptions extends ExtensionOptions {
 }
 
 export const ExtensionFigure = Node.create<ExtensionFigureOptions>({
-  name: "figure",
-  group: "block",
-  content: "(image|video|audio)? figureCaption?",
+  name: 'figure',
+  group: 'block',
+  content: '(image|video|audio)? figureCaption?',
   isolating: true,
   // Priority must be higher than paragraph (1000) and code-block to ensure
   // the Backspace shortcut handles figure selection correctly.
@@ -47,10 +49,10 @@ export const ExtensionFigure = Node.create<ExtensionFigureOptions>({
     return {
       contentType: {
         default: null,
-        parseHTML: (element) => element.getAttribute("data-content-type"),
+        parseHTML: (element) => element.dataset.contentType,
         renderHTML: (attributes) => {
           return {
-            "data-content-type": attributes.contentType,
+            'data-content-type': attributes.contentType,
           };
         },
       },
@@ -60,14 +62,14 @@ export const ExtensionFigure = Node.create<ExtensionFigureOptions>({
   parseHTML() {
     return [
       {
-        tag: "figure",
+        tag: 'figure',
       },
     ];
   },
 
   renderHTML({ HTMLAttributes }) {
     return [
-      "figure",
+      'figure',
       mergeAttributes(this.options.HTMLAttributes, HTMLAttributes, {
         style: `display: flex; flex-direction: column;`,
       }),
@@ -118,7 +120,7 @@ export const ExtensionFigure = Node.create<ExtensionFigureOptions>({
             const paragraph = tr.doc.type.schema.nodes.paragraph.create();
             tr.insert(afterFigurePos, paragraph);
             tr.setSelection(
-              TextSelection.near(tr.doc.resolve(afterFigurePos + 1))
+              TextSelection.near(tr.doc.resolve(afterFigurePos + 1)),
             );
             return true;
           })
@@ -160,7 +162,7 @@ export const ExtensionFigure = Node.create<ExtensionFigureOptions>({
             const rangeSelection = RangeSelection.create(
               doc,
               figurePos,
-              figurePos + node.nodeSize
+              figurePos + node.nodeSize,
             );
             const tr = state.tr.setSelection(rangeSelection);
             editor.view.dispatch(tr);
@@ -176,7 +178,7 @@ export const ExtensionFigure = Node.create<ExtensionFigureOptions>({
   addProseMirrorPlugins() {
     return [
       new Plugin({
-        key: new PluginKey("figureAutoDelete"),
+        key: new PluginKey('figureAutoDelete'),
         appendTransaction: (transactions, _oldState, newState) => {
           const docChanged = transactions.some((tr) => tr.docChanged);
           if (!docChanged) {
@@ -204,14 +206,14 @@ export const ExtensionFigure = Node.create<ExtensionFigureOptions>({
 
             if (!hasValidContent) {
               nodesToDelete.push({
-                pos: pos,
+                pos,
                 size: node.nodeSize,
               });
             }
           });
 
           nodesToDelete
-            .sort((a, b) => b.pos - a.pos)
+            .toSorted((a, b) => b.pos - a.pos)
             .forEach(({ pos, size }) => {
               tr.delete(pos, pos + size);
             });
@@ -255,7 +257,7 @@ export const ExtensionFigure = Node.create<ExtensionFigureOptions>({
           const figureNode = $from.node(figureDepth);
           const figureCaptionNodes = findChildren(
             figureNode,
-            (node) => node.type.name === ExtensionFigureCaption.name
+            (node) => node.type.name === ExtensionFigureCaption.name,
           );
 
           if (figureCaptionNodes.length === 0) {
@@ -267,7 +269,7 @@ export const ExtensionFigure = Node.create<ExtensionFigureOptions>({
           const captionPos = figurePos + figureCaptionNode.pos;
 
           const tr = state.tr.setNodeMarkup(captionPos, undefined, {
-            width: width,
+            width,
           });
           dispatch?.(tr);
           return true;

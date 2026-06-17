@@ -1,15 +1,19 @@
 <script setup lang="ts">
-import { VDropdown } from "#/stubs/halo-components";
-import { computed } from "vue";
-import MdiImageSizeSelectSmall from "~icons/mdi/image-size-select-small";
-import MingcuteCellphoneLine from "~icons/mingcute/cellphone-line";
-import MingcuteImacLine from "~icons/mingcute/imac-line";
-import MingcutePadLine from "~icons/mingcute/pad-line";
-import Input from "@HaloEditor/components/base/Input.vue";
-import BubbleButton from "@HaloEditor/components/bubble/BubbleButton.vue";
-import { i18n } from "@HaloEditor/locales";
-import type { BubbleItemComponentProps } from "@HaloEditor/types";
-import { ExtensionIframe } from "./index";
+import type { BubbleItemComponentProps } from '@HaloEditor/types';
+
+import { computed } from 'vue';
+
+import Input from '@HaloEditor/components/base/Input.vue';
+import BubbleButton from '@HaloEditor/components/bubble/BubbleButton.vue';
+import { i18n } from '@HaloEditor/locales';
+import MdiImageSizeSelectSmall from '~icons/mdi/image-size-select-small';
+import MingcuteCellphoneLine from '~icons/mingcute/cellphone-line';
+import MingcuteImacLine from '~icons/mingcute/imac-line';
+import MingcutePadLine from '~icons/mingcute/pad-line';
+
+import { VDropdown } from '#/stubs/halo-components';
+
+import { ExtensionIframe } from './index';
 
 const props = defineProps<BubbleItemComponentProps>();
 
@@ -42,29 +46,29 @@ const handleSetSize = (width: string, height: string) => {
 
 const presetSizes = [
   {
-    width: "390px",
-    height: "844px",
+    width: '390px',
+    height: '844px',
     icon: MingcuteCellphoneLine,
-    title: i18n.global.t("editor.extensions.iframe.phone_size"),
+    title: i18n.global.t('editor.extensions.iframe.phone_size'),
   },
   {
-    width: "834px",
-    height: "1194px",
+    width: '834px',
+    height: '1194px',
     icon: MingcutePadLine,
-    title: i18n.global.t("editor.extensions.iframe.tablet_vertical_size"),
+    title: i18n.global.t('editor.extensions.iframe.tablet_vertical_size'),
   },
   {
-    width: "1194px",
-    height: "834px",
+    width: '1194px',
+    height: '834px',
     icon: MingcutePadLine,
-    iconStyle: "transform: rotate(90deg)",
-    title: i18n.global.t("editor.extensions.iframe.tablet_horizontal_size"),
+    iconStyle: 'transform: rotate(90deg)',
+    title: i18n.global.t('editor.extensions.iframe.tablet_horizontal_size'),
   },
   {
-    width: "100%",
-    height: "834px",
+    width: '100%',
+    height: '834px',
     icon: MingcuteImacLine,
-    title: i18n.global.t("editor.extensions.iframe.desktop_size"),
+    title: i18n.global.t('editor.extensions.iframe.desktop_size'),
   },
 ];
 </script>

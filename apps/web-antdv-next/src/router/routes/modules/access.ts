@@ -86,6 +86,15 @@ const routes: RouteRecordRaw[] = [
         },
       },
       {
+        name: 'AccessRule',
+        path: 'rule',
+        component: () => import('#/views/access/rule/index.vue'),
+        meta: {
+          title: '资源规则',
+          icon: 'material-symbols:rule-folder',
+        },
+      },
+      {
         name: 'AccessDomain',
         path: 'domain',
         component: () => import('#/views/access/domain/index.vue'),

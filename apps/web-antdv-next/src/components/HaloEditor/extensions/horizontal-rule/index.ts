@@ -1,1 +1,1 @@
-export { HorizontalRule as ExtensionHorizontalRule } from "@tiptap/extension-horizontal-rule";
+export { HorizontalRule as ExtensionHorizontalRule } from '@tiptap/extension-horizontal-rule';

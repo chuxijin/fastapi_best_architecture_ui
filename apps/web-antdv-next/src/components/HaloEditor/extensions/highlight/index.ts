@@ -1,11 +1,14 @@
-import type { HighlightOptions } from "@tiptap/extension-highlight";
-import TiptapHighlight from "@tiptap/extension-highlight";
-import { markRaw } from "vue";
-import MingcuteMarkPenLine from "~icons/mingcute/mark-pen-line";
-import { i18n } from "@HaloEditor/locales";
-import type { Editor } from "@HaloEditor/tiptap";
-import type { ExtensionOptions } from "@HaloEditor/types";
-import HighlightToolbarItem from "./HighlightToolbarItem.vue";
+import type { Editor } from '@HaloEditor/tiptap';
+import type { ExtensionOptions } from '@HaloEditor/types';
+import type { HighlightOptions } from '@tiptap/extension-highlight';
+
+import { markRaw } from 'vue';
+
+import { i18n } from '@HaloEditor/locales';
+import TiptapHighlight from '@tiptap/extension-highlight';
+import MingcuteMarkPenLine from '~icons/mingcute/mark-pen-line';
+
+import HighlightToolbarItem from './HighlightToolbarItem.vue';
 
 export type ExtensionHighlightOptions = ExtensionOptions &
   Partial<HighlightOptions>;
@@ -23,7 +26,7 @@ export const ExtensionHighlight =
               editor,
               isActive: editor.isActive(TiptapHighlight.name),
               icon: markRaw(MingcuteMarkPenLine),
-              title: i18n.global.t("editor.common.highlight"),
+              title: i18n.global.t('editor.common.highlight'),
             },
           };
         },

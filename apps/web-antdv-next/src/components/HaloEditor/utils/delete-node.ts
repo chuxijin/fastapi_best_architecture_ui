@@ -1,5 +1,9 @@
-import type { Editor } from "@HaloEditor/tiptap";
-import { NodeSelection, Transaction, type ResolvedPos } from "@HaloEditor/tiptap/pm";
+/* eslint-disable no-unreachable-loop */
+ 
+import type { Editor } from '@HaloEditor/tiptap';
+import type { ResolvedPos } from '@HaloEditor/tiptap/pm';
+
+import { NodeSelection, Transaction } from '@HaloEditor/tiptap/pm';
 
 export const deleteNodeByPos = ($pos: ResolvedPos) => {
   return (tr: Transaction) => {
@@ -12,7 +16,7 @@ export const deleteNodeByPos = ($pos: ResolvedPos) => {
       const node = $pos.parent;
       if (!node.isTextblock && node.nodeSize) {
         tr.setSelection(
-          NodeSelection.create($pos.doc, $pos.pos)
+          NodeSelection.create($pos.doc, $pos.pos),
         ).deleteSelection();
         return true;
       }
@@ -37,17 +41,17 @@ export const deleteNode = (nodeType: string, editor: Editor) => {
     for (let d = $pos.depth; d > 0; d--) {
       const node = $pos.node(d);
       if (node.type.name === nodeType) {
-        // @ts-ignore
+        // @ts-expect-error
         if (editor.dispatchTransaction)
-          // @ts-ignore
+          // @ts-expect-error
           editor.dispatchTransaction(
-            state.tr.delete($pos.before(d), $pos.after(d)).scrollIntoView()
+            state.tr.delete($pos.before(d), $pos.after(d)).scrollIntoView(),
           );
         return true;
       }
     }
   } else {
-    // @ts-ignore
+    // @ts-expect-error
     const node = state.selection.node;
     if (node && node.type.name === nodeType) {
       editor.chain().deleteSelection().run();
@@ -62,9 +66,9 @@ export const deleteNode = (nodeType: string, editor: Editor) => {
       const node = state.tr.doc.nodeAt(pos);
 
       if (node && node.type.name === nodeType) {
-        // @ts-ignore
+        // @ts-expect-error
         if (editor.dispatchTransaction)
-          // @ts-ignore
+          // @ts-expect-error
           editor.dispatchTransaction(state.tr.delete(pos, pos + node.nodeSize));
         return true;
       }

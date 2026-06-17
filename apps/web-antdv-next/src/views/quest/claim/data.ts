@@ -75,9 +75,9 @@ export function useColumns(
       width: 110,
       cellRender: { name: 'CellTag', props: { colorMap: rewardStatusMap } },
     },
-    { field: 'claim_time', title: '领取时间', width: 168 },
-    { field: 'submit_time', title: '提交时间', width: 168 },
-    { field: 'review_time', title: '审核时间', width: 168 },
+    { field: 'claim_time', title: '领取时间', minWidth: 168 },
+    { field: 'submit_time', title: '提交时间', minWidth: 168 },
+    { field: 'review_time', title: '审核时间', minWidth: 168 },
     {
       field: 'operation',
       title: $t('common.table.operation'),

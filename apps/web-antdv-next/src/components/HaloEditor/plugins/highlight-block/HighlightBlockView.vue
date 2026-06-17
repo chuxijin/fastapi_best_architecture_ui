@@ -1,25 +1,55 @@
 <script lang="ts" setup>
-import { NodeViewWrapper, NodeViewContent, nodeViewProps } from "@tiptap/vue-3";
-import { VDropdown, VButton } from "#/stubs/halo-components";
-import MingcutePaletteLine from "~icons/mingcute/palette-line";
-import { i18n } from "@HaloEditor/locales";
+import { NodeViewContent, nodeViewProps, NodeViewWrapper } from '@tiptap/vue-3';
+import MingcutePaletteLine from '~icons/mingcute/palette-line';
+
+import { VButton, VDropdown } from '#/stubs/halo-components';
 
 const props = defineProps(nodeViewProps);
 
 // Basic color palette
-const textColors = ["#000000", "#9CA3AF", "#EF4444", "#F97316", "#EAB308", "#22C55E", "#3B82F6", "#A855F7"];
-const borderColors = ["transparent", "#E5E7EB", "#FCA5A5", "#FDBA74", "#FDE047", "#86EFAC", "#93C5FD", "#D8B4FE"];
-const bgColors = ["transparent", "#F3F4F6", "#FEE2E2", "#FFEDD5", "#FEF9C3", "#DCFCE7", "#DBEAFE", "#F3E8FF"];
+const textColors = [
+  '#000000',
+  '#9CA3AF',
+  '#EF4444',
+  '#F97316',
+  '#EAB308',
+  '#22C55E',
+  '#3B82F6',
+  '#A855F7',
+];
+const borderColors = [
+  'transparent',
+  '#E5E7EB',
+  '#FCA5A5',
+  '#FDBA74',
+  '#FDE047',
+  '#86EFAC',
+  '#93C5FD',
+  '#D8B4FE',
+];
+const bgColors = [
+  'transparent',
+  '#F3F4F6',
+  '#FEE2E2',
+  '#FFEDD5',
+  '#FEF9C3',
+  '#DCFCE7',
+  '#DBEAFE',
+  '#F3E8FF',
+];
 
-const setAttr = (type: "textColor" | "borderColor" | "backgroundColor" | "icon", value: string) => {
+const setAttr = (
+  type: 'backgroundColor' | 'borderColor' | 'icon' | 'textColor',
+  value: string,
+) => {
   props.updateAttributes({ [type]: value });
 };
 
 const restoreDefault = () => {
   props.updateAttributes({
-    textColor: "inherit",
-    borderColor: "#fb923c",
-    backgroundColor: "#fff7ed",
+    textColor: 'inherit',
+    borderColor: '#fb923c',
+    backgroundColor: '#fff7ed',
   });
 };
 </script>
@@ -44,10 +74,33 @@ const restoreDefault = () => {
       <template #popper>
         <div class="grid grid-cols-6 gap-2 p-3 text-xl w-48">
           <div
-            v-for="emoji in ['💡', '🏕️', '📝', '⚠️', '🔥', '✨', '📌', '✅', '🚀', '💬', '🎉', '🌟', 'ℹ️', '📖', '❤️', '👍', '👀', '🔔']"
+            v-for="emoji in [
+              '💡',
+              '🏕️',
+              '📝',
+              '⚠️',
+              '🔥',
+              '✨',
+              '📌',
+              '✅',
+              '🚀',
+              '💬',
+              '🎉',
+              '🌟',
+              'ℹ️',
+              '📖',
+              '❤️',
+              '👍',
+              '👀',
+              '🔔',
+            ]"
             :key="emoji"
             class="flex size-8 cursor-pointer items-center justify-center rounded hover:bg-gray-100"
-            @click="() => { setAttr('icon', emoji) }"
+            @click="
+              () => {
+                setAttr('icon', emoji);
+              }
+            "
           >
             {{ emoji }}
           </div>
@@ -57,7 +110,9 @@ const restoreDefault = () => {
 
     <!-- 文本内容录入区 -->
     <div class="flex-1 w-0">
-      <NodeViewContent class="w-full highlight-content-inner outline-none min-w-[50px] leading-[1.6]" />
+      <NodeViewContent
+        class="w-full highlight-content-inner outline-none min-w-[50px] leading-[1.6]"
+      />
     </div>
 
     <!-- 悬浮调色盘工具 -->
@@ -78,7 +133,11 @@ const restoreDefault = () => {
             <div>
               <div class="mb-2 flex items-center justify-between">
                 <span class="text-xs text-gray-500">字体颜色</span>
-                <span class="cursor-pointer text-xs text-blue-500 hover:text-blue-600" @click="setAttr('textColor', 'inherit')">重置</span>
+                <span
+                  class="cursor-pointer text-xs text-blue-500 hover:text-blue-600"
+                  @click="setAttr('textColor', 'inherit')"
+                  >重置</span
+                >
               </div>
               <div class="grid grid-cols-8 gap-1.5">
                 <div
@@ -87,7 +146,9 @@ const restoreDefault = () => {
                   class="flex size-6 cursor-pointer items-center justify-center rounded-sm font-serif outline-none ring-1 ring-inset ring-gray-200 hover:ring-2 hover:ring-blue-400 font-bold"
                   :style="{ color: color === 'transparent' ? '#000' : color }"
                   @click="setAttr('textColor', color)"
-                >A</div>
+                >
+                  A
+                </div>
               </div>
             </div>
 
@@ -95,7 +156,11 @@ const restoreDefault = () => {
             <div>
               <div class="mb-2 flex items-center justify-between">
                 <span class="text-xs text-gray-500">边框颜色</span>
-                <span class="text-xs cursor-pointer text-gray-300 hover:text-gray-500" @click="setAttr('borderColor', 'transparent')">清空</span>
+                <span
+                  class="text-xs cursor-pointer text-gray-300 hover:text-gray-500"
+                  @click="setAttr('borderColor', 'transparent')"
+                  >清空</span
+                >
               </div>
               <div class="grid grid-cols-8 gap-1.5">
                 <div
@@ -112,7 +177,11 @@ const restoreDefault = () => {
             <div>
               <div class="mb-2 flex items-center justify-between">
                 <span class="text-xs text-gray-500">填充颜色</span>
-                <span class="text-xs cursor-pointer text-gray-300 hover:text-gray-500" @click="setAttr('backgroundColor', 'transparent')">清空</span>
+                <span
+                  class="text-xs cursor-pointer text-gray-300 hover:text-gray-500"
+                  @click="setAttr('backgroundColor', 'transparent')"
+                  >清空</span
+                >
               </div>
               <div class="grid grid-cols-8 gap-1.5">
                 <div
@@ -125,7 +194,11 @@ const restoreDefault = () => {
               </div>
             </div>
 
-            <VButton class="w-full !mt-5 border-gray-200 text-xs" size="sm" @click="restoreDefault">
+            <VButton
+              class="w-full !mt-5 border-gray-200 text-xs"
+              size="sm"
+              @click="restoreDefault"
+            >
               恢复默认
             </VButton>
           </div>

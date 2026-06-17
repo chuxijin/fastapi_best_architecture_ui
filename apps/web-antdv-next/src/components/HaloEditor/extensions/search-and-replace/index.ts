@@ -1,27 +1,26 @@
-import { h, markRaw, render } from "vue";
-import MingcuteListSearchLine from "~icons/mingcute/list-search-line";
-import { ToolbarItem } from "@HaloEditor/components";
-import { i18n } from "@HaloEditor/locales";
-import { EditorState } from "@HaloEditor/tiptap/pm";
-import { Editor, Extension } from "@HaloEditor/tiptap/vue-3";
-import type { ExtensionOptions } from "@HaloEditor/types";
-import SearchAndReplaceVue from "./SearchAndReplace.vue";
+import type { ExtensionOptions } from '@HaloEditor/types';
+
+import { h, markRaw, render } from 'vue';
+
+import { ToolbarItem } from '@HaloEditor/components';
+import { i18n } from '@HaloEditor/locales';
+import { EditorState } from '@HaloEditor/tiptap/pm';
+import { Editor, Extension } from '@HaloEditor/tiptap/vue-3';
+import MingcuteListSearchLine from '~icons/mingcute/list-search-line';
+
+import SearchAndReplaceVue from './SearchAndReplace.vue';
 import {
   SearchAndReplacePlugin,
   searchAndReplacePluginKey,
-} from "./SearchAndReplacePlugin";
+} from './SearchAndReplacePlugin';
 
-declare module "@HaloEditor/tiptap" {
+declare module '@HaloEditor/tiptap' {
   interface Commands<ReturnType> {
     searchAndReplace: {
       /**
-       * @description Replace first instance of search result with given replace term.
+       * @description Close search panel.
        */
-      replace: () => ReturnType;
-      /**
-       * @description Replace all instances of search result with given replace term.
-       */
-      replaceAll: () => ReturnType;
+      closeSearch: () => ReturnType;
       /**
        * @description Find next instance of search result.
        */
@@ -35,14 +34,17 @@ declare module "@HaloEditor/tiptap" {
        */
       openSearch: () => ReturnType;
       /**
-       * @description Close search panel.
+       * @description Replace first instance of search result with given replace term.
        */
-      closeSearch: () => ReturnType;
+      replace: () => ReturnType;
+      /**
+       * @description Replace all instances of search result with given replace term.
+       */
+      replaceAll: () => ReturnType;
     };
   }
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 const instance = h<any>(SearchAndReplaceVue);
 function isShowSearch() {
   const searchAndReplaceInstance = instance.component;
@@ -53,9 +55,9 @@ function isShowSearch() {
 }
 
 export const ExtensionSearchAndReplace = Extension.create<ExtensionOptions>({
-  name: "searchAndReplace",
+  name: 'searchAndReplace',
 
-  // @ts-ignore
+  // @ts-expect-error: overriding parent addOptions signature
   addOptions() {
     return {
       getToolbarItems({ editor }: { editor: Editor }) {
@@ -68,7 +70,7 @@ export const ExtensionSearchAndReplace = Extension.create<ExtensionOptions>({
               isActive: isShowSearch(),
               icon: markRaw(MingcuteListSearchLine),
               title: i18n.global.t(
-                "editor.extensions.search_and_replace.title"
+                'editor.extensions.search_and_replace.title',
               ),
               action: () => {
                 const searchAndReplaceInstance = instance.component;
@@ -96,9 +98,8 @@ export const ExtensionSearchAndReplace = Extension.create<ExtensionOptions>({
           state,
           dispatch,
         }: {
-          state: EditorState;
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
           dispatch: ((args?: any) => any) | undefined;
+          state: EditorState;
         }) => {
           const searchAndReplaceState =
             searchAndReplacePluginKey.getState(state);
@@ -132,9 +133,8 @@ export const ExtensionSearchAndReplace = Extension.create<ExtensionOptions>({
           state,
           dispatch,
         }: {
-          state: EditorState;
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
           dispatch: ((args?: any) => any) | undefined;
+          state: EditorState;
         }) => {
           const searchAndReplaceState =
             searchAndReplacePluginKey.getState(state);
@@ -164,9 +164,8 @@ export const ExtensionSearchAndReplace = Extension.create<ExtensionOptions>({
           state,
           dispatch,
         }: {
-          state: EditorState;
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
           dispatch: ((args?: any) => any) | undefined;
+          state: EditorState;
         }) => {
           if (dispatch) {
             const tr = state.tr;
@@ -191,9 +190,8 @@ export const ExtensionSearchAndReplace = Extension.create<ExtensionOptions>({
           state,
           dispatch,
         }: {
-          state: EditorState;
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
           dispatch: ((args?: any) => any) | undefined;
+          state: EditorState;
         }) => {
           if (dispatch) {
             const searchAndReplaceState =
@@ -217,9 +215,8 @@ export const ExtensionSearchAndReplace = Extension.create<ExtensionOptions>({
           state,
           dispatch,
         }: {
-          state: EditorState;
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
           dispatch: ((args?: any) => any) | undefined;
+          state: EditorState;
         }) => {
           const searchAndReplaceState =
             searchAndReplacePluginKey.getState(state);
@@ -246,9 +243,8 @@ export const ExtensionSearchAndReplace = Extension.create<ExtensionOptions>({
           state,
           dispatch,
         }: {
-          state: EditorState;
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
           dispatch: ((args?: any) => any) | undefined;
+          state: EditorState;
         }) => {
           const searchAndReplaceState =
             searchAndReplacePluginKey.getState(state);
@@ -272,10 +268,10 @@ export const ExtensionSearchAndReplace = Extension.create<ExtensionOptions>({
   },
 
   addProseMirrorPlugins() {
-    const containerDom = document.createElement("div");
-    containerDom.style.position = "sticky";
-    containerDom.style.top = "0";
-    containerDom.style.zIndex = "50";
+    const containerDom = document.createElement('div');
+    containerDom.style.position = 'sticky';
+    containerDom.style.top = '0';
+    containerDom.style.zIndex = '50';
     instance.props = {
       editor: this.editor,
       pluginKey: searchAndReplacePluginKey,
@@ -292,7 +288,7 @@ export const ExtensionSearchAndReplace = Extension.create<ExtensionOptions>({
 
   addKeyboardShortcuts() {
     return {
-      "Mod-f": () => {
+      'Mod-f': () => {
         this.editor.commands.openSearch();
         return true;
       },

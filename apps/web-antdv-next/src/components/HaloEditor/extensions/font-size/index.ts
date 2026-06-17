@@ -1,25 +1,25 @@
-import {
-  FontSize as TiptapFontSize,
-  type FontSizeOptions,
-} from "@tiptap/extension-text-style";
-import { markRaw } from "vue";
-import MingcuteFontSizeLine from "~icons/mingcute/font-size-line";
-import { ToolbarItem, ToolbarSubItem } from "@HaloEditor/components";
-import { i18n } from "@HaloEditor/locales";
-import { type Editor } from "@HaloEditor/tiptap";
-import type { ExtensionOptions } from "@HaloEditor/types";
+import type { Editor } from '@HaloEditor/tiptap';
+import type { ExtensionOptions } from '@HaloEditor/types';
+import type { FontSizeOptions } from '@tiptap/extension-text-style';
 
-export type ExtensionFontSizeOptions = Partial<FontSizeOptions> &
-  ExtensionOptions;
+import { markRaw } from 'vue';
+
+import { ToolbarItem, ToolbarSubItem } from '@HaloEditor/components';
+import { i18n } from '@HaloEditor/locales';
+import { FontSize as TiptapFontSize } from '@tiptap/extension-text-style';
+import MingcuteFontSizeLine from '~icons/mingcute/font-size-line';
+
+export type ExtensionFontSizeOptions = ExtensionOptions &
+  Partial<FontSizeOptions>;
 
 export const ExtensionFontSize =
   TiptapFontSize.extend<ExtensionFontSizeOptions>({
-    name: "fontSize",
+    name: 'fontSize',
 
     addOptions() {
       return {
         ...this.parent?.(),
-        types: ["textStyle"],
+        types: ['textStyle'],
         getToolbarItems({ editor }: { editor: Editor }) {
           return {
             priority: 31,
@@ -28,7 +28,7 @@ export const ExtensionFontSize =
               editor,
               isActive: false,
               icon: markRaw(MingcuteFontSizeLine),
-              title: i18n.global.t("editor.extensions.font_size.title"),
+              title: i18n.global.t('editor.extensions.font_size.title'),
             },
             children: [
               {
@@ -37,7 +37,7 @@ export const ExtensionFontSize =
                 props: {
                   editor,
                   isActive: false,
-                  title: i18n.global.t("editor.common.text.default"),
+                  title: i18n.global.t('editor.common.text.default'),
                   action: () => editor.chain().focus().unsetFontSize().run(),
                 },
               },
@@ -59,7 +59,7 @@ export const ExtensionFontSize =
                       },
                     },
                   };
-                }
+                },
               ),
             ],
           };

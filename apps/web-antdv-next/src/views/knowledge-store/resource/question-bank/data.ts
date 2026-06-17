@@ -12,7 +12,7 @@ export const querySchema: VbenFormSchema[] = [
   {
     component: 'Input',
     componentProps: {
-      placeholder: '请输入题库名称或编码',
+      placeholder: '请输入内容名称或编码',
     },
     fieldName: 'keyword',
     label: '关键词',
@@ -54,15 +54,15 @@ export const querySchema: VbenFormSchema[] = [
     component: 'Select',
     componentProps: {
       allowClear: true,
-      placeholder: '请选择题库类型',
+      placeholder: '请选择内容类型',
       options: [
-        { label: '普通题库', value: 1 },
+        { label: '习题', value: 1 },
         { label: '试卷', value: 2 },
         { label: '合集', value: 3 },
       ],
     },
     fieldName: 'bank_type',
-    label: '题库类型',
+    label: '内容类型',
     formItemClass: 'md:col-span-1',
   },
 ];
@@ -89,7 +89,7 @@ export function useColumns(
     },
     {
       field: 'info',
-      title: '题库信息',
+      title: '内容信息',
       minWidth: 400,
       align: 'left',
       treeNode: true,
@@ -122,7 +122,11 @@ export function useColumns(
         options: [
           {
             code: 'add',
-            text: '增加子题库',
+            text: '增加子内容',
+          },
+          {
+            code: 'mount',
+            text: '挂载合集',
           },
           {
             code: 'toggle',
@@ -138,11 +142,11 @@ export function useColumns(
             text: '运营',
             icon: undefined,
             items: [
-              { code: 'members', text: '题库学员' },
-              { code: 'activation-codes', text: '题库激活码' },
+              { code: 'members', text: '内容学员' },
+              { code: 'activation-codes', text: '内容激活码' },
               { code: 'video-analysis', text: '解析视频' },
               { code: 'text-analysis', text: '文字解析' },
-              { code: 'invitation-cards', text: '题库邀请卡' },
+              { code: 'invitation-cards', text: '内容邀请卡' },
               { code: 'group-guide', text: '引导加群' },
               { code: 'gift-management', text: '赠品管理' },
               { code: 'daily-practice', text: '每日刷题记录' },
@@ -164,19 +168,19 @@ export const formSchema: VbenFormSchema[] = [
   {
     component: 'Input',
     componentProps: {
-      placeholder: '请输入题库名称',
+      placeholder: '请输入内容名称',
     },
     fieldName: 'name',
-    label: '题库名称',
+    label: '内容名称',
     rules: 'required',
   },
   {
     component: 'Input',
     componentProps: {
-      placeholder: '请输入题库编码',
+      placeholder: '请输入内容编码',
     },
     fieldName: 'code',
-    label: '题库编码',
+    label: '内容编码',
     rules: 'required',
   },
   {
@@ -201,13 +205,13 @@ export const formSchema: VbenFormSchema[] = [
     component: 'RadioGroup',
     componentProps: {
       options: [
-        { label: '普通题库', value: 1 },
+        { label: '习题', value: 1 },
         { label: '试卷', value: 2 },
         { label: '合集', value: 3 },
       ],
     },
     fieldName: 'bank_type',
-    label: '题库类型',
+    label: '内容类型',
     defaultValue: 1,
     rules: 'required',
   },
@@ -224,10 +228,10 @@ export const formSchema: VbenFormSchema[] = [
         }));
       },
       class: 'w-full',
-      placeholder: '请选择父题库（可选）',
+      placeholder: '请选择父合集（可选）',
     },
     fieldName: 'parent_id',
-    label: '所属父题库',
+    label: '所属父合集',
   },
   {
     component: 'ApiSelect',
@@ -235,7 +239,7 @@ export const formSchema: VbenFormSchema[] = [
       allowClear: true,
       api: async () => {
         const { getBankListApi } = await import('#/api');
-        // 只选择有可能作为源的题库（或选择所有）
+        // 只选择有可能作为篇章源的刷题内容（或选择所有）
         const data = await getBankListApi({ bank_type: 1 });
         return data.map((item: any) => ({
           label: item.name,
@@ -247,16 +251,16 @@ export const formSchema: VbenFormSchema[] = [
     },
     fieldName: 'chapter_source_bank_id',
     label: '篇章共享来源',
-    help: '如果选择其他题库，则本科目下建立的任何篇章或导入时新建的目录都会挂载到所选题目上实现篇章复用。',
+    help: '如果选择其他内容，则本科目下建立的任何篇章或导入时新建的目录都会挂载到所选内容上实现篇章复用。',
   },
   {
     component: 'Textarea',
     componentProps: {
-      placeholder: '请输入题库描述',
+      placeholder: '请输入内容描述',
       rows: 3,
     },
     fieldName: 'desc',
-    label: '题库描述',
+    label: '内容描述',
   },
   {
     component: 'Input',

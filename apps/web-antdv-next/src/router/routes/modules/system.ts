@@ -58,6 +58,61 @@ const routes: RouteRecordRaw[] = [
         },
       },
       {
+        name: 'SysLinks',
+        path: '/system/links',
+        meta: {
+          title: '链接管理',
+          icon: 'material-symbols:link',
+        },
+        children: [
+          {
+            name: 'SysLinksDomain',
+            path: '/system/links/domain',
+            component: () => import('#/views/system/links/domain/index.vue'),
+            meta: {
+              title: '域名管理',
+              icon: 'material-symbols:dns-outline',
+            },
+          },
+          {
+            name: 'SysLinksDwz',
+            path: '/system/links/dwz',
+            component: () => import('#/views/system/links/dwz/index.vue'),
+            meta: {
+              title: '短网址',
+              icon: 'material-symbols:link-rounded',
+            },
+          },
+          {
+            name: 'SysLinksQun',
+            path: '/system/links/qun',
+            component: () => import('#/views/system/links/qun/index.vue'),
+            meta: {
+              title: '群活码',
+              icon: 'material-symbols:group-outline',
+            },
+          },
+          {
+            name: 'SysLinksKf',
+            path: '/system/links/kf',
+            component: () => import('#/views/system/links/kf/index.vue'),
+            meta: {
+              title: '客服码',
+              icon: 'material-symbols:support-agent',
+            },
+          },
+          {
+            name: 'SysLinksPage',
+            path: '/system/links/page',
+            component: () => import('#/views/system/links/page/index.vue'),
+            meta: {
+              title: '页面管理',
+              icon: 'material-symbols:file-present-outline',
+            },
+          },
+        ],
+      },
+      {
         name: 'SysDataPermission',
         path: '/system/data-permission',
         meta: {

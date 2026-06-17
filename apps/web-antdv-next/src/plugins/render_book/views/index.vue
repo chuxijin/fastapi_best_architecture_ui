@@ -2004,7 +2004,7 @@ onBeforeUnmount(() => {
         >
           <a-divider>生成预览与试读</a-divider>
           <div class="overflow-x-auto pb-4" style="white-space: nowrap">
-            <a-image.PreviewGroup>
+            <a-image-preview-group>
               <div style="display: inline-flex; gap: 16px">
                 <a-image
                   v-for="(url, idx) in (selectedJobDetail as any).metadata
@@ -2019,7 +2019,7 @@ onBeforeUnmount(() => {
                   "
                 />
               </div>
-            </a-image.PreviewGroup>
+            </a-image-preview-group>
           </div>
         </template>
 

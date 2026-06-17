@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-invalid-void-type */
 import type {
   arrow,
   autoPlacement,
@@ -8,8 +9,7 @@ import type {
   shift,
   size,
   VirtualElement,
-} from "@floating-ui/dom";
-import type { Component } from "vue";
+} from '@floating-ui/dom';
 import type {
   Editor,
   EditorState,
@@ -18,12 +18,14 @@ import type {
   PMNode,
   Range,
   ResolvedPos,
-} from "@HaloEditor/tiptap";
+} from '@HaloEditor/tiptap';
+
+import type { Component } from 'vue';
 
 export interface ToolbarItemType {
   priority: number;
   component: Component;
-  props: Omit<ToolbarItemComponentProps, "children"> & Record<string, unknown>;
+  props: Omit<ToolbarItemComponentProps, 'children'> & Record<string, unknown>;
   children?: ToolbarItemType[];
 }
 
@@ -38,28 +40,28 @@ export interface ToolbarItemComponentProps {
 }
 
 export interface BubbleMenuOptions {
-  strategy?: "absolute" | "fixed";
+  strategy?: 'absolute' | 'fixed';
   placement?:
-    | "top"
-    | "right"
-    | "bottom"
-    | "left"
-    | "top-start"
-    | "top-end"
-    | "right-start"
-    | "right-end"
-    | "bottom-start"
-    | "bottom-end"
-    | "left-start"
-    | "left-end";
-  offset?: Parameters<typeof offset>[0] | boolean;
-  flip?: Parameters<typeof flip>[0] | boolean;
-  shift?: Parameters<typeof shift>[0] | boolean;
-  arrow?: Parameters<typeof arrow>[0] | false;
-  size?: Parameters<typeof size>[0] | boolean;
-  autoPlacement?: Parameters<typeof autoPlacement>[0] | boolean;
-  hide?: Parameters<typeof hide>[0] | boolean;
-  inline?: Parameters<typeof inline>[0] | boolean;
+    | 'bottom'
+    | 'bottom-end'
+    | 'bottom-start'
+    | 'left'
+    | 'left-end'
+    | 'left-start'
+    | 'right'
+    | 'right-end'
+    | 'right-start'
+    | 'top'
+    | 'top-end'
+    | 'top-start';
+  offset?: boolean | Parameters<typeof offset>[0];
+  flip?: boolean | Parameters<typeof flip>[0];
+  shift?: boolean | Parameters<typeof shift>[0];
+  arrow?: false | Parameters<typeof arrow>[0];
+  size?: boolean | Parameters<typeof size>[0];
+  autoPlacement?: boolean | Parameters<typeof autoPlacement>[0];
+  hide?: boolean | Parameters<typeof hide>[0];
+  inline?: boolean | Parameters<typeof inline>[0];
   onShow?: () => void;
   onHide?: () => void;
   onUpdate?: () => void;
@@ -76,16 +78,16 @@ export interface DragButtonItemProps {
   extendsKey?: string;
   priority?: number;
   title?:
-    | string
     | (({
         editor,
         node,
         pos,
       }: {
         editor: Editor;
-        node: PMNode | null;
+        node: null | PMNode;
         pos: number;
-      }) => string);
+      }) => string)
+    | string;
   icon?: Component;
   key?: string;
   action?: ({
@@ -94,11 +96,11 @@ export interface DragButtonItemProps {
     pos,
     close,
   }: {
-    editor: Editor;
-    node: PMNode | null;
-    pos: number;
     close: () => void;
-  }) => Component | boolean | void | Promise<Component | boolean | void>;
+    editor: Editor;
+    node: null | PMNode;
+    pos: number;
+  }) => boolean | Component | Promise<boolean | Component | void> | void;
   iconStyle?: string;
   class?: string;
   visible?: ({
@@ -107,7 +109,7 @@ export interface DragButtonItemProps {
     pos,
   }: {
     editor: Editor;
-    node: PMNode | null;
+    node: null | PMNode;
     pos: number;
   }) => boolean;
   isActive?: ({
@@ -116,7 +118,7 @@ export interface DragButtonItemProps {
     pos,
   }: {
     editor: Editor;
-    node: PMNode | null;
+    node: null | PMNode;
     pos: number;
   }) => boolean;
   disabled?: ({
@@ -125,7 +127,7 @@ export interface DragButtonItemProps {
     pos,
   }: {
     editor: Editor;
-    node: PMNode | null;
+    node: null | PMNode;
     pos: number;
   }) => boolean;
   keyboard?: string;
@@ -140,33 +142,33 @@ export interface DragButtonType extends DragButtonItemProps {
 }
 
 export interface BubbleMenuProps {
-  pluginKey?: string | PluginKey;
+  pluginKey?: PluginKey | string;
   editor?: Editor;
   shouldShow?: (props: {
     editor: Editor;
     element: HTMLElement;
-    view: EditorView;
-    state: EditorState;
-    oldState?: EditorState;
     from: number;
+    oldState?: EditorState;
+    state: EditorState;
     to: number;
+    view: EditorView;
   }) => boolean;
-  appendTo?: HTMLElement | (() => HTMLElement) | undefined;
-  getReferencedVirtualElement?: () => VirtualElement | null;
+  appendTo?: (() => HTMLElement) | HTMLElement | undefined;
+  getReferencedVirtualElement?: () => null | VirtualElement;
   options?: BubbleMenuOptions | null;
 }
 
 export interface NodeBubbleMenuType extends BubbleMenuProps {
   component?: Component;
   items?: BubbleItemType[];
-  extendsKey?: string | PluginKey;
+  extendsKey?: PluginKey | string;
 }
 
 export interface BubbleItemType {
   priority: number;
   component?: Component;
   key?: string;
-  props?: Omit<BubbleItemComponentProps, "editor"> & Record<string, unknown>;
+  props?: Omit<BubbleItemComponentProps, 'editor'> & Record<string, unknown>;
 }
 
 export interface BubbleItemComponentProps {
@@ -176,13 +178,13 @@ export interface BubbleItemComponentProps {
   icon?: Component;
   iconStyle?: string;
   title?: string;
-  action?: ({ editor }: { editor: Editor }) => Component | boolean | void;
+  action?: ({ editor }: { editor: Editor }) => boolean | Component | void;
 }
 
 export interface ToolboxItemType {
   priority: number;
   component: Component;
-  props: ToolboxItemComponentProps & Record<string, unknown>;
+  props: Record<string, unknown> & ToolboxItemComponentProps;
 }
 
 export interface ToolboxItemComponentProps {

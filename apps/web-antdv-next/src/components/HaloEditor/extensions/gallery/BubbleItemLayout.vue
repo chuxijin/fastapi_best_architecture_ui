@@ -1,32 +1,36 @@
 <script setup lang="ts">
-import { VDropdown } from "#/stubs/halo-components";
-import { computed, ref } from "vue";
-import MingcuteLayout10Line from "~icons/mingcute/layout-10-line";
-import MingcuteLayoutGridLine from "~icons/mingcute/layout-grid-line";
-import { BlockActionSeparator } from "@HaloEditor/components";
-import DropdownItem from "@HaloEditor/components/base/DropdownItem.vue";
-import BubbleButton from "@HaloEditor/components/bubble/BubbleButton.vue";
-import { i18n } from "@HaloEditor/locales";
-import type { BubbleItemComponentProps } from "@HaloEditor/types";
-import { ExtensionGallery } from "./index";
+import type { BubbleItemComponentProps } from '@HaloEditor/types';
+
+import { computed, ref } from 'vue';
+
+import { BlockActionSeparator } from '@HaloEditor/components';
+import DropdownItem from '@HaloEditor/components/base/DropdownItem.vue';
+import BubbleButton from '@HaloEditor/components/bubble/BubbleButton.vue';
+import { i18n } from '@HaloEditor/locales';
+import MingcuteLayout10Line from '~icons/mingcute/layout-10-line';
+import MingcuteLayoutGridLine from '~icons/mingcute/layout-grid-line';
+
+import { VDropdown } from '#/stubs/halo-components';
+
+import { ExtensionGallery } from './index';
 
 const props = defineProps<BubbleItemComponentProps>();
 
 const dropdownRef = ref();
 
 const layout = computed(() => {
-  return props.editor.getAttributes(ExtensionGallery.name).layout || "auto";
+  return props.editor.getAttributes(ExtensionGallery.name).layout || 'auto';
 });
 
 const options = [
   {
-    label: i18n.global.t("editor.extensions.gallery.layout.auto"),
-    value: "auto",
+    label: i18n.global.t('editor.extensions.gallery.layout.auto'),
+    value: 'auto',
     icon: MingcuteLayout10Line,
   },
   {
-    label: i18n.global.t("editor.extensions.gallery.layout.square"),
-    value: "square",
+    label: i18n.global.t('editor.extensions.gallery.layout.square'),
+    value: 'square',
     icon: MingcuteLayoutGridLine,
   },
 ];

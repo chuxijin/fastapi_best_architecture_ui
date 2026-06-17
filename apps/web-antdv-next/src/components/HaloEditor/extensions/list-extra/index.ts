@@ -1,32 +1,35 @@
-import { Editor, Extension } from "@tiptap/core";
-import { markRaw } from "vue";
-import MingcuteListCheck3Line from "~icons/mingcute/list-check-3-line";
-import MingcuteListCheckLine from "~icons/mingcute/list-check-line";
-import MingcuteListOrderedLine from "~icons/mingcute/list-ordered-line";
-import ToolbarItem from "@HaloEditor/components/toolbar/ToolbarItem.vue";
-import ToolbarSubItem from "@HaloEditor/components/toolbar/ToolbarSubItem.vue";
-import { i18n } from "@HaloEditor/locales";
-import type { ExtensionOptions, ToolbarItemType } from "@HaloEditor/types";
-import { ExtensionBulletList } from "../bullet-list";
-import { ExtensionOrderedList } from "../ordered-list";
-import { ExtensionTaskList } from "../task-list";
+import type { ExtensionOptions, ToolbarItemType } from '@HaloEditor/types';
 
-const listExtensionNames = [
+import { markRaw } from 'vue';
+
+import ToolbarItem from '@HaloEditor/components/toolbar/ToolbarItem.vue';
+import ToolbarSubItem from '@HaloEditor/components/toolbar/ToolbarSubItem.vue';
+import { i18n } from '@HaloEditor/locales';
+import { Editor, Extension } from '@tiptap/core';
+import MingcuteListCheck3Line from '~icons/mingcute/list-check-3-line';
+import MingcuteListCheckLine from '~icons/mingcute/list-check-line';
+import MingcuteListOrderedLine from '~icons/mingcute/list-ordered-line';
+
+import { ExtensionBulletList } from '../bullet-list';
+import { ExtensionOrderedList } from '../ordered-list';
+import { ExtensionTaskList } from '../task-list';
+
+const listExtensionNames = new Set([
   ExtensionBulletList.name,
   ExtensionOrderedList.name,
   ExtensionTaskList.name,
-];
+]);
 
 /**
  * Add toolbar items for list, include bullet list, ordered list and task list.
  */
 export const ExtensionListExtra = Extension.create<ExtensionOptions>({
-  name: "list-extra",
+  name: 'list-extra',
   addOptions() {
     return {
       getToolbarItems({ editor }) {
         const isListExtensionLoaded = editor.extensionManager.extensions.some(
-          (extension) => listExtensionNames.includes(extension.name)
+          (extension) => listExtensionNames.has(extension.name),
         );
         if (!isListExtensionLoaded) {
           return [];
@@ -39,7 +42,7 @@ export const ExtensionListExtra = Extension.create<ExtensionOptions>({
             editor,
             isActive: isListActive(editor),
             icon: markRaw(getListIcon(editor)),
-            title: i18n.global.t("editor.common.list"),
+            title: i18n.global.t('editor.common.list'),
           },
           children: getListItems(editor),
         };
@@ -71,7 +74,7 @@ function getListIcon(editor: Editor) {
 
 function isListExtensionLoaded(editor: Editor, extensionName: string) {
   return editor.extensionManager.extensions.some(
-    (extension) => extension.name === extensionName
+    (extension) => extension.name === extensionName,
   );
 }
 
@@ -85,7 +88,7 @@ function getListItems(editor: Editor) {
         editor,
         isActive: editor.isActive(ExtensionBulletList.name),
         icon: markRaw(MingcuteListCheckLine),
-        title: i18n.global.t("editor.common.bullet_list"),
+        title: i18n.global.t('editor.common.bullet_list'),
         action: () => editor.chain().focus().toggleBulletList().run(),
       },
     });
@@ -99,7 +102,7 @@ function getListItems(editor: Editor) {
         editor,
         isActive: editor.isActive(ExtensionOrderedList.name),
         icon: markRaw(MingcuteListOrderedLine),
-        title: i18n.global.t("editor.common.ordered_list"),
+        title: i18n.global.t('editor.common.ordered_list'),
         action: () => editor.chain().focus().toggleOrderedList().run(),
       },
     });
@@ -113,7 +116,7 @@ function getListItems(editor: Editor) {
         editor,
         isActive: editor.isActive(ExtensionTaskList.name),
         icon: markRaw(MingcuteListCheck3Line),
-        title: i18n.global.t("editor.common.task_list"),
+        title: i18n.global.t('editor.common.task_list'),
         action: () => editor.chain().focus().toggleTaskList().run(),
       },
     });

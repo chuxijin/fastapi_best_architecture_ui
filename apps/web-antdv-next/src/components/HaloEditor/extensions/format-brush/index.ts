@@ -1,12 +1,15 @@
-import { markRaw } from "vue";
-import MingcuteBrush3Line from "~icons/mingcute/brush-3-line";
-import ToolbarItem from "@HaloEditor/components/toolbar/ToolbarItem.vue";
-import { i18n } from "@HaloEditor/locales";
-import { Editor, Extension, Plugin, PluginKey } from "@HaloEditor/tiptap";
-import type { ExtensionOptions } from "@HaloEditor/types";
-import { getMarksByFirstTextNode, setMarks } from "./util";
+import type { ExtensionOptions } from '@HaloEditor/types';
 
-declare module "@HaloEditor/tiptap" {
+import { markRaw } from 'vue';
+
+import ToolbarItem from '@HaloEditor/components/toolbar/ToolbarItem.vue';
+import { i18n } from '@HaloEditor/locales';
+import { Editor, Extension, Plugin, PluginKey } from '@HaloEditor/tiptap';
+import MingcuteBrush3Line from '~icons/mingcute/brush-3-line';
+
+import { getMarksByFirstTextNode, setMarks } from './util';
+
+declare module '@HaloEditor/tiptap' {
   interface Commands<ReturnType> {
     formatBrush: {
       copyFormatBrush: () => ReturnType;
@@ -17,7 +20,7 @@ declare module "@HaloEditor/tiptap" {
 
 export interface ExtensionFormatBrushStore {
   formatBrush: boolean;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+
   formatBrushMarks: any[];
 }
 
@@ -25,14 +28,14 @@ export const ExtensionFormatBrush = Extension.create<
   ExtensionOptions,
   ExtensionFormatBrushStore
 >({
-  name: "formatBrush",
+  name: 'formatBrush',
 
   addOptions() {
     return {
       ...this.parent?.(),
       getToolbarItems({ editor }: { editor: Editor }) {
         const formatBrush =
-          editor.view.dom.classList.contains("format-brush-mode");
+          editor.view.dom.classList.contains('format-brush-mode');
         return {
           priority: 25,
           component: markRaw(ToolbarItem),
@@ -42,10 +45,10 @@ export const ExtensionFormatBrush = Extension.create<
             icon: markRaw(MingcuteBrush3Line),
             title: formatBrush
               ? i18n.global.t(
-                  "editor.extensions.format_brush.toolbar_item.cancel"
+                  'editor.extensions.format_brush.toolbar_item.cancel',
                 )
               : i18n.global.t(
-                  "editor.extensions.format_brush.toolbar_item.title"
+                  'editor.extensions.format_brush.toolbar_item.title',
                 ),
             action: () => {
               if (formatBrush) {
@@ -68,13 +71,13 @@ export const ExtensionFormatBrush = Extension.create<
           const markRange = getMarksByFirstTextNode(state);
           this.storage.formatBrushMarks = markRange;
           this.storage.formatBrush = true;
-          this.editor.view.dom.classList.add("format-brush-mode");
+          this.editor.view.dom.classList.add('format-brush-mode');
           return true;
         },
       pasteFormatBrush: () => () => {
         this.storage.formatBrushMarks = [];
         this.storage.formatBrush = false;
-        this.editor.view.dom.classList.remove("format-brush-mode");
+        this.editor.view.dom.classList.remove('format-brush-mode');
         return true;
       },
     };
@@ -92,7 +95,7 @@ export const ExtensionFormatBrush = Extension.create<
     const editor = this.editor;
     return [
       new Plugin({
-        key: new PluginKey("formatBrushPlugin"),
+        key: new PluginKey('formatBrushPlugin'),
         props: {
           handleDOMEvents: {
             mouseup(view) {
@@ -116,7 +119,7 @@ export const ExtensionFormatBrush = Extension.create<
 
   addKeyboardShortcuts() {
     return {
-      "Shift-Mod-c": () => {
+      'Shift-Mod-c': () => {
         this.editor.commands.copyFormatBrush();
         return true;
       },

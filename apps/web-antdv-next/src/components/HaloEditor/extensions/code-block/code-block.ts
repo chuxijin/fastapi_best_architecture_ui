@@ -1,32 +1,34 @@
-import TiptapCodeBlock from "@tiptap/extension-code-block";
-import { markRaw } from "vue";
-import MingcuteBracesLine from "~icons/mingcute/braces-line";
-import MingcuteDelete2Line from "@HaloEditor/components/icon/MingcuteDelete2Line.vue";
-import ToolbarItem from "@HaloEditor/components/toolbar/ToolbarItem.vue";
-import ToolboxItem from "@HaloEditor/components/toolbox/ToolboxItem.vue";
-import { i18n } from "@HaloEditor/locales";
+import type { CommandProps, Range } from '@HaloEditor/tiptap';
+import type { Transaction } from '@HaloEditor/tiptap/pm';
+import type { ExtensionOptions } from '@HaloEditor/types';
+
+import { markRaw } from 'vue';
+
+import MingcuteDelete2Line from '@HaloEditor/components/icon/MingcuteDelete2Line.vue';
+import ToolbarItem from '@HaloEditor/components/toolbar/ToolbarItem.vue';
+import ToolboxItem from '@HaloEditor/components/toolbox/ToolboxItem.vue';
+import { i18n } from '@HaloEditor/locales';
 import {
   Editor,
-  VueNodeViewRenderer,
   findParentNode,
   isActive,
   isNodeActive,
   posToDOMRect,
-  type CommandProps,
-  type Range,
-} from "@HaloEditor/tiptap";
+  VueNodeViewRenderer,
+} from '@HaloEditor/tiptap';
 import {
   EditorState,
   Plugin,
   PluginKey,
   TextSelection,
-  type Transaction,
-} from "@HaloEditor/tiptap/pm";
-import type { ExtensionOptions } from "@HaloEditor/types";
-import { deleteNode } from "@HaloEditor/utils";
-import CodeBlockViewRenderer from "./CodeBlockViewRenderer.vue";
+} from '@HaloEditor/tiptap/pm';
+import { deleteNode } from '@HaloEditor/utils';
+import TiptapCodeBlock from '@tiptap/extension-code-block';
+import MingcuteBracesLine from '~icons/mingcute/braces-line';
 
-declare module "@HaloEditor/tiptap" {
+import CodeBlockViewRenderer from './CodeBlockViewRenderer.vue';
+
+declare module '@HaloEditor/tiptap' {
   interface Commands<ReturnType> {
     codeIndent: {
       codeIndent: () => ReturnType;
@@ -35,7 +37,7 @@ declare module "@HaloEditor/tiptap" {
   }
 }
 
-type IndentType = "indent" | "outdent";
+type IndentType = 'indent' | 'outdent';
 
 const updateIndent = (tr: Transaction, type: IndentType): Transaction => {
   const { doc, selection } = tr;
@@ -45,28 +47,28 @@ const updateIndent = (tr: Transaction, type: IndentType): Transaction => {
   }
   const { from, to } = selection;
   doc.nodesBetween(from, to, (_node, pos) => {
-    if (from - to == 0 && type === "indent") {
-      tr.insertText("  ", from, to);
+    if (from - to === 0 && type === 'indent') {
+      tr.insertText('  ', from, to);
       return false;
     }
 
-    const precedeContent = doc.textBetween(pos + 1, from, "\n");
-    const precedeLineBreakPos = precedeContent.lastIndexOf("\n");
+    const precedeContent = doc.textBetween(pos + 1, from, '\n');
+    const precedeLineBreakPos = precedeContent.lastIndexOf('\n');
     const startBetWeenIndex =
       precedeLineBreakPos === -1 ? pos + 1 : pos + precedeLineBreakPos + 1;
-    const text = doc.textBetween(startBetWeenIndex, to, "\n");
-    if (type === "indent") {
-      let replacedStr = text.replace(/\n/g, "\n  ");
+    const text = doc.textBetween(startBetWeenIndex, to, '\n');
+    if (type === 'indent') {
+      let replacedStr = text.replaceAll('\n', '\n  ');
       if (startBetWeenIndex === pos + 1) {
-        replacedStr = "  " + replacedStr;
+        replacedStr = `  ${replacedStr}`;
       }
       tr.insertText(replacedStr, startBetWeenIndex, to);
     } else {
-      let replacedStr = text.replace(/\n {2}/g, "\n");
+      let replacedStr = text.replaceAll(/\n {2}/g, '\n');
       if (startBetWeenIndex === pos + 1) {
-        const firstNewLineIndex = replacedStr.indexOf("  ");
-        if (firstNewLineIndex == 0) {
-          replacedStr = replacedStr.replace("  ", "");
+        const firstNewLineIndex = replacedStr.indexOf('  ');
+        if (firstNewLineIndex === 0) {
+          replacedStr = replacedStr.replace('  ', '');
         }
       }
       tr.insertText(replacedStr, startBetWeenIndex, to);
@@ -98,20 +100,20 @@ export interface CodeBlockOptions {
    * @default {}
    * @example { class: 'foo' }
    */
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+
   HTMLAttributes: Record<string, any>;
 
   /**
    * The default language for code block
    * @default null
    */
-  defaultLanguage: string | null | undefined;
+  defaultLanguage: null | string | undefined;
 
   /**
    * The default theme for code block
    * @default null
    */
-  defaultTheme: string | null | undefined;
+  defaultTheme: null | string | undefined;
 }
 
 export interface ExtensionCodeBlockOptions extends CodeBlockOptions {
@@ -121,11 +123,11 @@ export interface ExtensionCodeBlockOptions extends CodeBlockOptions {
    * @default []
    */
   languages:
-    | Array<Option>
     | ((state: EditorState) => Array<{
         label: string;
         value: string;
-      }>);
+      }>)
+    | Array<Option>;
 
   /**
    * Used for theme list
@@ -133,17 +135,17 @@ export interface ExtensionCodeBlockOptions extends CodeBlockOptions {
    * @default []
    */
   themes?:
-    | Array<{
-        label: string;
-        value: string;
-      }>
     | ((state: EditorState) => Array<{
         label: string;
         value: string;
-      }>);
+      }>)
+    | Array<{
+        label: string;
+        value: string;
+      }>;
 }
 
-export const CODE_BLOCK_BUBBLE_MENU_KEY = new PluginKey("codeBlockBubbleMenu");
+export const CODE_BLOCK_BUBBLE_MENU_KEY = new PluginKey('codeBlockBubbleMenu');
 
 export const ExtensionCodeBlock = TiptapCodeBlock.extend<
   ExtensionOptions & Partial<ExtensionCodeBlockOptions>
@@ -161,7 +163,7 @@ export const ExtensionCodeBlock = TiptapCodeBlock.extend<
       ...this.parent?.(),
       collapsed: {
         default: false,
-        parseHTML: (element) => !!element.getAttribute("collapsed"),
+        parseHTML: (element) => !!element.getAttribute('collapsed'),
         renderHTML: (attributes) => {
           if (attributes.collapsed) {
             return {
@@ -173,7 +175,7 @@ export const ExtensionCodeBlock = TiptapCodeBlock.extend<
       },
       theme: {
         default: this.options.defaultTheme,
-        parseHTML: (element) => element.getAttribute("theme") || null,
+        parseHTML: (element) => element.getAttribute('theme') || null,
         renderHTML: (attributes) => {
           if (attributes.theme) {
             return {
@@ -194,7 +196,7 @@ export const ExtensionCodeBlock = TiptapCodeBlock.extend<
         ({ tr, state, dispatch }: CommandProps) => {
           const { selection } = state;
           tr = tr.setSelection(selection);
-          tr = updateIndent(tr, "indent");
+          tr = updateIndent(tr, 'indent');
           if (tr.docChanged && dispatch) {
             dispatch(tr);
             return true;
@@ -206,7 +208,7 @@ export const ExtensionCodeBlock = TiptapCodeBlock.extend<
         ({ tr, state, dispatch }: CommandProps) => {
           const { selection } = state;
           tr = tr.setSelection(selection);
-          tr = updateIndent(tr, "outdent");
+          tr = updateIndent(tr, 'outdent');
           if (tr.docChanged && dispatch) {
             dispatch(tr);
             return true;
@@ -237,7 +239,7 @@ export const ExtensionCodeBlock = TiptapCodeBlock.extend<
         const { $anchor } = selection;
         const isAtStart = $anchor.parentOffset === 0;
         // If the cursor is at the beginning of the code block or the code block is empty, it is not deleted.
-        if (isAtStart || !$anchor.parent.textContent.length) {
+        if (isAtStart || $anchor.parent.textContent.length === 0) {
           return true;
         }
 
@@ -249,17 +251,17 @@ export const ExtensionCodeBlock = TiptapCodeBlock.extend<
         }
         return false;
       },
-      "Shift-Tab": () => {
+      'Shift-Tab': () => {
         if (this.editor.isActive(TiptapCodeBlock.name)) {
           return this.editor.chain().focus().codeOutdent().run();
         }
         return false;
       },
-      "Mod-a": () => {
+      'Mod-a': () => {
         if (this.editor.isActive(TiptapCodeBlock.name)) {
           const { tr, selection } = this.editor.state;
           const codeBlack = findParentNode(
-            (node) => node.type.name === TiptapCodeBlock.name
+            (node) => node.type.name === TiptapCodeBlock.name,
           )(selection);
           if (!codeBlack) {
             return false;
@@ -269,7 +271,7 @@ export const ExtensionCodeBlock = TiptapCodeBlock.extend<
           const $head = tr.doc.resolve(head);
           const $anchor = tr.doc.resolve(anchor);
           this.editor.view.dispatch(
-            tr.setSelection(new TextSelection($head, $anchor))
+            tr.setSelection(new TextSelection($head, $anchor)),
           );
           return true;
         }
@@ -296,7 +298,7 @@ export const ExtensionCodeBlock = TiptapCodeBlock.extend<
             editor,
             isActive: editor.isActive(TiptapCodeBlock.name),
             icon: markRaw(MingcuteBracesLine),
-            title: i18n.global.t("editor.common.codeblock.title"),
+            title: i18n.global.t('editor.common.codeblock.title'),
             action: () => editor.chain().focus().toggleCodeBlock().run(),
           },
         };
@@ -305,8 +307,8 @@ export const ExtensionCodeBlock = TiptapCodeBlock.extend<
         return {
           priority: 80,
           icon: markRaw(MingcuteBracesLine),
-          title: "editor.common.codeblock.title",
-          keywords: ["codeblock", "daimakuai"],
+          title: 'editor.common.codeblock.title',
+          keywords: ['codeblock', 'daimakuai'],
           command: ({ editor, range }: { editor: Editor; range: Range }) => {
             editor.chain().focus().deleteRange(range).setCodeBlock().run();
           },
@@ -320,7 +322,7 @@ export const ExtensionCodeBlock = TiptapCodeBlock.extend<
             props: {
               editor,
               icon: markRaw(MingcuteBracesLine),
-              title: i18n.global.t("editor.common.codeblock.title"),
+              title: i18n.global.t('editor.common.codeblock.title'),
               action: () => {
                 editor.chain().focus().setCodeBlock().run();
               },
@@ -335,7 +337,7 @@ export const ExtensionCodeBlock = TiptapCodeBlock.extend<
             return isActive(state, TiptapCodeBlock.name);
           },
           options: {
-            placement: "top-start",
+            placement: 'top-start',
           },
           getReferencedVirtualElement() {
             const editor = this.editor;
@@ -343,13 +345,13 @@ export const ExtensionCodeBlock = TiptapCodeBlock.extend<
               return null;
             }
             const parentNode = findParentNode(
-              (node) => node.type.name === ExtensionCodeBlock.name
+              (node) => node.type.name === ExtensionCodeBlock.name,
             )(editor.state.selection);
             if (parentNode) {
               const domRect = posToDOMRect(
                 editor.view,
                 parentNode.pos,
-                parentNode.pos + parentNode.node.nodeSize
+                parentNode.pos + parentNode.node.nodeSize,
               );
               return {
                 getBoundingClientRect: () => domRect,
@@ -363,7 +365,7 @@ export const ExtensionCodeBlock = TiptapCodeBlock.extend<
               priority: 10,
               props: {
                 icon: markRaw(MingcuteDelete2Line),
-                title: i18n.global.t("editor.common.button.delete"),
+                title: i18n.global.t('editor.common.button.delete'),
                 action: ({ editor }: { editor: Editor }) =>
                   deleteNode(TiptapCodeBlock.name, editor),
               },
@@ -381,7 +383,7 @@ export const ExtensionCodeBlock = TiptapCodeBlock.extend<
       // handled manually locally.
       // see: https://github.com/ueberdosis/tiptap/pull/3606
       new Plugin({
-        key: new PluginKey("codeBlockVSCodeHandlerFixPaste"),
+        key: new PluginKey('codeBlockVSCodeHandlerFixPaste'),
         props: {
           handlePaste: (view, event) => {
             if (!event.clipboardData) {
@@ -392,8 +394,8 @@ export const ExtensionCodeBlock = TiptapCodeBlock.extend<
               return false;
             }
 
-            const text = event.clipboardData.getData("text/plain");
-            const vscode = event.clipboardData.getData("vscode-editor-data");
+            const text = event.clipboardData.getData('text/plain');
+            const vscode = event.clipboardData.getData('vscode-editor-data');
             const vscodeData = vscode ? JSON.parse(vscode) : undefined;
             const language = vscodeData?.mode;
 
@@ -406,11 +408,13 @@ export const ExtensionCodeBlock = TiptapCodeBlock.extend<
             // add text to code block
             // strip carriage return chars from text pasted as code
             // see: https://github.com/ProseMirror/prosemirror-view/commit/a50a6bcceb4ce52ac8fcc6162488d8875613aacd
-            const contentTextNode = schema.text(text.replace(/\r\n?/g, "\n"));
+            const contentTextNode = schema.text(
+              text.replaceAll(/\r\n?/g, '\n'),
+            );
 
             // create an empty code block
             tr.replaceSelectionWith(
-              this.type.create({ language }, contentTextNode)
+              this.type.create({ language }, contentTextNode),
             );
 
             const { selection } = tr;
@@ -428,7 +432,7 @@ export const ExtensionCodeBlock = TiptapCodeBlock.extend<
             // store meta information
             // this is useful for other plugins that depends on the paste event
             // like the paste rule plugin
-            tr.setMeta("paste", true);
+            tr.setMeta('paste', true);
 
             view.dispatch(tr);
 

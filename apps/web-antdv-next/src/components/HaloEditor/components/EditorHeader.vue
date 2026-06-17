@@ -1,8 +1,9 @@
 <script lang="ts" setup>
-import { Dropdown as VDropdown } from "floating-vue";
-import MingcuteAddCircleFill from "~icons/mingcute/add-circle-fill";
-import { type AnyExtension, VueEditor } from "@HaloEditor/tiptap";
-import type { ToolbarItemType, ToolboxItemType } from "@HaloEditor/types";
+import type { ToolbarItemType, ToolboxItemType } from '@HaloEditor/types';
+
+import { VueEditor } from '@HaloEditor/tiptap';
+import { Dropdown as VDropdown } from 'floating-vue';
+import MingcuteAddCircleFill from '~icons/mingcute/add-circle-fill';
 
 const props = defineProps({
   editor: {
@@ -13,48 +14,48 @@ const props = defineProps({
 
 function getToolbarItemsFromExtensions() {
   const extensionManager = props.editor?.extensionManager;
-  return extensionManager.extensions
-    .reduce((acc: ToolbarItemType[], extension: AnyExtension) => {
-      const { getToolbarItems } = extension.options;
+  const acc: ToolbarItemType[] = [];
+  for (const extension of extensionManager.extensions) {
+    const { getToolbarItems } = extension.options;
 
-      if (!getToolbarItems) {
-        return acc;
-      }
+    if (!getToolbarItems) {
+      continue;
+    }
 
-      const items = getToolbarItems({
-        editor: props.editor,
-      });
+    const items = getToolbarItems({
+      editor: props.editor,
+    });
 
-      if (Array.isArray(items)) {
-        return [...acc, ...items];
-      }
-
-      return [...acc, items];
-    }, [])
-    .sort((a, b) => a.priority - b.priority);
+    if (Array.isArray(items)) {
+      acc.push(...items);
+    } else {
+      acc.push(items);
+    }
+  }
+  return acc.toSorted((a, b) => a.priority - b.priority);
 }
 
 function getToolboxItemsFromExtensions() {
   const extensionManager = props.editor?.extensionManager;
-  return extensionManager.extensions
-    .reduce((acc: ToolboxItemType[], extension: AnyExtension) => {
-      const { getToolboxItems } = extension.options;
+  const acc: ToolboxItemType[] = [];
+  for (const extension of extensionManager.extensions) {
+    const { getToolboxItems } = extension.options;
 
-      if (!getToolboxItems) {
-        return acc;
-      }
+    if (!getToolboxItems) {
+      continue;
+    }
 
-      const items = getToolboxItems({
-        editor: props.editor,
-      });
+    const items = getToolboxItems({
+      editor: props.editor,
+    });
 
-      if (Array.isArray(items)) {
-        return [...acc, ...items];
-      }
-
-      return [...acc, items];
-    }, [])
-    .sort((a, b) => a.priority - b.priority);
+    if (Array.isArray(items)) {
+      acc.push(...items);
+    } else {
+      acc.push(items);
+    }
+  }
+  return acc.toSorted((a, b) => a.priority - b.priority);
 }
 
 function omitProps(obj: Record<string, any>) {

@@ -153,7 +153,8 @@ export const schema: VbenFormSchema[] = [
     fieldName: 'slot_type',
     label: '形态',
     rules: 'required',
-    componentProps: { options: slotTypeOptions },
+    componentProps: { options: slotTypeOptions, class: 'w-full' },
+    formItemClass: 'col-span-2',
   },
   {
     component: 'Input',
@@ -176,19 +177,14 @@ export const schema: VbenFormSchema[] = [
     fieldName: 'subtitle',
     label: '副标题/摘要',
     componentProps: { maxLength: 255 },
-  },
-  {
-    component: 'Input',
-    fieldName: 'image_url',
-    label: '主图 URL',
-    componentProps: { maxLength: 500 },
+    formItemClass: 'col-span-2',
   },
   {
     component: 'Select',
     fieldName: 'status',
     label: '状态',
     defaultValue: 0,
-    componentProps: { options: statusOptions },
+    componentProps: { options: statusOptions, class: 'w-full' },
   },
   {
     component: 'InputNumber',
@@ -214,7 +210,8 @@ export const schema: VbenFormSchema[] = [
     fieldName: 'jump_type',
     label: '跳转类型',
     defaultValue: 'none',
-    componentProps: { options: jumpTypeOptions },
+    componentProps: { options: jumpTypeOptions, class: 'w-full' },
+    formItemClass: 'col-span-2',
   },
   {
     component: 'Input',
@@ -224,19 +221,22 @@ export const schema: VbenFormSchema[] = [
       maxLength: 500,
       placeholder: 'URL 或业务 ID(如 quest_id)',
     },
+    formItemClass: 'col-span-2',
   },
   {
     component: 'Textarea',
     fieldName: 'jump_extra_text',
     label: '跳转扩展(JSON)',
     componentProps: { rows: 2, placeholder: '可选 JSON' },
+    formItemClass: 'col-span-2',
   },
   {
     component: 'Select',
     fieldName: 'target_user_type',
     label: '目标分群',
     defaultValue: 0,
-    componentProps: { options: targetUserTypeOptions },
+    componentProps: { options: targetUserTypeOptions, class: 'w-full' },
+    formItemClass: 'col-span-2',
   },
   {
     component: 'InputNumber',
@@ -250,6 +250,7 @@ export const schema: VbenFormSchema[] = [
     fieldName: 'target_extra_text',
     label: '分群扩展(JSON)',
     componentProps: { rows: 2, placeholder: '可选 JSON' },
+    formItemClass: 'col-span-2',
   },
   {
     component: 'InputNumber',
@@ -283,5 +284,6 @@ export const schema: VbenFormSchema[] = [
     fieldName: 'extra_text',
     label: '形态扩展(JSON)',
     componentProps: { rows: 2, placeholder: '可选 JSON, 形态特有字段兜底' },
+    formItemClass: 'col-span-2',
   },
 ];

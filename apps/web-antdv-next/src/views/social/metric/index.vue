@@ -19,7 +19,6 @@ import { message } from 'ant-design-vue';
 import { useVbenVxeGrid } from '#/adapter/vxe-table';
 import {
   createSocialWorkMetricApi,
-  deleteSocialWorkMetricApi,
   getSocialWorkMetricListApi,
   updateSocialWorkMetricApi,
 } from '#/api';
@@ -141,12 +140,6 @@ function onCreate() {
   formData.value = defaultForm();
   editModalApi.setData(null);
   editModalApi.open();
-}
-
-async function onDelete(row: SocialWorkMetricDetail) {
-  await deleteSocialWorkMetricApi([row.id]);
-  message.success('删除成功');
-  gridApi.query();
 }
 
 // 无操作列

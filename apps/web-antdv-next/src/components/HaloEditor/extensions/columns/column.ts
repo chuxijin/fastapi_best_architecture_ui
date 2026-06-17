@@ -1,4 +1,4 @@
-import { mergeAttributes, Node } from "@HaloEditor/tiptap/vue-3";
+import { mergeAttributes, Node } from '@HaloEditor/tiptap/vue-3';
 
 export type ExtensionColumnOptions = {
   HTMLAttributes: {
@@ -7,15 +7,15 @@ export type ExtensionColumnOptions = {
 };
 
 export const ExtensionColumn = Node.create<ExtensionColumnOptions>({
-  name: "column",
-  content: "block+",
+  name: 'column',
+  content: 'block+',
   isolating: true,
   fakeSelection: true,
 
   addOptions() {
     return {
       HTMLAttributes: {
-        class: "column",
+        class: 'column',
       },
     };
   },
@@ -24,11 +24,11 @@ export const ExtensionColumn = Node.create<ExtensionColumnOptions>({
     return {
       index: {
         default: 0,
-        parseHTML: (element) => element.getAttribute("index"),
+        parseHTML: (element) => element.getAttribute('index'),
       },
       style: {
-        default: "min-width: 0;flex: 1 1;box-sizing: border-box;",
-        parseHTML: (element) => element.getAttribute("style"),
+        default: 'min-width: 0;flex: 1 1;box-sizing: border-box;',
+        parseHTML: (element) => element.getAttribute('style'),
       },
     };
   },
@@ -36,14 +36,14 @@ export const ExtensionColumn = Node.create<ExtensionColumnOptions>({
   parseHTML() {
     return [
       {
-        tag: "div[class=column]",
+        tag: 'div[class=column]',
       },
     ];
   },
 
   renderHTML({ HTMLAttributes }) {
     return [
-      "div",
+      'div',
       mergeAttributes(this.options.HTMLAttributes, HTMLAttributes),
       0,
     ];

@@ -1,4 +1,5 @@
-import marked from "../utils/markdown";
+/* eslint-disable prefer-const */
+import marked from '../utils/markdown';
 
 /**
  * 预览渲染器
@@ -6,13 +7,13 @@ import marked from "../utils/markdown";
  */
 export class PreviewRenderer {
   private blockType: string;
+  private lastRenderedContent: Node | string | undefined = undefined;
   private shadowRoot: ShadowRoot;
-  private lastRenderedContent: string | Node | undefined = undefined;
 
   constructor(blockType: string, container: HTMLElement) {
     this.blockType = blockType;
     // 创建 Shadow DOM 用于内容隔离
-    this.shadowRoot = container.attachShadow({ mode: "closed" });
+    this.shadowRoot = container.attachShadow({ mode: 'closed' });
   }
 
   /**
@@ -20,10 +21,10 @@ export class PreviewRenderer {
    *
    * @param content 要渲染的内容（文本或 DOM 节点）
    */
-  render(content: string | Node): void {
+  render(content: Node | string): void {
     if (
-      typeof content === "string" &&
-      typeof this.lastRenderedContent === "string" &&
+      typeof content === 'string' &&
+      typeof this.lastRenderedContent === 'string' &&
       content === this.lastRenderedContent
     ) {
       return;
@@ -33,38 +34,37 @@ export class PreviewRenderer {
 
     let previewNode: HTMLElement;
 
-    if (typeof content === "string") {
-      previewNode = this.createPreviewFromText(content);
-    } else {
-      previewNode = content.cloneNode(true) as HTMLElement;
-    }
+    previewNode =
+      typeof content === 'string'
+        ? this.createPreviewFromText(content)
+        : (content.cloneNode(true) as HTMLElement);
 
-    this.shadowRoot.appendChild(previewNode);
-  }
-
-  private createPreviewFromText(text: string): HTMLElement {
-    const container = document.createElement("div");
-
-    if (this.blockType === "markdown") {
-      container.classList.add("markdown-edited");
-      const htmlContent = marked.parse(text || "");
-      container.innerHTML = htmlContent;
-    } else {
-      container.classList.add("html-edited");
-      container.innerHTML = text;
-    }
-
-    return container;
-  }
-
-  private clearContainer(): void {
-    while (this.shadowRoot.firstChild) {
-      this.shadowRoot.removeChild(this.shadowRoot.firstChild);
-    }
+    this.shadowRoot.append(previewNode);
   }
 
   setBlockType(blockType: string): void {
     this.blockType = blockType;
     this.lastRenderedContent = undefined;
+  }
+
+  private clearContainer(): void {
+    while (this.shadowRoot.firstChild) {
+      this.shadowRoot.firstChild.remove();
+    }
+  }
+
+  private createPreviewFromText(text: string): HTMLElement {
+    const container = document.createElement('div');
+
+    if (this.blockType === 'markdown') {
+      container.classList.add('markdown-edited');
+      const htmlContent = marked.parse(text || '', { async: false }) as string;
+      container.innerHTML = htmlContent;
+    } else {
+      container.classList.add('html-edited');
+      container.innerHTML = text;
+    }
+
+    return container;
   }
 }

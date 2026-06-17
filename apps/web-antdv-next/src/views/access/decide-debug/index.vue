@@ -39,8 +39,15 @@ const resourceTypeOptions = [
 const decisionColor: Record<string, string> = {
   allow: 'green',
   deny: 'red',
-  skip: 'default',
+  pass: 'default',
 };
+
+function formatMatched(matched?: null | Record<string, unknown>): string {
+  if (!matched) {
+    return '';
+  }
+  return JSON.stringify(matched);
+}
 
 async function handleRun(): Promise<void> {
   if (!userId.value || !resourceId.value) {
@@ -110,43 +117,92 @@ async function handleRun(): Promise<void> {
 
     <Card
       v-if="result"
-      :title="result.allow ? '允许访问' : '拒绝访问'"
+      :title="result.decision.allowed ? '允许访问' : '拒绝访问'"
       style="margin-top: 16px"
     >
       <template #extra>
-        <Tag :color="result.allow ? 'green' : 'red'" class="text-sm">
-          {{ result.allow ? 'ALLOW' : 'DENY' }}
+        <Tag :color="result.decision.allowed ? 'green' : 'red'" class="text-sm">
+          {{ result.decision.allowed ? 'ALLOW' : 'DENY' }}
         </Tag>
       </template>
-      <p v-if="result.reason"><strong>原因:</strong> {{ result.reason }}</p>
-      <p v-if="result.matched_rule">
-        <strong>命中规则:</strong> {{ result.matched_rule }}
+      <p><strong>原因码:</strong> {{ result.decision.reason_code }}</p>
+      <p v-if="result.decision.matched_grant">
+        <strong>命中权益:</strong> {{ result.decision.matched_grant }}
       </p>
 
       <h4 style="margin-top: 16px">Evaluator 链路</h4>
       <Empty
-        v-if="!result.steps || result.steps.length === 0"
+        v-if="
+          !result.decision.explanation ||
+          result.decision.explanation.length === 0
+        "
         description="无链路输出"
       />
       <div
-        v-for="(step, index) in result.steps"
+        v-for="(step, index) in result.decision.explanation"
         :key="index"
         class="border-l-4 pl-3 py-2 mb-2"
         :class="{
-          'border-l-green-500': step.decision === 'allow',
-          'border-l-red-500': step.decision === 'deny',
-          'border-l-gray-300': step.decision === 'skip',
+          'border-l-green-500': step.outcome === 'allow',
+          'border-l-red-500': step.outcome === 'deny',
+          'border-l-gray-300': step.outcome === 'pass',
         }"
       >
         <div class="flex items-center justify-between">
           <strong>{{ step.evaluator }}</strong>
-          <Tag :color="decisionColor[step.decision] || 'default'">
-            {{ step.decision.toUpperCase() }}
+          <Tag :color="decisionColor[step.outcome] || 'default'">
+            {{ step.outcome.toUpperCase() }}
           </Tag>
         </div>
         <div v-if="step.reason" class="text-sm text-gray-500 mt-1">
           {{ step.reason }}
         </div>
+        <div v-if="step.matched" class="text-xs text-gray-500 mt-1">
+          matched: {{ formatMatched(step.matched) }}
+        </div>
+      </div>
+
+      <h4 style="margin-top: 16px">命中规则</h4>
+      <Empty
+        v-if="!result.rules || result.rules.length === 0"
+        description="无规则"
+      />
+      <div
+        v-for="rule in result.rules"
+        :key="rule.id"
+        class="mb-2 rounded border border-gray-200 px-3 py-2 text-sm"
+      >
+        <div class="flex items-center justify-between">
+          <span>
+            #{{ rule.id }} {{ rule.resource_type }}:{{ rule.resource_id }}
+          </span>
+          <Tag :color="rule.grant_mode === 'free_pass' ? 'green' : 'blue'">
+            {{ rule.grant_mode }}
+          </Tag>
+        </div>
+        <div class="mt-1 text-gray-500">
+          {{ rule.entitlement_code }} · priority={{ rule.priority }} ·
+          inherit={{ rule.inherit_to_children }}
+        </div>
+      </div>
+
+      <h4 style="margin-top: 16px">用户权益快照</h4>
+      <p>
+        <strong>订阅 ID:</strong>
+        {{ result.snapshot.subscription_ids.join(', ') || '-' }}
+      </p>
+      <p>
+        <strong>直接授予 ID:</strong>
+        {{ result.snapshot.direct_grant_ids.join(', ') || '-' }}
+      </p>
+      <div class="flex flex-wrap gap-2">
+        <Tag
+          v-for="code in result.snapshot.entitlement_codes"
+          :key="code"
+          color="blue"
+        >
+          {{ code }}
+        </Tag>
       </div>
     </Card>
   </Page>

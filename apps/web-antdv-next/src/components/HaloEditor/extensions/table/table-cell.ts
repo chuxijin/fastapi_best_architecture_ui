@@ -1,32 +1,33 @@
-import { Tooltip as VTooltipComponent } from "floating-vue";
-import { h, render } from "vue";
-import MdiPlus from "~icons/mdi/plus";
-import { i18n } from "@HaloEditor/locales";
+import { h, render } from 'vue';
+
+import { i18n } from '@HaloEditor/locales';
 import {
   addRowAfter,
   Decoration,
   DecorationSet,
   Plugin,
   PluginKey,
-} from "@HaloEditor/tiptap/pm";
-import { mergeAttributes, Node } from "@HaloEditor/tiptap/vue-3";
+} from '@HaloEditor/tiptap/pm';
+import { mergeAttributes, Node } from '@HaloEditor/tiptap/vue-3';
+import { Tooltip as VTooltipComponent } from 'floating-vue';
+import MdiPlus from '~icons/mdi/plus';
+
 import {
   getCellsInColumn,
   isRowSelected,
   isTableSelected,
   selectRow,
   selectTable,
-} from "./util";
+} from './util';
 
 export interface TableCellOptions {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   HTMLAttributes: Record<string, any>;
 }
 
 const TableCell = Node.create<TableCellOptions>({
-  name: "tableCell",
-  content: "block+",
-  tableRole: "cell",
+  name: 'tableCell',
+  content: 'block+',
+  tableRole: 'cell',
   isolating: true,
   fakeSelection: true,
 
@@ -42,25 +43,25 @@ const TableCell = Node.create<TableCellOptions>({
       colspan: {
         default: 1,
         parseHTML: (element) => {
-          const colspan = element.getAttribute("colspan");
-          const value = colspan ? parseInt(colspan, 10) : 1;
+          const colspan = element.getAttribute('colspan');
+          const value = colspan ? Number.parseInt(colspan, 10) : 1;
           return value;
         },
       },
       rowspan: {
         default: 1,
         parseHTML: (element) => {
-          const rowspan = element.getAttribute("rowspan");
-          const value = rowspan ? parseInt(rowspan, 10) : 1;
+          const rowspan = element.getAttribute('rowspan');
+          const value = rowspan ? Number.parseInt(rowspan, 10) : 1;
           return value;
         },
       },
       colwidth: {
         default: [100],
         parseHTML: (element) => {
-          const colwidth = element.getAttribute("colwidth");
+          const colwidth = element.getAttribute('colwidth');
           const value = colwidth
-            ? colwidth.split(",").map((width) => parseInt(width, 10))
+            ? colwidth.split(',').map((width) => Number.parseInt(width, 10))
             : null;
           return value;
         },
@@ -72,12 +73,12 @@ const TableCell = Node.create<TableCellOptions>({
   },
 
   parseHTML() {
-    return [{ tag: "td" }];
+    return [{ tag: 'td' }];
   },
 
   renderHTML({ HTMLAttributes }) {
     return [
-      "td",
+      'td',
       mergeAttributes(this.options.HTMLAttributes, HTMLAttributes),
       0,
     ];
@@ -99,7 +100,7 @@ const TableCell = Node.create<TableCellOptions>({
     const storage = this.storage;
     return [
       new Plugin({
-        key: new PluginKey("table-cell-control"),
+        key: new PluginKey('table-cell-control'),
         props: {
           decorations(state) {
             const { doc, selection } = state;
@@ -110,16 +111,16 @@ const TableCell = Node.create<TableCellOptions>({
                 if (index === 0) {
                   decorations.push(
                     Decoration.widget(pos + 1, () => {
-                      const key = "table" + index;
-                      let className = "grip-table";
+                      const key = `table${index}`;
+                      let className = 'grip-table';
                       const selected = isTableSelected(selection);
                       if (selected) {
-                        className += " selected";
+                        className += ' selected';
                       }
                       let grip = storage.gripMap.get(key);
                       if (!grip) {
-                        grip = document.createElement("a") as HTMLElement;
-                        grip.addEventListener("mousedown", (event: Event) => {
+                        grip = document.createElement('a') as HTMLElement;
+                        grip.addEventListener('mousedown', (event: Event) => {
                           event.preventDefault();
                           event.stopImmediatePropagation();
                           editor.view.dispatch(selectTable(editor.state.tr));
@@ -128,61 +129,61 @@ const TableCell = Node.create<TableCellOptions>({
                       grip.className = className;
                       storage.gripMap.set(key, grip);
                       return grip;
-                    })
+                    }),
                   );
                 }
 
                 decorations.push(
                   Decoration.widget(pos + 1, () => {
-                    const key = "row" + index;
+                    const key = `row${index}`;
                     const rowSelected = isRowSelected(index)(selection);
-                    let className = "grip-row";
+                    let className = 'grip-row';
                     if (rowSelected) {
-                      className += " selected";
+                      className += ' selected';
                     }
                     if (index === 0) {
-                      className += " first";
+                      className += ' first';
                     }
                     if (index === cells.length - 1) {
-                      className += " last";
+                      className += ' last';
                     }
 
                     let grip = storage.gripMap.get(key);
                     if (!grip) {
-                      grip = document.createElement("a");
+                      grip = document.createElement('a');
                       const instance = h(
                         VTooltipComponent,
                         {
-                          triggers: ["hover"],
+                          triggers: ['hover'],
                         },
                         {
-                          default: () => h(MdiPlus, { class: "plus-icon" }),
+                          default: () => h(MdiPlus, { class: 'plus-icon' }),
                           popper: () =>
-                            i18n.global.t("editor.menus.table.add_row_after"),
-                        }
+                            i18n.global.t('editor.menus.table.add_row_after'),
+                        },
                       );
                       render(instance, grip);
                       grip.addEventListener(
-                        "mousedown",
+                        'mousedown',
                         (event: Event) => {
                           event.preventDefault();
                           event.stopImmediatePropagation();
 
                           editor.view.dispatch(
-                            selectRow(index)(editor.state.tr)
+                            selectRow(index)(editor.state.tr),
                           );
 
                           if (event.target !== grip) {
                             addRowAfter(editor.state, editor.view.dispatch);
                           }
                         },
-                        true
+                        true,
                       );
                     }
                     grip.className = className;
                     storage.gripMap.set(key, grip);
                     return grip;
-                  })
+                  }),
                 );
               });
             }

@@ -4,8 +4,10 @@ import { useRoute, useRouter } from 'vue-router';
 
 import { Page } from '@vben/common-ui';
 
+import type { MenuProps } from 'ant-design-vue';
 import { Card, Menu, MenuItem } from 'ant-design-vue';
 
+import AccessRules from './components/AccessRules.vue';
 import ActivationCodes from './components/ActivationCodes.vue';
 import Members from './components/Members.vue';
 
@@ -13,7 +15,7 @@ const route = useRoute();
 const router = useRouter();
 
 const bankId = computed(() => Number(route.query.bankId) || 0);
-const bankName = computed(() => String(route.query.bankName || '题库'));
+const bankName = computed(() => String(route.query.bankName || '刷题内容'));
 
 const activeTab = ref(String(route.query.tab || 'activation-codes'));
 
@@ -27,11 +29,12 @@ watch(
 );
 
 const menuItems = [
-  { key: 'members', label: '题库学员', component: Members },
-  { key: 'activation-codes', label: '题库激活码', component: ActivationCodes },
+  { key: 'members', label: '内容学员', component: Members },
+  { key: 'activation-codes', label: '内容激活码', component: ActivationCodes },
+  { key: 'access-rules', label: '内容权益规则', component: AccessRules },
   { key: 'video-analysis', label: '解析视频', component: null },
   { key: 'text-analysis', label: '文字解析', component: null },
-  { key: 'invitation-cards', label: '题库邀请卡', component: null },
+  { key: 'invitation-cards', label: '内容邀请卡', component: null },
   { key: 'group-guide', label: '引导加群', component: null },
   { key: 'gift-management', label: '赠品管理', component: null },
   { key: 'daily-practice', label: '每日刷题记录', component: null },
@@ -51,15 +54,16 @@ const currentLabel = computed(() => {
 
 const selectedKeys = computed(() => [activeTab.value]);
 
-function handleMenuClick({ key }: { key: string }) {
+const handleMenuClick: MenuProps['onClick'] = ({ key }) => {
+  const tabKey = String(key);
   router.push({
     path: route.path,
     query: {
       ...route.query,
-      tab: key,
+      tab: tabKey,
     },
   });
-}
+};
 
 function goBack() {
   router.push('/knowledge-store/resource/question-bank');
@@ -73,7 +77,7 @@ function goBack() {
       <Card class="w-48 flex-shrink-0" :bordered="false">
         <template #title>
           <div class="flex items-center justify-between">
-            <span class="text-sm font-semibold">题库运营</span>
+            <span class="text-sm font-semibold">内容运营</span>
             <a-button type="link" size="small" @click="goBack">返回</a-button>
           </div>
         </template>

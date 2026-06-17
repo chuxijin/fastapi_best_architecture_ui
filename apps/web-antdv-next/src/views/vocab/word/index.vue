@@ -76,7 +76,7 @@ const [Form, formApi] = useVbenForm({
 });
 
 const [Modal, modalApi] = useVbenModal({
-  title: modalTitle,
+  title: modalTitle.value,
   onConfirm: async () => {
     try {
       const values = await formApi.getValues<CreateVocabWordParams>();
@@ -163,11 +163,9 @@ async function handleBeforeUpload(file: File) {
         >
           <a-button type="default">导入 Excel</a-button>
         </Upload>
-        <a-button type="primary" class="ml-2" @click="handleCreate"
-          >
-新建单词
-</a-button
-        >
+        <a-button type="primary" class="ml-2" @click="handleCreate">
+          新建单词
+        </a-button>
       </template>
     </Grid>
     <Modal>

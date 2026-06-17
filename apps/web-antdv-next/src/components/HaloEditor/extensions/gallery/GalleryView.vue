@@ -1,13 +1,20 @@
 <script lang="ts" setup>
-import { VButton, VSpace } from "#/stubs/halo-components";
-import { utils, type AttachmentLike } from "@halo-dev/ui-shared";
-import { computed, ref } from "vue";
-import { useEditorConfig } from "@HaloEditor/config/use-editor-config";
-import MingcuteDelete2Line from "@HaloEditor/components/icon/MingcuteDelete2Line.vue";
-import { i18n } from "@HaloEditor/locales";
-import { NodeViewWrapper, type NodeViewProps } from "@HaloEditor/tiptap";
-import type { ExtensionGalleryImageItem } from "./index";
-import { useUploadGalleryImage } from "./useGalleryImages";
+import type { AttachmentLike } from '@halo-dev/ui-shared';
+import type { NodeViewProps } from '@HaloEditor/tiptap';
+
+import type { ExtensionGalleryImageItem } from './index';
+
+import { computed, ref } from 'vue';
+
+import { utils } from '@halo-dev/ui-shared';
+import MingcuteDelete2Line from '@HaloEditor/components/icon/MingcuteDelete2Line.vue';
+import { useEditorConfig } from '@HaloEditor/config/use-editor-config';
+import { i18n } from '@HaloEditor/locales';
+import { NodeViewWrapper } from '@HaloEditor/tiptap';
+
+import { VButton, VSpace } from '#/stubs/halo-components';
+
+import { useUploadGalleryImage } from './useGalleryImages';
 
 const props = defineProps<NodeViewProps>();
 
@@ -19,7 +26,7 @@ const images = computed({
   },
   set: (images: ExtensionGalleryImageItem[]) => {
     props.updateAttributes({
-      images: images,
+      images,
     });
   },
 });
@@ -54,7 +61,7 @@ const groupSize = computed<number>(() => {
 });
 
 const layout = computed<string>(() => {
-  return props.node?.attrs.layout || "auto";
+  return props.node?.attrs.layout || 'auto';
 });
 
 const gap = computed<number>(() => {
@@ -62,35 +69,30 @@ const gap = computed<number>(() => {
 });
 
 const groups = computed<ExtensionGalleryImageItem[][]>(() => {
-  return images.value.reduce(
-    (
-      acc: ExtensionGalleryImageItem[][],
-      image: ExtensionGalleryImageItem,
-      index: number
-    ) => {
-      const groupIndex = Math.floor(index / groupSize.value);
-      acc[groupIndex] = acc[groupIndex] || [];
-      acc[groupIndex].push(image);
-      return acc;
-    },
-    []
-  );
+  const result: ExtensionGalleryImageItem[][] = [];
+  for (let index = 0; index < images.value.length; index++) {
+    const image = images.value[index];
+    const groupIndex = Math.floor(index / groupSize.value);
+    result[groupIndex] = result[groupIndex] || [];
+    result[groupIndex].push(image);
+  }
+  return result;
 });
 
-const draggedIndex = ref<number | null>(null);
-const dragOverIndex = ref<number | null>(null);
+const draggedIndex = ref<null | number>(null);
+const dragOverIndex = ref<null | number>(null);
 
 function handleDragStart(index: number, event: DragEvent) {
   draggedIndex.value = index;
   if (event.dataTransfer) {
-    event.dataTransfer.effectAllowed = "move";
-    event.dataTransfer.setData("text/html", String(index));
+    event.dataTransfer.effectAllowed = 'move';
+    event.dataTransfer.setData('text/html', String(index));
   }
-  (event.target as HTMLElement).classList.add("opacity-50");
+  (event.target as HTMLElement).classList.add('opacity-50');
 }
 
 function handleDragEnd(event: DragEvent) {
-  (event.target as HTMLElement).classList.remove("opacity-50");
+  (event.target as HTMLElement).classList.remove('opacity-50');
   draggedIndex.value = null;
   dragOverIndex.value = null;
 }
@@ -98,7 +100,7 @@ function handleDragEnd(event: DragEvent) {
 function handleDragOver(event: DragEvent) {
   event.preventDefault();
   if (event.dataTransfer) {
-    event.dataTransfer.dropEffect = "move";
+    event.dataTransfer.dropEffect = 'move';
   }
 }
 
@@ -106,12 +108,12 @@ function handleDragEnter(index: number, event: DragEvent) {
   event.preventDefault();
   dragOverIndex.value = index;
   const target = event.currentTarget as HTMLElement;
-  target.classList.add("ring-2", "ring-blue-500");
+  target.classList.add('ring-2', 'ring-blue-500');
 }
 
 function handleDragLeave(event: DragEvent) {
   const target = event.currentTarget as HTMLElement;
-  target.classList.remove("ring-2", "ring-blue-500");
+  target.classList.remove('ring-2', 'ring-blue-500');
 }
 
 function handleDrop(targetIndex: number, event: DragEvent) {
@@ -119,7 +121,7 @@ function handleDrop(targetIndex: number, event: DragEvent) {
   event.stopPropagation();
 
   const target = event.currentTarget as HTMLElement;
-  target.classList.remove("ring-2", "ring-blue-500");
+  target.classList.remove('ring-2', 'ring-blue-500');
 
   if (draggedIndex.value === null || draggedIndex.value === targetIndex) {
     return;
@@ -142,7 +144,7 @@ function onAttachmentSelect(attachments: AttachmentLike[]) {
     .map((attachment) => {
       const url = utils.attachment.getUrl(attachment);
       if (!url) {
-        return;
+        return null;
       }
       return {
         src: url,
@@ -155,7 +157,7 @@ function onAttachmentSelect(attachments: AttachmentLike[]) {
 </script>
 
 <template>
-  <node-view-wrapper
+  <NodeViewWrapper
     as="div"
     class="mt-2 p-0.5"
     :class="{
@@ -168,18 +170,15 @@ function onAttachmentSelect(attachments: AttachmentLike[]) {
       class="relative flex h-full items-center justify-center rounded-md border border-gray-200 bg-gray-50 before:pb-[62.5%]"
     >
       <VSpace>
-        <VButton
-          v-if="editorConfig.upload"
-          @click="openFileDialog()"
-        >
-          {{ i18n.global.t("editor.common.button.upload") }}
+        <VButton v-if="editorConfig.upload" @click="openFileDialog()">
+          {{ i18n.global.t('editor.common.button.upload') }}
         </VButton>
 
         <VButton
           v-if="editorConfig.attachmentSelector"
           @click="attachmentSelectorModalVisible = true"
         >
-          {{ i18n.global.t("editor.extensions.upload.attachment.title") }}
+          {{ i18n.global.t('editor.extensions.upload.attachment.title') }}
         </VButton>
       </VSpace>
     </div>
@@ -225,7 +224,7 @@ function onAttachmentSelect(attachments: AttachmentLike[]) {
               <button
                 v-tooltip="
                   i18n.global.t(
-                    'editor.extensions.upload.operations.remove.button'
+                    'editor.extensions.upload.operations.remove.button',
                   )
                 "
                 aria-label="Delete"
@@ -247,5 +246,5 @@ function onAttachmentSelect(attachments: AttachmentLike[]) {
       @select="onAttachmentSelect"
       @close="attachmentSelectorModalVisible = false"
     />
-  </node-view-wrapper>
+  </NodeViewWrapper>
 </template>

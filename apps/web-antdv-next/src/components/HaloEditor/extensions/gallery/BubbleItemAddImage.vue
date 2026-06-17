@@ -1,24 +1,30 @@
 <script lang="ts" setup>
-import { VDropdown } from "#/stubs/halo-components";
-import { utils, type AttachmentLike } from "@halo-dev/ui-shared";
-import { ref } from "vue";
-import { useEditorConfig } from "@HaloEditor/config/use-editor-config";
-import DropdownItem from "@HaloEditor/components/base/DropdownItem.vue";
-import BubbleButton from "@HaloEditor/components/bubble/BubbleButton.vue";
-import { i18n } from "@HaloEditor/locales";
-import type { BubbleItemComponentProps } from "@HaloEditor/types";
-import type { ExtensionGalleryImageItem } from ".";
+import type { AttachmentLike } from '@halo-dev/ui-shared';
+import type { BubbleItemComponentProps } from '@HaloEditor/types';
+
+import type { ExtensionGalleryImageItem } from '.';
+
+import { ref } from 'vue';
+
+import { utils } from '@halo-dev/ui-shared';
+import DropdownItem from '@HaloEditor/components/base/DropdownItem.vue';
+import BubbleButton from '@HaloEditor/components/bubble/BubbleButton.vue';
+import { useEditorConfig } from '@HaloEditor/config/use-editor-config';
+import { i18n } from '@HaloEditor/locales';
+
+import { VDropdown } from '#/stubs/halo-components';
+
 import {
   getCurrentGalleryImages,
   updateGalleryImages,
   useUploadGalleryImage,
-} from "./useGalleryImages";
+} from './useGalleryImages';
 
 const props = defineProps<BubbleItemComponentProps>();
 
-const editorConfig = useEditorConfig();
+const emit = defineEmits(['close']);
 
-const emit = defineEmits(["close"]);
+const editorConfig = useEditorConfig();
 
 const dropdownShown = ref(false);
 const { openFileDialog } = useUploadGalleryImage(props.editor);
@@ -42,7 +48,7 @@ function onAttachmentSelect(attachments: AttachmentLike[]) {
     .map((attachment) => {
       const url = utils.attachment.getUrl(attachment);
       if (!url) {
-        return;
+        return null;
       }
       return {
         src: url,
@@ -51,7 +57,7 @@ function onAttachmentSelect(attachments: AttachmentLike[]) {
     })
     .filter(Boolean) as ExtensionGalleryImageItem[];
   updateGalleryImages(props.editor, [...currentImages, ...newImages]);
-  emit("close");
+  emit('close');
 }
 </script>
 
@@ -68,14 +74,14 @@ function onAttachmentSelect(attachments: AttachmentLike[]) {
         class="!min-w-36"
         @click="handleUploadClick"
       >
-        {{ i18n.global.t("editor.common.button.upload") }}
+        {{ i18n.global.t('editor.common.button.upload') }}
       </DropdownItem>
       <DropdownItem
         v-if="editorConfig.attachmentSelector"
         class="!min-w-36"
         @click="handleOpenAttachmentSelector"
       >
-        {{ i18n.global.t("editor.extensions.upload.attachment.title") }}
+        {{ i18n.global.t('editor.extensions.upload.attachment.title') }}
       </DropdownItem>
     </template>
   </VDropdown>

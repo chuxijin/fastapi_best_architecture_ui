@@ -20,14 +20,20 @@ function mapToTreeData(nodes: any[]): any[] {
     ...node,
     label: node.name,
     value: node.id,
-    children: node.children && node.children.length > 0 ? mapToTreeData(node.children) : undefined,
+    children:
+      node.children && node.children.length > 0
+        ? mapToTreeData(node.children)
+        : undefined,
   }));
 }
 
 async function fetchCategories() {
   try {
     // 自动拉取指定应用下的已启用的分类树
-    const res = await getSysCategoryTreeApi({ app_code: props.appCode, status: true });
+    const res = await getSysCategoryTreeApi({
+      app_code: props.appCode,
+      status: true,
+    });
     treeData.value = res ? mapToTreeData(res) : [];
   } catch (error) {
     console.error('加载分类树失败:', error);
@@ -63,7 +69,11 @@ function handleChange(val: any) {
     tree-default-expand-all
     :dropdown-match-select-width="false"
     :tree-line="true"
-    :dropdown-style="{ maxHeight: '400px', overflow: 'auto', minWidth: '250px' }"
+    :dropdown-style="{
+      maxHeight: '400px',
+      overflow: 'auto',
+      minWidth: '250px',
+    }"
     tree-node-filter-prop="label"
     @change="handleChange"
   />

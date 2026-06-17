@@ -389,6 +389,7 @@ export const answerSchema: VbenFormSchema[] = [
     fieldName: 'answer_keys',
     label: '答案',
     dependencies: {
+      triggerFields: ['_question_type'],
       show: (values) => OBJECTIVE_TYPES.has(values._question_type),
     },
     componentProps: {
@@ -402,6 +403,7 @@ export const answerSchema: VbenFormSchema[] = [
     fieldName: 'answer',
     label: '参考答案',
     dependencies: {
+      triggerFields: ['_question_type'],
       show: (values) => !OBJECTIVE_TYPES.has(values._question_type),
     },
     componentProps: {

@@ -1,5 +1,8 @@
-import { inject } from "vue";
-import { editorConfigKey, type EditorConfig } from "./index";
+import type { EditorConfig } from './index';
+
+import { inject } from 'vue';
+
+import { editorConfigKey } from './index';
 
 const defaultConfig: EditorConfig = {
   permissionCheck: () => true,

@@ -29,9 +29,11 @@ import {
 import { querySchema, schema, useColumns } from './data';
 
 const formOptions: VbenFormProps = {
-  collapsed: true,
-  showCollapseButton: true,
-  submitButtonOptions: { content: $t('common.search') },
+  collapsed: false,
+  showCollapseButton: false,
+  wrapperClass: 'grid-cols-3',
+  actionWrapperClass: 'col-start-3',
+  submitButtonOptions: { content: $t('common.form.query') },
   schema: querySchema,
 };
 

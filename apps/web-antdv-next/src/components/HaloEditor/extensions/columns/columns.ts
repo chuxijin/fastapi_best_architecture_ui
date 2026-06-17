@@ -1,11 +1,12 @@
-import { markRaw } from "vue";
-import MingcuteColumns2Line from "~icons/mingcute/columns-2-line";
-import RiDeleteColumn from "~icons/ri/delete-column";
-import RiInsertColumnLeft from "~icons/ri/insert-column-left";
-import RiInsertColumnRight from "~icons/ri/insert-column-right";
-import { BlockActionSeparator, ToolboxItem } from "@HaloEditor/components";
-import MingcuteDelete2Line from "@HaloEditor/components/icon/MingcuteDelete2Line.vue";
-import { i18n } from "@HaloEditor/locales";
+import type { Range } from '@HaloEditor/tiptap';
+import type { NodeType, Schema } from '@HaloEditor/tiptap/pm';
+import type { ExtensionOptions } from '@HaloEditor/types';
+
+import { markRaw } from 'vue';
+
+import { BlockActionSeparator, ToolboxItem } from '@HaloEditor/components';
+import MingcuteDelete2Line from '@HaloEditor/components/icon/MingcuteDelete2Line.vue';
+import { i18n } from '@HaloEditor/locales';
 import {
   Editor,
   findParentNode,
@@ -13,31 +14,33 @@ import {
   mergeAttributes,
   Node,
   posToDOMRect,
-  type Range,
-} from "@HaloEditor/tiptap";
-import type { NodeType, Schema } from "@HaloEditor/tiptap/pm";
+} from '@HaloEditor/tiptap';
 import {
   EditorState,
   PluginKey,
   Node as PMNode,
   TextSelection,
-} from "@HaloEditor/tiptap/pm";
-import type { ExtensionOptions } from "@HaloEditor/types";
-import { deleteNode } from "@HaloEditor/utils";
-import { ExtensionColumn } from "./column";
+} from '@HaloEditor/tiptap/pm';
+import { deleteNode } from '@HaloEditor/utils';
+import MingcuteColumns2Line from '~icons/mingcute/columns-2-line';
+import RiDeleteColumn from '~icons/ri/delete-column';
+import RiInsertColumnLeft from '~icons/ri/insert-column-left';
+import RiInsertColumnRight from '~icons/ri/insert-column-right';
 
-declare module "@HaloEditor/tiptap" {
+import { ExtensionColumn } from './column';
+
+declare module '@HaloEditor/tiptap' {
   interface Commands<ReturnType> {
     columns: {
-      insertColumns: (attrs?: { cols: number }) => ReturnType;
-      addColBefore: () => ReturnType;
       addColAfter: () => ReturnType;
+      addColBefore: () => ReturnType;
       deleteCol: () => ReturnType;
+      insertColumns: (attrs?: { cols: number }) => ReturnType;
     };
   }
 }
 
-export const COLUMNS_BUBBLE_MENU_KEY = new PluginKey("columnsBubbleMenu");
+export const COLUMNS_BUBBLE_MENU_KEY = new PluginKey('columnsBubbleMenu');
 
 const createColumns = (schema: Schema, colsCount: number) => {
   const types = getColumnsNodeTypes(schema);
@@ -54,18 +57,18 @@ const createColumns = (schema: Schema, colsCount: number) => {
 };
 
 const getColumnsNodeTypes = (
-  schema: Schema
+  schema: Schema,
 ): {
-  columns: NodeType;
   column: NodeType;
+  columns: NodeType;
 } => {
   if (schema.cached.columnsNodeTypes) {
     return schema.cached.columnsNodeTypes;
   }
 
   const roles = {
-    columns: schema.nodes["columns"],
-    column: schema.nodes["column"],
+    columns: schema.nodes.columns,
+    column: schema.nodes.column,
   };
 
   schema.cached.columnsNodeTypes = roles;
@@ -73,18 +76,17 @@ const getColumnsNodeTypes = (
   return roles;
 };
 
-type ColOperateType = "addBefore" | "addAfter" | "delete";
+type ColOperateType = 'addAfter' | 'addBefore' | 'delete';
 const addOrDeleteCol = (
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   dispatch: any,
   state: EditorState,
-  type: ColOperateType
+  type: ColOperateType,
 ) => {
   const maybeColumns = findParentNode(
-    (node) => node.type.name === ExtensionColumns.name
+    (node) => node.type.name === ExtensionColumns.name,
   )(state.selection);
   const maybeColumn = findParentNode(
-    (node) => node.type.name === ExtensionColumn.name
+    (node) => node.type.name === ExtensionColumn.name,
   )(state.selection);
   if (dispatch && maybeColumns && maybeColumn) {
     const cols = maybeColumns.node;
@@ -93,19 +95,19 @@ const addOrDeleteCol = (
 
     let nextIndex = colIndex;
 
-    if (type === "delete") {
+    if (type === 'delete') {
       nextIndex = colIndex - 1;
       colsJSON.content.splice(colIndex, 1);
     } else {
-      nextIndex = type === "addBefore" ? colIndex : colIndex + 1;
+      nextIndex = type === 'addBefore' ? colIndex : colIndex + 1;
       colsJSON.content.splice(nextIndex, 0, {
-        type: "column",
+        type: 'column',
         attrs: {
           index: colIndex,
         },
         content: [
           {
-            type: "paragraph",
+            type: 'paragraph',
           },
         ],
       });
@@ -113,7 +115,6 @@ const addOrDeleteCol = (
 
     colsJSON.attrs.cols = colsJSON.content.length;
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     colsJSON.content.forEach((colJSON: any, index: number) => {
       colJSON.attrs.index = index;
     });
@@ -132,7 +133,7 @@ const addOrDeleteCol = (
     tr.replaceWith(
       maybeColumns.pos,
       maybeColumns.pos + maybeColumns.node.nodeSize,
-      nextCols
+      nextCols,
     ).setSelection(TextSelection.near(tr.doc.resolve(nextSelectPos)));
 
     dispatch(tr);
@@ -140,14 +141,14 @@ const addOrDeleteCol = (
   return true;
 };
 
-type GotoColType = "before" | "after";
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type GotoColType = 'after' | 'before';
+
 const gotoCol = (state: EditorState, dispatch: any, type: GotoColType) => {
   const maybeColumns = findParentNode(
-    (node) => node.type.name === ExtensionColumns.name
+    (node) => node.type.name === ExtensionColumns.name,
   )(state.selection);
   const maybeColumn = findParentNode(
-    (node) => node.type.name === ExtensionColumn.name
+    (node) => node.type.name === ExtensionColumn.name,
   )(state.selection);
 
   if (dispatch && maybeColumns && maybeColumn) {
@@ -156,11 +157,10 @@ const gotoCol = (state: EditorState, dispatch: any, type: GotoColType) => {
 
     let nextIndex = 0;
 
-    if (type === "before") {
-      nextIndex = (colIndex - 1 + cols.attrs.cols) % cols.attrs.cols;
-    } else {
-      nextIndex = (colIndex + 1) % cols.attrs.cols;
-    }
+    nextIndex =
+      type === 'before'
+        ? (colIndex - 1 + cols.attrs.cols) % cols.attrs.cols
+        : (colIndex + 1) % cols.attrs.cols;
 
     let nextSelectPos = maybeColumns.pos;
     cols.content.forEach((col, _pos, index) => {
@@ -186,19 +186,19 @@ export interface ExtensionColumnsOptions extends ExtensionOptions {
 }
 
 export const ExtensionColumns = Node.create<ExtensionColumnsOptions>({
-  name: "columns",
-  group: "block",
+  name: 'columns',
+  group: 'block',
   priority: 10,
   defining: true,
   isolating: true,
   allowGapCursor: true,
-  content: "column{1,}",
+  content: 'column{1,}',
   fakeSelection: false,
 
   addOptions() {
     return {
       HTMLAttributes: {
-        class: "columns",
+        class: 'columns',
       },
       getToolboxItems({ editor }: { editor: Editor }) {
         return [
@@ -208,7 +208,7 @@ export const ExtensionColumns = Node.create<ExtensionColumnsOptions>({
             props: {
               editor,
               icon: markRaw(MingcuteColumns2Line),
-              title: i18n.global.t("editor.extensions.commands_menu.columns"),
+              title: i18n.global.t('editor.extensions.commands_menu.columns'),
               action: () => {
                 editor
                   .chain()
@@ -226,8 +226,8 @@ export const ExtensionColumns = Node.create<ExtensionColumnsOptions>({
         return {
           priority: 70,
           icon: markRaw(MingcuteColumns2Line),
-          title: "editor.extensions.commands_menu.columns",
-          keywords: ["fenlan", "columns"],
+          title: 'editor.extensions.commands_menu.columns',
+          keywords: ['fenlan', 'columns'],
           command: ({ editor, range }: { editor: Editor; range: Range }) => {
             editor
               .chain()
@@ -247,7 +247,7 @@ export const ExtensionColumns = Node.create<ExtensionColumnsOptions>({
             return isActive(state, ExtensionColumns.name);
           },
           options: {
-            placement: "bottom-start",
+            placement: 'bottom-start',
           },
           getReferencedVirtualElement() {
             const editor = this.editor;
@@ -255,13 +255,13 @@ export const ExtensionColumns = Node.create<ExtensionColumnsOptions>({
               return null;
             }
             const parentNode = findParentNode(
-              (node) => node.type.name === ExtensionColumn.name
+              (node) => node.type.name === ExtensionColumn.name,
             )(editor.state.selection);
             if (parentNode) {
               const domRect = posToDOMRect(
                 editor.view,
                 parentNode.pos,
-                parentNode.pos + parentNode.node.nodeSize
+                parentNode.pos + parentNode.node.nodeSize,
               );
               return {
                 getBoundingClientRect: () => domRect,
@@ -276,7 +276,7 @@ export const ExtensionColumns = Node.create<ExtensionColumnsOptions>({
               props: {
                 icon: markRaw(RiInsertColumnLeft),
                 title: i18n.global.t(
-                  "editor.extensions.columns.add_column_before"
+                  'editor.extensions.columns.add_column_before',
                 ),
                 action: ({ editor }: { editor: Editor }) => {
                   editor.chain().focus().addColBefore().run();
@@ -288,7 +288,7 @@ export const ExtensionColumns = Node.create<ExtensionColumnsOptions>({
               props: {
                 icon: markRaw(RiInsertColumnRight),
                 title: i18n.global.t(
-                  "editor.extensions.columns.add_column_after"
+                  'editor.extensions.columns.add_column_after',
                 ),
                 action: ({ editor }: { editor: Editor }) => {
                   editor.chain().focus().addColAfter().run();
@@ -299,7 +299,7 @@ export const ExtensionColumns = Node.create<ExtensionColumnsOptions>({
               priority: 30,
               props: {
                 icon: markRaw(RiDeleteColumn),
-                title: i18n.global.t("editor.extensions.columns.delete_column"),
+                title: i18n.global.t('editor.extensions.columns.delete_column'),
                 action: ({ editor }: { editor: Editor }) => {
                   editor.chain().focus().deleteCol().run();
                 },
@@ -313,7 +313,7 @@ export const ExtensionColumns = Node.create<ExtensionColumnsOptions>({
               priority: 50,
               props: {
                 icon: markRaw(MingcuteDelete2Line),
-                title: i18n.global.t("editor.common.button.delete"),
+                title: i18n.global.t('editor.common.button.delete'),
                 action: ({ editor }: { editor: Editor }) => {
                   deleteNode(ExtensionColumns.name, editor);
                 },
@@ -329,18 +329,18 @@ export const ExtensionColumns = Node.create<ExtensionColumnsOptions>({
     return {
       cols: {
         default: 2,
-        parseHTML: (element) => element.getAttribute("cols"),
+        parseHTML: (element) => element.getAttribute('cols'),
       },
       style: {
-        default: "display: flex;width: 100%;gap: 1em;",
-        parseHTML: (element) => element.getAttribute("style"),
+        default: 'display: flex;width: 100%;gap: 1em;',
+        parseHTML: (element) => element.getAttribute('style'),
       },
     };
   },
 
   renderHTML({ HTMLAttributes }) {
     return [
-      "div",
+      'div',
       mergeAttributes(this.options.HTMLAttributes, HTMLAttributes),
       0,
     ];
@@ -366,29 +366,29 @@ export const ExtensionColumns = Node.create<ExtensionColumnsOptions>({
       addColBefore:
         () =>
         ({ dispatch, state }) => {
-          return addOrDeleteCol(dispatch, state, "addBefore");
+          return addOrDeleteCol(dispatch, state, 'addBefore');
         },
       addColAfter:
         () =>
         ({ dispatch, state }) => {
-          return addOrDeleteCol(dispatch, state, "addAfter");
+          return addOrDeleteCol(dispatch, state, 'addAfter');
         },
       deleteCol:
         () =>
         ({ dispatch, state }) => {
-          return addOrDeleteCol(dispatch, state, "delete");
+          return addOrDeleteCol(dispatch, state, 'delete');
         },
     };
   },
 
   addKeyboardShortcuts() {
     return {
-      "Mod-Alt-G": () => this.editor.commands.insertColumns(),
+      'Mod-Alt-G': () => this.editor.commands.insertColumns(),
       Tab: () => {
-        return gotoCol(this.editor.state, this.editor.view.dispatch, "after");
+        return gotoCol(this.editor.state, this.editor.view.dispatch, 'after');
       },
-      "Shift-Tab": () => {
-        return gotoCol(this.editor.state, this.editor.view.dispatch, "before");
+      'Shift-Tab': () => {
+        return gotoCol(this.editor.state, this.editor.view.dispatch, 'before');
       },
     };
   },

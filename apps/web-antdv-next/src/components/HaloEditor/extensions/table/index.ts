@@ -1,25 +1,20 @@
-import {
-  createColGroup,
-  Table as TiptapTable,
-  type TableOptions,
-} from "@tiptap/extension-table";
-import { markRaw } from "vue";
-import FluentTableColumnTopBottom24Regular from "~icons/fluent/table-column-top-bottom-24-regular";
-import MdiTable from "~icons/mdi/table";
-import MdiTableColumnPlusAfter from "~icons/mdi/table-column-plus-after";
-import MdiTableColumnPlusBefore from "~icons/mdi/table-column-plus-before";
-import MdiTableColumnRemove from "~icons/mdi/table-column-remove";
-import MdiTableHeadersEye from "~icons/mdi/table-headers-eye";
-import MdiTableMergeCells from "~icons/mdi/table-merge-cells";
-import MdiTablePlus from "~icons/mdi/table-plus";
-import MdiTableRemove from "~icons/mdi/table-remove";
-import MdiTableRowPlusAfter from "~icons/mdi/table-row-plus-after";
-import MdiTableRowPlusBefore from "~icons/mdi/table-row-plus-before";
-import MdiTableRowRemove from "~icons/mdi/table-row-remove";
-import MdiTableSplitCell from "~icons/mdi/table-split-cell";
-import { BlockActionSeparator, ToolboxItem } from "@HaloEditor/components";
-import { CONVERT_TO_KEY } from "@HaloEditor/components/drag/default-drag";
-import { i18n } from "@HaloEditor/locales";
+/* eslint-disable unicorn/prefer-dom-node-append, unicorn/prefer-dom-node-remove */
+import type { Range } from '@HaloEditor/tiptap';
+import type {
+  DOMOutputSpec,
+  EditorState,
+  NodeView,
+  Node as ProseMirrorNode,
+  ViewMutationRecord,
+} from '@HaloEditor/tiptap/pm';
+import type { ExtensionOptions, NodeBubbleMenuType } from '@HaloEditor/types';
+import type { TableOptions } from '@tiptap/extension-table';
+
+import { markRaw } from 'vue';
+
+import { BlockActionSeparator, ToolboxItem } from '@HaloEditor/components';
+import { CONVERT_TO_KEY } from '@HaloEditor/components/drag/default-drag';
+import { i18n } from '@HaloEditor/locales';
 import {
   Editor,
   findParentNode,
@@ -27,21 +22,26 @@ import {
   isNodeActive,
   mergeAttributes,
   posToDOMRect,
-  type Range,
-} from "@HaloEditor/tiptap";
-import {
-  PluginKey,
-  TextSelection,
-  type DOMOutputSpec,
-  type EditorState,
-  type NodeView,
-  type Node as ProseMirrorNode,
-  type ViewMutationRecord,
-} from "@HaloEditor/tiptap/pm";
-import type { ExtensionOptions, NodeBubbleMenuType } from "@HaloEditor/types";
-import TableCell from "./table-cell";
-import TableHeader from "./table-header";
-import TableRow from "./table-row";
+} from '@HaloEditor/tiptap';
+import { PluginKey, TextSelection } from '@HaloEditor/tiptap/pm';
+import { createColGroup, Table as TiptapTable } from '@tiptap/extension-table';
+import FluentTableColumnTopBottom24Regular from '~icons/fluent/table-column-top-bottom-24-regular';
+import MdiTable from '~icons/mdi/table';
+import MdiTableColumnPlusAfter from '~icons/mdi/table-column-plus-after';
+import MdiTableColumnPlusBefore from '~icons/mdi/table-column-plus-before';
+import MdiTableColumnRemove from '~icons/mdi/table-column-remove';
+import MdiTableHeadersEye from '~icons/mdi/table-headers-eye';
+import MdiTableMergeCells from '~icons/mdi/table-merge-cells';
+import MdiTablePlus from '~icons/mdi/table-plus';
+import MdiTableRemove from '~icons/mdi/table-remove';
+import MdiTableRowPlusAfter from '~icons/mdi/table-row-plus-after';
+import MdiTableRowPlusBefore from '~icons/mdi/table-row-plus-before';
+import MdiTableRowRemove from '~icons/mdi/table-row-remove';
+import MdiTableSplitCell from '~icons/mdi/table-split-cell';
+
+import TableCell from './table-cell';
+import TableHeader from './table-header';
+import TableRow from './table-row';
 import {
   findNextCell,
   findPreviousCell,
@@ -49,7 +49,7 @@ import {
   isCellSelection,
   isTableSelected,
   selectTable,
-} from "./util";
+} from './util';
 
 function updateColumns(
   node: ProseMirrorNode,
@@ -57,8 +57,8 @@ function updateColumns(
   table: HTMLElement,
   cellMinWidth: number,
   overrideCol?: number,
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  overrideValue?: any
+
+  overrideValue?: any,
 ) {
   let totalWidth = 0;
   let fixedWidth = true;
@@ -66,13 +66,13 @@ function updateColumns(
   const row = node.firstChild;
   if (!row) return;
 
-  for (let i = 0, col = 0; i < row.childCount; i += 1) {
+  for (let col = 0, i = 0; i < row.childCount; i += 1) {
     const { colspan, colwidth } = row.child(i).attrs;
 
     for (let j = 0; j < colspan; j += 1, col += 1) {
       const hasWidth =
         overrideCol === col ? overrideValue : colwidth && colwidth[j];
-      const cssWidth = hasWidth ? `${hasWidth}px` : "";
+      const cssWidth = hasWidth ? `${hasWidth}px` : '';
 
       totalWidth += hasWidth || cellMinWidth;
 
@@ -80,15 +80,15 @@ function updateColumns(
         fixedWidth = false;
       }
 
-      if (!nextDOM) {
-        colgroup.appendChild(document.createElement("col")).style.width =
-          cssWidth;
-      } else {
+      if (nextDOM) {
         if (nextDOM.style.width !== cssWidth) {
           nextDOM.style.width = cssWidth;
         }
 
         nextDOM = nextDOM.nextSibling as HTMLElement;
+      } else {
+        colgroup.appendChild(document.createElement('col')).style.width =
+          cssWidth;
       }
     }
   }
@@ -102,46 +102,46 @@ function updateColumns(
 
   if (fixedWidth) {
     table.style.width = `${totalWidth}px`;
-    table.style.minWidth = "";
+    table.style.minWidth = '';
   } else {
-    table.style.width = "";
+    table.style.width = '';
     table.style.minWidth = `${totalWidth}px`;
   }
 }
 
-let editor: Editor | undefined = undefined;
+let editor: Editor | undefined;
 
 class TableView implements NodeView {
-  node: ProseMirrorNode;
-
   cellMinWidth: number;
 
+  colgroup: HTMLElement;
+
+  containerDOM: HTMLElement;
+
+  contentDOM: HTMLElement;
+
   dom: HTMLElement;
+
+  node: ProseMirrorNode;
 
   scrollDom: HTMLElement;
 
   table: HTMLElement;
 
-  colgroup: HTMLElement;
-
-  contentDOM: HTMLElement;
-
-  containerDOM: HTMLElement;
-
   constructor(node: ProseMirrorNode, cellMinWidth: number) {
     this.node = node;
     this.cellMinWidth = cellMinWidth;
-    this.dom = document.createElement("div");
-    this.dom.className = "table-container";
+    this.dom = document.createElement('div');
+    this.dom.className = 'table-container';
 
-    this.containerDOM = this.dom.appendChild(document.createElement("div"));
+    this.containerDOM = this.dom.appendChild(document.createElement('div'));
 
-    this.containerDOM.className = "tableWrapper";
-    this.containerDOM.addEventListener("wheel", (e) => {
+    this.containerDOM.className = 'tableWrapper';
+    this.containerDOM.addEventListener('wheel', (e) => {
       return this.handleHorizontalWheel(this.containerDOM, e);
     });
 
-    this.containerDOM.addEventListener("scroll", () => {
+    this.containerDOM.addEventListener('scroll', () => {
       if (!editor) {
         return false;
       }
@@ -149,19 +149,38 @@ class TableView implements NodeView {
       view.dispatch(view.state.tr);
     });
 
-    this.scrollDom = document.createElement("div");
-    this.scrollDom.className = "scrollWrapper";
-    this.containerDOM.appendChild(this.scrollDom);
+    this.scrollDom = document.createElement('div');
+    this.scrollDom.className = 'scrollWrapper';
+    this.containerDOM.append(this.scrollDom);
 
-    this.table = this.scrollDom.appendChild(document.createElement("table"));
-    this.colgroup = this.table.appendChild(document.createElement("colgroup"));
+    this.table = this.scrollDom.appendChild(document.createElement('table'));
+    this.colgroup = this.table.appendChild(document.createElement('colgroup'));
     updateColumns(node, this.colgroup, this.table, cellMinWidth);
-    this.contentDOM = this.table.appendChild(document.createElement("tbody"));
+    this.contentDOM = this.table.appendChild(document.createElement('tbody'));
     // delay execution during initialization, otherwise
     // the correct scrollWidth cannot be obtained.
     setTimeout(() => {
       this.updateTableShadow();
     });
+  }
+
+  handleHorizontalWheel(dom: HTMLElement, event: WheelEvent) {
+    const { scrollWidth, clientWidth } = dom;
+    const hasScrollWidth = scrollWidth > clientWidth;
+    if (hasScrollWidth) {
+      event.stopPropagation();
+      event.preventDefault();
+      dom.scrollBy({ left: event.deltaY });
+    }
+  }
+
+  ignoreMutation(mutation: ViewMutationRecord) {
+    return (
+      mutation.type === 'attributes' &&
+      (mutation.target === this.table ||
+        mutation.target === this.dom ||
+        this.colgroup.contains(mutation.target))
+    );
   }
 
   update(node: ProseMirrorNode) {
@@ -178,39 +197,15 @@ class TableView implements NodeView {
   updateTableShadow() {
     const { scrollWidth, clientWidth, scrollLeft } = this
       .containerDOM as HTMLElement;
-    if (scrollWidth > clientWidth && scrollLeft < scrollWidth - clientWidth) {
-      this.dom.classList.add("table-right-shadow");
-    } else {
-      this.dom.classList.remove("table-right-shadow");
-    }
-    if (scrollLeft > 0) {
-      this.dom.classList.add("table-left-shadow");
-    } else {
-      this.dom.classList.remove("table-left-shadow");
-    }
-  }
-
-  ignoreMutation(mutation: ViewMutationRecord) {
-    return (
-      mutation.type === "attributes" &&
-      (mutation.target === this.table ||
-        mutation.target === this.dom ||
-        this.colgroup.contains(mutation.target))
+    this.dom.classList.toggle(
+      'table-right-shadow',
+      scrollWidth > clientWidth && scrollLeft < scrollWidth - clientWidth,
     );
-  }
-
-  handleHorizontalWheel(dom: HTMLElement, event: WheelEvent) {
-    const { scrollWidth, clientWidth } = dom;
-    const hasScrollWidth = scrollWidth > clientWidth;
-    if (hasScrollWidth) {
-      event.stopPropagation();
-      event.preventDefault();
-      dom.scrollBy({ left: event.deltaY });
-    }
+    this.dom.classList.toggle('table-left-shadow', scrollLeft > 0);
   }
 }
 
-export const TABLE_BUBBLE_MENU_KEY = new PluginKey("tableBubbleMenu");
+export const TABLE_BUBBLE_MENU_KEY = new PluginKey('tableBubbleMenu');
 
 export type ExtensionTableOptions = ExtensionOptions & Partial<TableOptions>;
 
@@ -237,7 +232,7 @@ export const ExtensionTable = TiptapTable.extend<ExtensionTableOptions>({
           props: {
             editor,
             icon: markRaw(MdiTablePlus),
-            title: i18n.global.t("editor.menus.table.add"),
+            title: i18n.global.t('editor.menus.table.add'),
             action: () =>
               editor
                 .chain()
@@ -251,8 +246,8 @@ export const ExtensionTable = TiptapTable.extend<ExtensionTableOptions>({
         return {
           priority: 120,
           icon: markRaw(MdiTable),
-          title: "editor.extensions.commands_menu.table",
-          keywords: ["table", "biaoge"],
+          title: 'editor.extensions.commands_menu.table',
+          keywords: ['table', 'biaoge'],
           command: ({ editor, range }: { editor: Editor; range: Range }) => {
             editor
               .chain()
@@ -270,7 +265,7 @@ export const ExtensionTable = TiptapTable.extend<ExtensionTableOptions>({
             return isActive(state, ExtensionTable.name);
           },
           options: {
-            placement: "bottom-start",
+            placement: 'bottom-start',
           },
           getReferencedVirtualElement() {
             const editor = this.editor;
@@ -278,13 +273,13 @@ export const ExtensionTable = TiptapTable.extend<ExtensionTableOptions>({
               return null;
             }
             const parentNode = findParentNode(
-              (node) => node.type.name === ExtensionTable.name
+              (node) => node.type.name === ExtensionTable.name,
             )(editor.state.selection);
             if (parentNode) {
               const domRect = posToDOMRect(
                 editor.view,
                 parentNode.start,
-                parentNode.start + parentNode.node.nodeSize - 2
+                parentNode.start + parentNode.node.nodeSize - 2,
               );
               return {
                 getBoundingClientRect: () => domRect,
@@ -298,7 +293,7 @@ export const ExtensionTable = TiptapTable.extend<ExtensionTableOptions>({
               priority: 10,
               props: {
                 icon: markRaw(MdiTableColumnPlusBefore),
-                title: i18n.global.t("editor.menus.table.add_column_before"),
+                title: i18n.global.t('editor.menus.table.add_column_before'),
                 action: () => {
                   editor.chain().focus().addColumnBefore().run();
                 },
@@ -308,7 +303,7 @@ export const ExtensionTable = TiptapTable.extend<ExtensionTableOptions>({
               priority: 20,
               props: {
                 icon: markRaw(MdiTableColumnPlusAfter),
-                title: i18n.global.t("editor.menus.table.add_column_after"),
+                title: i18n.global.t('editor.menus.table.add_column_after'),
                 action: () => editor.chain().focus().addColumnAfter().run(),
               },
             },
@@ -316,7 +311,7 @@ export const ExtensionTable = TiptapTable.extend<ExtensionTableOptions>({
               priority: 30,
               props: {
                 icon: markRaw(MdiTableColumnRemove),
-                title: i18n.global.t("editor.menus.table.delete_column"),
+                title: i18n.global.t('editor.menus.table.delete_column'),
                 action: () => editor.chain().focus().deleteColumn().run(),
               },
             },
@@ -328,7 +323,7 @@ export const ExtensionTable = TiptapTable.extend<ExtensionTableOptions>({
               priority: 50,
               props: {
                 icon: markRaw(MdiTableRowPlusBefore),
-                title: i18n.global.t("editor.menus.table.add_row_before"),
+                title: i18n.global.t('editor.menus.table.add_row_before'),
                 action: () => editor.chain().focus().addRowBefore().run(),
               },
             },
@@ -336,7 +331,7 @@ export const ExtensionTable = TiptapTable.extend<ExtensionTableOptions>({
               priority: 60,
               props: {
                 icon: markRaw(MdiTableRowPlusAfter),
-                title: i18n.global.t("editor.menus.table.add_row_after"),
+                title: i18n.global.t('editor.menus.table.add_row_after'),
                 action: () => editor.chain().focus().addRowAfter().run(),
               },
             },
@@ -344,7 +339,7 @@ export const ExtensionTable = TiptapTable.extend<ExtensionTableOptions>({
               priority: 70,
               props: {
                 icon: markRaw(MdiTableRowRemove),
-                title: i18n.global.t("editor.menus.table.delete_row"),
+                title: i18n.global.t('editor.menus.table.delete_row'),
                 action: () => editor.chain().focus().deleteRow().run(),
               },
             },
@@ -356,7 +351,7 @@ export const ExtensionTable = TiptapTable.extend<ExtensionTableOptions>({
               priority: 90,
               props: {
                 icon: markRaw(MdiTableHeadersEye),
-                title: i18n.global.t("editor.menus.table.toggle_header_column"),
+                title: i18n.global.t('editor.menus.table.toggle_header_column'),
                 action: () => editor.chain().focus().toggleHeaderColumn().run(),
               },
             },
@@ -364,7 +359,7 @@ export const ExtensionTable = TiptapTable.extend<ExtensionTableOptions>({
               priority: 100,
               props: {
                 icon: markRaw(MdiTableHeadersEye),
-                title: i18n.global.t("editor.menus.table.toggle_header_row"),
+                title: i18n.global.t('editor.menus.table.toggle_header_row'),
                 action: () => editor.chain().focus().toggleHeaderRow().run(),
               },
             },
@@ -372,7 +367,7 @@ export const ExtensionTable = TiptapTable.extend<ExtensionTableOptions>({
               priority: 101,
               props: {
                 icon: markRaw(FluentTableColumnTopBottom24Regular),
-                title: i18n.global.t("editor.menus.table.toggle_header_cell"),
+                title: i18n.global.t('editor.menus.table.toggle_header_cell'),
                 action: () => editor.chain().focus().toggleHeaderCell().run(),
               },
             },
@@ -384,7 +379,7 @@ export const ExtensionTable = TiptapTable.extend<ExtensionTableOptions>({
               priority: 120,
               props: {
                 icon: markRaw(MdiTableMergeCells),
-                title: i18n.global.t("editor.menus.table.merge_cells"),
+                title: i18n.global.t('editor.menus.table.merge_cells'),
                 action: () => editor.chain().focus().mergeCells().run(),
               },
             },
@@ -392,7 +387,7 @@ export const ExtensionTable = TiptapTable.extend<ExtensionTableOptions>({
               priority: 130,
               props: {
                 icon: markRaw(MdiTableSplitCell),
-                title: i18n.global.t("editor.menus.table.split_cell"),
+                title: i18n.global.t('editor.menus.table.split_cell'),
                 action: () => editor.chain().focus().splitCell().run(),
               },
             },
@@ -404,7 +399,7 @@ export const ExtensionTable = TiptapTable.extend<ExtensionTableOptions>({
               priority: 150,
               props: {
                 icon: markRaw(MdiTableRemove),
-                title: i18n.global.t("editor.menus.table.delete_table"),
+                title: i18n.global.t('editor.menus.table.delete_table'),
                 action: () => editor.chain().focus().deleteTable().run(),
               },
             },
@@ -415,7 +410,7 @@ export const ExtensionTable = TiptapTable.extend<ExtensionTableOptions>({
         return {
           extendsKey: CONVERT_TO_KEY,
           visible({ editor }) {
-            if (isActive(editor.state, "table")) {
+            if (isActive(editor.state, 'table')) {
               return false;
             }
             return true;
@@ -461,9 +456,9 @@ export const ExtensionTable = TiptapTable.extend<ExtensionTableOptions>({
     return {
       Backspace: () => handleBackspace(),
 
-      "Mod-Backspace": () => handleBackspace(),
+      'Mod-Backspace': () => handleBackspace(),
 
-      "Mod-a": ({ editor }) => {
+      'Mod-a': ({ editor }) => {
         if (!isNodeActive(editor.state, ExtensionTable.name)) {
           return false;
         }
@@ -481,11 +476,11 @@ export const ExtensionTable = TiptapTable.extend<ExtensionTableOptions>({
         }
 
         let cellNodePos = findParentNode(
-          (node) => node.type.name === TableCell.name
+          (node) => node.type.name === TableCell.name,
         )(selection);
         if (!cellNodePos) {
           cellNodePos = findParentNode(
-            (node) => node.type.name === TableHeader.name
+            (node) => node.type.name === TableHeader.name,
           )(selection);
         }
         if (!cellNodePos) {
@@ -520,9 +515,9 @@ export const ExtensionTable = TiptapTable.extend<ExtensionTableOptions>({
             new TextSelection(
               nextTr.doc.resolve(nextCell.start),
               nextTr.doc.resolve(
-                nextCell.start + (nextCell.node?.nodeSize || 0) - 4
-              )
-            )
+                nextCell.start + (nextCell.node?.nodeSize || 0) - 4,
+              ),
+            ),
           );
           nextTr.scrollIntoView();
           nextView.dispatch(nextTr);
@@ -530,7 +525,7 @@ export const ExtensionTable = TiptapTable.extend<ExtensionTableOptions>({
         }
         return false;
       },
-      "Shift-Tab": ({ editor }) => {
+      'Shift-Tab': ({ editor }) => {
         const { tr } = editor.state;
         if (!isActive(editor.state, ExtensionTable.name)) {
           return false;
@@ -541,9 +536,9 @@ export const ExtensionTable = TiptapTable.extend<ExtensionTableOptions>({
             new TextSelection(
               tr.doc.resolve(previousCell.start),
               tr.doc.resolve(
-                previousCell.start + (previousCell.node?.nodeSize || 0) - 4
-              )
-            )
+                previousCell.start + (previousCell.node?.nodeSize || 0) - 4,
+              ),
+            ),
           );
           tr.scrollIntoView();
           editor.view.dispatch(tr);
@@ -556,14 +551,14 @@ export const ExtensionTable = TiptapTable.extend<ExtensionTableOptions>({
   renderHTML({ node, HTMLAttributes }) {
     const { colgroup, tableWidth, tableMinWidth } = createColGroup(
       node,
-      this.options.cellMinWidth ?? 25
+      this.options.cellMinWidth ?? 25,
     );
 
     const table: DOMOutputSpec = [
-      "div",
-      { style: "overflow-x: auto; overflow-y: hidden;" },
+      'div',
+      { style: 'overflow-x: auto; overflow-y: hidden;' },
       [
-        "table",
+        'table',
         mergeAttributes(
           this.options.HTMLAttributes ?? {},
           HTMLAttributes ?? {},
@@ -571,10 +566,10 @@ export const ExtensionTable = TiptapTable.extend<ExtensionTableOptions>({
             style: tableWidth
               ? `width: ${tableWidth}`
               : `minWidth: ${tableMinWidth}`,
-          }
+          },
         ),
         colgroup,
-        ["tbody", 0],
+        ['tbody', 0],
       ],
     ];
 

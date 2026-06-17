@@ -1,9 +1,12 @@
 <script setup lang="ts">
-import { computed } from "vue";
-import Input from "@HaloEditor/components/base/Input.vue";
-import { i18n } from "@HaloEditor/locales";
-import type { BubbleItemComponentProps } from "@HaloEditor/types";
-import { ExtensionVideo } from "./index";
+import type { BubbleItemComponentProps } from '@HaloEditor/types';
+
+import { computed } from 'vue';
+
+import Input from '@HaloEditor/components/base/Input.vue';
+import { i18n } from '@HaloEditor/locales';
+
+import { ExtensionVideo } from './index';
 
 const props = defineProps<BubbleItemComponentProps>();
 
@@ -12,10 +15,7 @@ const src = computed({
     return props.editor.getAttributes(ExtensionVideo.name).src;
   },
   set: (src: string) => {
-    props.editor
-      .chain()
-      .updateAttributes(ExtensionVideo.name, { src: src })
-      .run();
+    props.editor.chain().updateAttributes(ExtensionVideo.name, { src }).run();
   },
 });
 </script>

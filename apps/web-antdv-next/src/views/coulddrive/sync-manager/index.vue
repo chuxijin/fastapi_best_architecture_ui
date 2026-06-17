@@ -72,7 +72,7 @@ const queryFormOptions: VbenFormProps = {
   wrapperClass: 'grid-cols-1 md:grid-cols-5', // 3个搜索选项 + 搜索按钮 + 重置按钮
   actionWrapperClass: 'md:col-span-2', // 按钮区域占2列
   submitButtonOptions: {
-    content: $t('common.search'),
+    content: $t('common.form.query'),
   },
   resetButtonOptions: {
     content: $t('common.reset'),
@@ -254,7 +254,7 @@ async function executeSync(config: any) {
       executingTasks.value.set(config.id, {
         status: 'executing',
         startTime: new Date(),
-        taskId: submitResult.task_id,
+        taskId: Number(submitResult.task_id),
       });
       // 设置已完成状态
       executingTasks.value.set(config.id, {

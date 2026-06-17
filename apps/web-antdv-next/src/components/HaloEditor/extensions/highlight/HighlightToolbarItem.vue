@@ -1,10 +1,12 @@
 <script lang="ts" setup>
-import MingcuteCloseLine from "~icons/mingcute/close-line";
-import { ToolbarItem } from "@HaloEditor/components";
-import ColorPickerDropdown from "@HaloEditor/components/common/ColorPickerDropdown.vue";
-import { i18n } from "@HaloEditor/locales";
-import type { ToolbarItemComponentProps } from "@HaloEditor/types";
-import { ExtensionHighlight } from ".";
+import type { ToolbarItemComponentProps } from '@HaloEditor/types';
+
+import { ToolbarItem } from '@HaloEditor/components';
+import ColorPickerDropdown from '@HaloEditor/components/common/ColorPickerDropdown.vue';
+import { i18n } from '@HaloEditor/locales';
+import MingcuteCloseLine from '~icons/mingcute/close-line';
+
+import { ExtensionHighlight } from '.';
 
 const props = defineProps<ToolbarItemComponentProps>();
 
@@ -37,7 +39,7 @@ function handleUnsetColor() {
           <div class="inline-flex items-center gap-2">
             <MingcuteCloseLine />
             <span>
-              {{ i18n.global.t("editor.extensions.highlight.unset") }}
+              {{ i18n.global.t('editor.extensions.highlight.unset') }}
             </span>
           </div>
         </div>
@@ -52,7 +54,7 @@ function handleUnsetColor() {
             :style="{ 'background-color': '#fff8c5' }"
           ></div>
           <span class="text-xs text-gray-600">
-            {{ i18n.global.t("editor.common.button.restore_default") }}
+            {{ i18n.global.t('editor.common.button.restore_default') }}
           </span>
         </div>
       </div>

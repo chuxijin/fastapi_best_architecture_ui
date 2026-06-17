@@ -1,26 +1,32 @@
+import type {
+  Editor,
+  EditorState,
+  ExtensionOptions,
+  Range,
+} from '#/components/HaloEditor';
+
+import { markRaw } from 'vue';
+
+import { html } from '@codemirror/lang-html';
+import { lineNumbers } from '@codemirror/view';
+import MdiDeleteForeverOutline from '~icons/mdi/delete-forever-outline?color=red';
+import MdiLanguageHtml5 from '~icons/mdi/language-html5';
+
 import {
   findParentNode,
+  Fragment,
   isActive,
   mergeAttributes,
   Node,
-  Fragment,
   ToolboxItem,
   VueNodeViewRenderer,
-  type Editor,
-  type Range,
-  type EditorState,
-  type ExtensionOptions,
-} from "#/components/HaloEditor";
-import { markRaw } from "vue";
-import MdiLanguageHtml5 from "~icons/mdi/language-html5";
-import CodeMirrorView from "./CodeMirrorView.vue";
-import { html } from "@codemirror/lang-html";
-import MdiDeleteForeverOutline from "~icons/mdi/delete-forever-outline?color=red";
-import { deleteNode } from "../utils/delete-node";
-import { lineNumbers } from "@codemirror/view";
+} from '#/components/HaloEditor';
+
+import { deleteNode } from '../utils/delete-node';
+import CodeMirrorView from './CodeMirrorView.vue';
 
 const temporaryDocument = document.implementation.createHTMLDocument();
-declare module "#/components/HaloEditor" {
+declare module '#/components/HaloEditor' {
   interface Commands<ReturnType> {
     htmlEdited: {
       addHtmlEdited: () => ReturnType;
@@ -30,11 +36,11 @@ declare module "#/components/HaloEditor" {
 }
 
 const HtmlEdited = Node.create<ExtensionOptions>({
-  name: "html_edited",
+  name: 'html_edited',
 
-  content: "text*",
+  content: 'text*',
 
-  group: "block",
+  group: 'block',
 
   defining: true,
 
@@ -42,7 +48,7 @@ const HtmlEdited = Node.create<ExtensionOptions>({
     return {
       collapsed: {
         default: false,
-        parseHTML: (element) => !!element.getAttribute("collapsed"),
+        parseHTML: (element) => !!element.getAttribute('collapsed'),
         renderHTML: (attributes) => {
           if (attributes.collapsed) {
             return {
@@ -57,7 +63,7 @@ const HtmlEdited = Node.create<ExtensionOptions>({
 
   addOptions() {
     return {
-      blockType: "html",
+      blockType: 'html',
       extensions: [
         html({
           matchClosingTags: true,
@@ -70,8 +76,8 @@ const HtmlEdited = Node.create<ExtensionOptions>({
         return {
           priority: 81,
           icon: markRaw(MdiLanguageHtml5),
-          title: "HTML 编辑块",
-          keywords: ["html", "编辑块"],
+          title: 'HTML 编辑块',
+          keywords: ['html', '编辑块'],
           command: ({ editor, range }: { editor: Editor; range: Range }) => {
             editor
               .chain()
@@ -90,7 +96,7 @@ const HtmlEdited = Node.create<ExtensionOptions>({
             props: {
               editor,
               icon: markRaw(MdiLanguageHtml5),
-              title: "HTML 编辑块",
+              title: 'HTML 编辑块',
               action: () => {
                 editor.chain().addHtmlEdited().setSelectHtmlNode().run();
               },
@@ -100,7 +106,7 @@ const HtmlEdited = Node.create<ExtensionOptions>({
       },
       getBubbleMenu() {
         return {
-          pluginKey: "htmlEditedBubbleMenu",
+          pluginKey: 'htmlEditedBubbleMenu',
           shouldShow: ({ state }: { state: EditorState }): boolean => {
             return isActive(state, HtmlEdited.name);
           },
@@ -109,7 +115,7 @@ const HtmlEdited = Node.create<ExtensionOptions>({
               priority: 100,
               props: {
                 icon: markRaw(MdiDeleteForeverOutline),
-                title: "删除",
+                title: '删除',
                 action: ({ editor }: { editor: Editor }) => {
                   deleteNode(HtmlEdited.name, editor);
                 },
@@ -136,14 +142,14 @@ const HtmlEdited = Node.create<ExtensionOptions>({
         () =>
         ({ chain, state }) => {
           const htmlEditedNode = findParentNode(
-            (node) => node.type.name === HtmlEdited.name
+            (node) => node.type.name === HtmlEdited.name,
           )(state.selection) as
+            | undefined
             | {
+                depth: number;
                 pos: number;
                 start: number;
-                depth: number;
-              }
-            | undefined;
+              };
           if (!htmlEditedNode) {
             return false;
           }
@@ -155,7 +161,7 @@ const HtmlEdited = Node.create<ExtensionOptions>({
   parseHTML() {
     return [
       {
-        tag: "div[class=html-edited]",
+        tag: 'div[class=html-edited]',
         getContent: (node, schema) => {
           const htmlNode = node as HTMLElement;
           if (!htmlNode) {
@@ -171,10 +177,10 @@ const HtmlEdited = Node.create<ExtensionOptions>({
   renderHTML({ HTMLAttributes, node }) {
     const content = node.content;
     if (content.size === 0) {
-      return ["div", mergeAttributes(HTMLAttributes, {})];
+      return ['div', mergeAttributes(HTMLAttributes, {})];
     }
-    const container = temporaryDocument.createElement("div");
-    container.classList.add("html-edited");
+    const container = temporaryDocument.createElement('div');
+    container.classList.add('html-edited');
     container.innerHTML = content.toJSON()[0].text;
     return {
       dom: container,

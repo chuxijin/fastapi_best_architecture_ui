@@ -1,12 +1,17 @@
-import type { Attachment } from "@HaloEditor/utils/upload";
-import { useFileDialog } from "@vueuse/core";
-import { computed, ref } from "vue";
-import type { Editor } from "@HaloEditor/tiptap";
-import { uploadFile } from "../../utils/upload";
-import { ExtensionGallery, type ExtensionGalleryImageItem } from "./index";
+import type { Editor } from '@HaloEditor/tiptap';
+import type { Attachment } from '@HaloEditor/utils/upload';
+
+import type { ExtensionGalleryImageItem } from './index';
+
+import { computed, ref } from 'vue';
+
+import { useFileDialog } from '@vueuse/core';
+
+import { uploadFile } from '../../utils/upload';
+import { ExtensionGallery } from './index';
 
 export function getCurrentGalleryImages(
-  editor: Editor
+  editor: Editor,
 ): ExtensionGalleryImageItem[] {
   return editor.getAttributes(ExtensionGallery.name).images || [];
 }
@@ -14,7 +19,7 @@ export function getCurrentGalleryImages(
 export function updateGalleryImages(
   editor: Editor,
   images: ExtensionGalleryImageItem[],
-  focus = true
+  focus = true,
 ) {
   const chain = editor
     .chain()
@@ -32,7 +37,7 @@ export function useUploadGalleryImage(editor: Editor) {
   const controller = ref<AbortController>();
 
   const { open: openFileDialog, onChange } = useFileDialog({
-    accept: "image/*",
+    accept: 'image/*',
     multiple: true,
     reset: true,
   });
@@ -42,7 +47,7 @@ export function useUploadGalleryImage(editor: Editor) {
       return;
     }
     if (files.length > 0) {
-      handleFiles(Array.from(files));
+      handleFiles([...files]);
     }
   });
 
@@ -54,7 +59,7 @@ export function useUploadGalleryImage(editor: Editor) {
 
   const uploadImage = computed(() => {
     return editor.extensionManager.extensions.find(
-      (extension) => extension.name === ExtensionGallery.name
+      (extension) => extension.name === ExtensionGallery.name,
     )?.options.uploadImage;
   });
 

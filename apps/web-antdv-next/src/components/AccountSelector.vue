@@ -91,7 +91,7 @@ function isSelected(account: CoulddriveDriveAccountDetail) {
 
 // 排序账号：ID小的且正常的靠前
 const sortedAccounts = computed(() => {
-  return [...props.accounts].sort((a, b) => {
+  return [...props.accounts].toSorted((a, b) => {
     // 首先按状态排序，正常的在前
     if (a.is_valid !== b.is_valid) {
       return a.is_valid ? -1 : 1;

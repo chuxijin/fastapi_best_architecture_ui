@@ -1,10 +1,13 @@
-import TiptapStrike, { type StrikeOptions } from "@tiptap/extension-strike";
-import { markRaw } from "vue";
-import MingcuteStrikethroughLine from "~icons/mingcute/strikethrough-line";
-import ToolbarItem from "@HaloEditor/components/toolbar/ToolbarItem.vue";
-import { i18n } from "@HaloEditor/locales";
-import type { Editor } from "@HaloEditor/tiptap";
-import type { ExtensionOptions } from "@HaloEditor/types";
+import type { Editor } from '@HaloEditor/tiptap';
+import type { ExtensionOptions } from '@HaloEditor/types';
+import type { StrikeOptions } from '@tiptap/extension-strike';
+
+import { markRaw } from 'vue';
+
+import ToolbarItem from '@HaloEditor/components/toolbar/ToolbarItem.vue';
+import { i18n } from '@HaloEditor/locales';
+import TiptapStrike from '@tiptap/extension-strike';
+import MingcuteStrikethroughLine from '~icons/mingcute/strikethrough-line';
 
 export type ExtensionStrikeOptions = ExtensionOptions & Partial<StrikeOptions>;
 
@@ -20,7 +23,7 @@ export const ExtensionStrike = TiptapStrike.extend<ExtensionStrikeOptions>({
             editor,
             isActive: editor.isActive(TiptapStrike.name),
             icon: markRaw(MingcuteStrikethroughLine),
-            title: i18n.global.t("editor.common.strike"),
+            title: i18n.global.t('editor.common.strike'),
             action: () => editor.chain().focus().toggleStrike().run(),
           },
         };

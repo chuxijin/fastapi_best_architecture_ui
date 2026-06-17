@@ -2,6 +2,14 @@
   "$schema": "https://json.schemastore.org/tsconfig",
   "extends": "@vben/tsconfig/web-app.json",
   "compilerOptions": {
+    "strict": false,
+    "strictNullChecks": false,
+    "noImplicitAny": false,
+    "noImplicitOverride": false,
+    "noUncheckedIndexedAccess": false,
+    "noUnusedLocals": false,
+    "noUnusedParameters": false,
+    "strictFunctionTypes": false,
     "paths": {
       "#/*": ["./src/*"],
       "@HaloEditor/*": ["./src/components/HaloEditor/*"],
@@ -32,5 +40,8 @@
     }
   },
   "references": [{ "path": "./tsconfig.node.json" }],
+  "vueCompilerOptions": {
+    "strictTemplates": false
+  },
   "include": ["src/**/*.ts", "src/**/*.tsx", "src/**/*.vue"]
 }

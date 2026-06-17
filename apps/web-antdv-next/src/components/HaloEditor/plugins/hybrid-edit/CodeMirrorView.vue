@@ -1,37 +1,38 @@
 <script setup lang="ts">
+import type { Line, SelectionRange } from '@codemirror/state';
+import type { KeyBinding } from '@codemirror/view';
+
 import {
-  ref,
-  onMounted,
-  onBeforeUnmount,
-  watch,
-  nextTick,
   computed,
-} from "vue";
+  nextTick,
+  onBeforeUnmount,
+  onMounted,
+  ref,
+  watch,
+} from 'vue';
+
+import { autocompletion } from '@codemirror/autocomplete';
+import { defaultKeymap } from '@codemirror/commands';
 import {
-  EditorView as CodeMirror,
-  ViewUpdate,
-  keymap as cmKeymap,
-  type KeyBinding,
-  drawSelection,
-} from "@codemirror/view";
-import { defaultKeymap } from "@codemirror/commands";
-import {
-  syntaxHighlighting,
   defaultHighlightStyle,
-} from "@codemirror/language";
-import { autocompletion } from "@codemirror/autocomplete";
-import { PreviewRenderer } from "./preview-renderer";
-import { VButton } from "#/stubs/halo-components";
+  syntaxHighlighting,
+} from '@codemirror/language';
 import {
-  NodeViewWrapper,
-  nodeViewProps,
-} from "@tiptap/vue-3";
-import { Selection, TextSelection } from "@tiptap/pm/state";
-import { exitCode } from "@tiptap/pm/commands";
-import { undo, redo } from "@tiptap/pm/history";
-import { isActive } from "@tiptap/core";
-import MingcuteRightSmallFill from "~icons/mingcute/right-small-fill";
-import type { Line, SelectionRange } from "@codemirror/state";
+  keymap as cmKeymap,
+  EditorView as CodeMirror,
+  drawSelection,
+  ViewUpdate,
+} from '@codemirror/view';
+import { isActive } from '@tiptap/core';
+import { exitCode } from '@tiptap/pm/commands';
+import { redo, undo } from '@tiptap/pm/history';
+import { Selection, TextSelection } from '@tiptap/pm/state';
+import { nodeViewProps, NodeViewWrapper } from '@tiptap/vue-3';
+import MingcuteRightSmallFill from '~icons/mingcute/right-small-fill';
+
+import { VButton } from '#/stubs/halo-components';
+
+import { PreviewRenderer } from './preview-renderer';
 
 const props = defineProps(nodeViewProps);
 
@@ -46,20 +47,23 @@ const collapsed = computed<boolean>({
     return props.node.attrs.collapsed || false;
   },
   set: (collapsed: boolean) => {
-    props.updateAttributes({ collapsed: collapsed });
+    props.updateAttributes({ collapsed });
   },
 });
 const blockType = computed<string>(
-  () => props.extension.options.blockType || "html"
+  () => props.extension.options.blockType || 'html',
 );
 const blockLabel = computed<string>(() => {
   switch (blockType.value) {
-    case "html":
-      return "HTML";
-    case "markdown":
-      return "Markdown";
-    default:
+    case 'html': {
+      return 'HTML';
+    }
+    case 'markdown': {
+      return 'Markdown';
+    }
+    default: {
       return blockType.value;
+    }
   }
 });
 
@@ -126,7 +130,7 @@ const setupSplitView = () => {
 
   previewRenderer = new PreviewRenderer(
     blockType.value,
-    previewContainerRef.value
+    previewContainerRef.value,
   );
   updateSplitPreview();
 
@@ -149,7 +153,7 @@ const updateStandalonePreview = () => {
 
   previewRenderer = new PreviewRenderer(
     blockType.value,
-    previewContainerRef.value
+    previewContainerRef.value,
   );
 
   previewRenderer.render(currentText);
@@ -177,8 +181,8 @@ const createCodeMirror = (doc: string): void => {
     ],
   });
 
-  editorContainerRef.value.innerHTML = "";
-  editorContainerRef.value.appendChild(cm.dom);
+  editorContainerRef.value.innerHTML = '';
+  editorContainerRef.value.append(cm.dom);
   updating = false;
 };
 
@@ -192,14 +196,14 @@ const destroyCodeMirror = () => {
 const codeMirrorKeymap = (): KeyBinding[] => {
   const view = props.editor.view;
   return [
-    { key: "ArrowUp", run: () => maybeEscape("line", -1) },
-    { key: "ArrowLeft", run: () => maybeEscape("char", -1) },
-    { key: "ArrowDown", run: () => maybeEscape("line", 1) },
-    { key: "ArrowRight", run: () => maybeEscape("char", 1) },
+    { key: 'ArrowUp', run: () => maybeEscape('line', -1) },
+    { key: 'ArrowLeft', run: () => maybeEscape('char', -1) },
+    { key: 'ArrowDown', run: () => maybeEscape('line', 1) },
+    { key: 'ArrowRight', run: () => maybeEscape('char', 1) },
     {
-      key: "Ctrl-Enter",
+      key: 'Ctrl-Enter',
       run: () => {
-        if (!exitCode()) {
+        if (!exitCode(view.state, view.dispatch)) {
           return false;
         }
         view.focus();
@@ -207,18 +211,18 @@ const codeMirrorKeymap = (): KeyBinding[] => {
       },
     },
     {
-      key: "Ctrl-z",
-      mac: "Cmd-z",
+      key: 'Ctrl-z',
+      mac: 'Cmd-z',
       run: () => undo(view.state, view.dispatch),
     },
     {
-      key: "Shift-Ctrl-z",
-      mac: "Shift-Cmd-z",
+      key: 'Shift-Ctrl-z',
+      mac: 'Shift-Cmd-z',
       run: () => redo(view.state, view.dispatch),
     },
     {
-      key: "Ctrl-y",
-      mac: "Cmd-y",
+      key: 'Ctrl-y',
+      mac: 'Cmd-y',
       run: () => redo(view.state, view.dispatch),
     },
   ];
@@ -230,11 +234,11 @@ const maybeEscape = (unit: string, dir: number): boolean => {
   }
   const { state } = cm;
   const { main } = state.selection;
-  let stateMain: SelectionRange | Line = main;
+  let stateMain: Line | SelectionRange = main;
   if (!main.empty) {
     return false;
   }
-  if (unit == "line") {
+  if (unit === 'line') {
     stateMain = state.doc.lineAt(main.head);
   }
   if (dir < 0 ? stateMain.from > 0 : stateMain.to < state.doc.length) {
@@ -247,7 +251,7 @@ const maybeEscape = (unit: string, dir: number): boolean => {
   const targetPos = pos + (dir < 0 ? 0 : props.node.nodeSize);
   const selection = Selection.near(
     props.editor.view.state.doc.resolve(targetPos),
-    dir
+    dir,
   );
   const tr = props.editor.view.state.tr
     .setSelection(selection)
@@ -280,14 +284,14 @@ const forwardUpdate = (update: ViewUpdate) => {
   const selFrom = offset + main.from;
   const selTo = offset + main.to;
 
-  if (pmSel.from != selFrom || pmSel.to != selTo) {
+  if (pmSel.from !== selFrom || pmSel.to !== selTo) {
     const tr = props.editor.view.state.tr;
     update.changes.iterChanges((fromA, toA, fromB, toB, text) => {
-      if (text.length) {
+      if (text.length > 0) {
         tr.replaceWith(
           offset + fromA,
           offset + toA,
-          props.editor.view.state.schema.text(text.toString())
+          props.editor.view.state.schema.text(text.toString()),
         );
       } else {
         tr.delete(offset + fromA, offset + toA);
@@ -340,14 +344,14 @@ watch(
       let newEnd = newText.length;
       while (
         start < curEnd &&
-        curText.charCodeAt(start) === newText.charCodeAt(start)
+        curText.codePointAt(start) === newText.codePointAt(start)
       ) {
         ++start;
       }
       while (
         curEnd > start &&
         newEnd > start &&
-        curText.charCodeAt(curEnd - 1) === newText.charCodeAt(newEnd - 1)
+        curText.codePointAt(curEnd - 1) === newText.codePointAt(newEnd - 1)
       ) {
         curEnd--;
         newEnd--;
@@ -363,7 +367,7 @@ watch(
       updating = false;
     }
   },
-  { deep: true }
+  { deep: true },
 );
 
 watch(
@@ -372,7 +376,7 @@ watch(
     if (selected) {
       selectNode();
     }
-  }
+  },
 );
 
 onMounted(() => {
@@ -385,7 +389,7 @@ onBeforeUnmount(() => {
 });
 </script>
 <template>
-  <node-view-wrapper
+  <NodeViewWrapper
     class=":uno: mt-3 outline outline-1 outline-[#ccc] rounded overflow-hidden hover:outline-[#55c6a0] transition-all"
   >
     <div
@@ -412,10 +416,10 @@ onBeforeUnmount(() => {
 
       <div class=":uno: flex gap-2">
         <VButton ghost type="secondary" size="sm" @click="toggleSplitMode">
-          {{ isSplitMode ? "退出分屏" : "分屏" }}
+          {{ isSplitMode ? '退出分屏' : '分屏' }}
         </VButton>
         <VButton v-if="!isSplitMode" size="sm" @click="togglePreviewMode">
-          {{ isPreviewMode ? "编辑" : "预览" }}
+          {{ isPreviewMode ? '编辑' : '预览' }}
         </VButton>
       </div>
     </div>
@@ -447,14 +451,14 @@ onBeforeUnmount(() => {
         <div v-else ref="previewContainerRef"></div>
       </template>
     </div>
-  </node-view-wrapper>
+  </NodeViewWrapper>
 </template>
 
 <style scoped>
 :deep(.cm-editor) {
-  min-height: 10em;
-  height: 100%;
   flex: 1;
+  height: 100%;
+  min-height: 10em;
 }
 
 :deep(.cm-editor.cm-focused) {
@@ -462,16 +466,16 @@ onBeforeUnmount(() => {
 }
 
 :deep(.cm-line) {
-  color: #394047;
   line-height: 1.5rem;
+  color: #394047;
 }
 
 :deep(.cm-gutters) {
+  min-width: 2em;
+  line-height: 1.5rem;
+  color: #ced4d9;
   background: none;
   border: none;
-  color: #ced4d9;
-  line-height: 1.5rem;
-  min-width: 2em;
 }
 
 :deep(.cm-lineNumbers) {
@@ -480,8 +484,8 @@ onBeforeUnmount(() => {
 
 :deep(.cm-gutterElement) {
   min-width: 2em;
-  text-align: right;
   padding-right: 0.5em;
+  text-align: right;
   background-color: white;
 }
 </style>

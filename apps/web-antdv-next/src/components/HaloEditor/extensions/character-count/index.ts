@@ -1,1 +1,1 @@
-export { CharacterCount as ExtensionCharacterCount } from "@tiptap/extensions";
+export { CharacterCount as ExtensionCharacterCount } from '@tiptap/extensions';

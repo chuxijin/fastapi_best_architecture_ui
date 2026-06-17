@@ -1,19 +1,23 @@
 <script lang="ts" setup>
-import { VButton } from "#/stubs/halo-components";
-import { utils, type AttachmentSimple } from "@halo-dev/ui-shared";
-import { computed, ref } from "vue";
-import MingcuteMusic2Line from "~icons/mingcute/music-2-line";
-import { EditorLinkObtain } from "@HaloEditor/components";
-import { ResourceReplaceButton } from "@HaloEditor/components/upload";
-import { useExternalAssetsTransfer } from "@HaloEditor/composables/use-attachment";
-import { useEditorConfig } from "@HaloEditor/config/use-editor-config";
-import { i18n } from "@HaloEditor/locales";
+import type { AttachmentSimple } from '@halo-dev/ui-shared';
+import type { NodeViewProps } from '@HaloEditor/tiptap';
+
+import { computed, ref } from 'vue';
+
+import { EditorLinkObtain } from '@HaloEditor/components';
+import { ResourceReplaceButton } from '@HaloEditor/components/upload';
+import { useExternalAssetsTransfer } from '@HaloEditor/composables/use-attachment';
+import { useEditorConfig } from '@HaloEditor/config/use-editor-config';
+import { i18n } from '@HaloEditor/locales';
 import {
   findParentNodeClosestToPos,
   NodeViewWrapper,
-  type NodeViewProps,
-} from "@HaloEditor/tiptap";
-import { ExtensionFigure } from "../figure";
+} from '@HaloEditor/tiptap';
+import MingcuteMusic2Line from '~icons/mingcute/music-2-line';
+
+import { VButton } from '#/stubs/halo-components';
+
+import { ExtensionFigure } from '../figure';
 
 const props = defineProps<NodeViewProps>();
 
@@ -24,7 +28,7 @@ const src = computed({
     return props.node?.attrs.src;
   },
   set: (src: string) => {
-    props.updateAttributes({ src: src });
+    props.updateAttributes({ src });
   },
 });
 
@@ -44,19 +48,19 @@ const initialization = computed(() => {
 const alignItems = computed(() => {
   const pos = props.getPos();
   if (!pos) {
-    return "start";
+    return 'start';
   }
   const $pos = props.editor.state.doc.resolve(pos);
   const figureParent = findParentNodeClosestToPos(
     $pos,
-    (node) => node.type.name === ExtensionFigure.name
+    (node) => node.type.name === ExtensionFigure.name,
   );
 
   if (figureParent) {
     return figureParent.node.attrs.alignItems;
   }
 
-  return "start";
+  return 'start';
 });
 
 const editorLinkObtain = ref();
@@ -91,12 +95,12 @@ const { isExternalAsset, transferring, handleTransfer } =
   useExternalAssetsTransfer(src, handleSetExternalLink);
 
 const isPercentageWidth = computed(() => {
-  return props.node?.attrs.width?.includes("%");
+  return props.node?.attrs.width?.includes('%');
 });
 </script>
 
 <template>
-  <node-view-wrapper
+  <NodeViewWrapper
     as="div"
     class="flex w-full"
     :class="{
@@ -134,7 +138,7 @@ const isPercentageWidth = computed(() => {
             v-if="editorConfig.upload && isExternalAsset"
             v-tooltip="
               i18n.global.t(
-                'editor.extensions.upload.operations.transfer.tooltip'
+                'editor.extensions.upload.operations.transfer.tooltip',
               )
             "
             :loading="transferring"
@@ -144,7 +148,7 @@ const isPercentageWidth = computed(() => {
           >
             {{
               i18n.global.t(
-                "editor.extensions.upload.operations.transfer.button"
+                'editor.extensions.upload.operations.transfer.button',
               )
             }}
           </VButton>
@@ -160,7 +164,7 @@ const isPercentageWidth = computed(() => {
         <EditorLinkObtain
           ref="editorLinkObtain"
           class="!h-40 w-full"
-          :accept="'audio/*'"
+          accept="audio/*"
           :editor="editor"
           :upload-to-attachment-file="extension.options.uploadAudio"
           :uploaded-file="node?.attrs.file"
@@ -190,7 +194,7 @@ const isPercentageWidth = computed(() => {
                       {{
                         progress
                           ? `${progress}%`
-                          : `${i18n.global.t("editor.extensions.upload.loading")}...`
+                          : `${i18n.global.t('editor.extensions.upload.loading')}...`
                       }}
                     </div>
                   </div>
@@ -200,7 +204,7 @@ const isPercentageWidth = computed(() => {
                   class="inline-block cursor-pointer text-sm hover:opacity-70"
                   @click="handleUploadAbort"
                 >
-                  {{ i18n.global.t("editor.common.button.cancel") }}
+                  {{ i18n.global.t('editor.common.button.cancel') }}
                 </div>
               </div>
             </div>
@@ -216,7 +220,7 @@ const isPercentageWidth = computed(() => {
                     <div
                       class="absolute left-[50%] top-0 -translate-x-[50%] text-xs leading-4 text-white"
                     >
-                      {{ i18n.global.t("editor.extensions.upload.error") }}
+                      {{ i18n.global.t('editor.extensions.upload.error') }}
                     </div>
                   </div>
                 </div>
@@ -224,7 +228,7 @@ const isPercentageWidth = computed(() => {
                   class="inline-block cursor-pointer text-sm hover:opacity-70"
                   @click="handleUploadRetry"
                 >
-                  {{ i18n.global.t("editor.extensions.upload.click_retry") }}
+                  {{ i18n.global.t('editor.extensions.upload.click_retry') }}
                 </div>
               </div>
             </div>
@@ -232,5 +236,5 @@ const isPercentageWidth = computed(() => {
         </EditorLinkObtain>
       </div>
     </div>
-  </node-view-wrapper>
+  </NodeViewWrapper>
 </template>

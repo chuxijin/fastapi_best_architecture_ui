@@ -66,16 +66,16 @@ export async function uploadFileApi(
 /**
  * 上传图片（便捷方法）
  */
-export async function uploadImageApi(file: File): Promise<string> {
-  const result = await uploadFileApi(file);
+export async function uploadImageApi(file: File, folder?: string): Promise<string> {
+  const result = await uploadFileApi(file, folder);
   return result.url;
 }
 
 /**
  * 上传视频（便捷方法）
  */
-export async function uploadVideoApi(file: File): Promise<string> {
-  const result = await uploadFileApi(file);
+export async function uploadVideoApi(file: File, folder?: string): Promise<string> {
+  const result = await uploadFileApi(file, folder);
   return result.url;
 }
 

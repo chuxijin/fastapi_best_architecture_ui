@@ -1,13 +1,13 @@
-import { Plugin, PluginKey } from "@HaloEditor/tiptap/pm";
-import { Extension } from "@HaloEditor/tiptap/vue-3";
+import { Plugin, PluginKey } from '@HaloEditor/tiptap/pm';
+import { Extension } from '@HaloEditor/tiptap/vue-3';
 
 /**
  * @param {object} args Arguments as deconstructable object
  * @param {Array | object} args.types possible types
  * @param {object} args.node node to check
  */
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function nodeEqualsType({ types, node }: { types: any; node: any }) {
+
+function nodeEqualsType({ types, node }: { node: any; types: any }) {
   return (
     (Array.isArray(types) && types.includes(node.type)) || node.type === types
   );
@@ -21,12 +21,12 @@ function nodeEqualsType({ types, node }: { types: any; node: any }) {
  */
 
 export const ExtensionTrailingNode = Extension.create({
-  name: "trailingNode",
+  name: 'trailingNode',
 
   addOptions() {
     return {
-      node: "paragraph",
-      notAfter: ["paragraph"],
+      node: 'paragraph',
+      notAfter: ['paragraph'],
     };
   },
 

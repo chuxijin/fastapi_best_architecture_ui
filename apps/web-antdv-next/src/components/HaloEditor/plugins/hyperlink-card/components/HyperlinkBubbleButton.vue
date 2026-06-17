@@ -1,8 +1,11 @@
 <script lang="ts" setup>
-import { VDropdown } from "#/stubs/halo-components";
-import { BubbleButton, Input } from "../../..";
-import { computed } from "vue";
-import MingcuteLinkLine from "~icons/mingcute/link-line";
+import { computed } from 'vue';
+
+import MingcuteLinkLine from '~icons/mingcute/link-line';
+
+import { VDropdown } from '#/stubs/halo-components';
+
+import { BubbleButton, Input } from '../../..';
 
 interface Props {
   editor: any;
@@ -28,7 +31,7 @@ const href = computed({
       .chain()
       .updateAttributes(props.name, {
         href: value,
-        target: target.value ? "_blank" : "_self",
+        target: target.value ? '_blank' : '_self',
       })
       .setNodeSelection(pos)
       .run();
@@ -38,7 +41,7 @@ const href = computed({
 const target = computed({
   get() {
     const attrs = props.editor.getAttributes(props.name);
-    return attrs?.target === "_blank";
+    return attrs?.target === '_blank';
   },
   set(value) {
     const { selection } = props.editor.state;
@@ -50,7 +53,7 @@ const target = computed({
       .chain()
       .updateAttributes(props.name, {
         href: href.value,
-        target: value ? "_blank" : "_self",
+        target: value ? '_blank' : '_self',
       })
       .setNodeSelection(pos)
       .run();

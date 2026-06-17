@@ -1,9 +1,11 @@
-import { Node, mergeAttributes } from "@tiptap/core";
-import { VueNodeViewRenderer } from "@tiptap/vue-3";
-import ToolboxItem from "../../components/toolbox/ToolboxItem.vue";
-import { markRaw } from "vue";
-import MingcuteMarkPenLine from "~icons/mingcute/mark-pen-line";
-import HighlightBlockView from "./HighlightBlockView.vue";
+import { markRaw } from 'vue';
+
+import { mergeAttributes, Node } from '@tiptap/core';
+import { VueNodeViewRenderer } from '@tiptap/vue-3';
+import MingcuteMarkPenLine from '~icons/mingcute/mark-pen-line';
+
+import ToolboxItem from '../../components/toolbox/ToolboxItem.vue';
+import HighlightBlockView from './HighlightBlockView.vue';
 
 export interface HighlightBlockOptions {
   HTMLAttributes: Record<string, any>;
@@ -14,21 +16,20 @@ declare module '@tiptap/core' {
     highlightBlock: {
       setHighlightBlock: () => ReturnType;
       toggleHighlightBlock: () => ReturnType;
-    }
+    };
   }
 }
 
-
 export const HighlightBlock = Node.create<HighlightBlockOptions>({
-  name: "highlightBlock",
-  group: "block",
-  content: "block+",
+  name: 'highlightBlock',
+  group: 'block',
+  content: 'block+',
   defining: true,
 
   addOptions() {
     return {
       HTMLAttributes: {
-        class: "highlight-block",
+        class: 'highlight-block',
       },
       getToolboxItems: ({ editor }: any) => {
         return [
@@ -38,22 +39,18 @@ export const HighlightBlock = Node.create<HighlightBlockOptions>({
             props: {
               editor,
               icon: markRaw(MingcuteMarkPenLine),
-              title: "高亮块",
+              title: '高亮块',
               action: () => {
-                editor
-                  .chain()
-                  .focus()
-                  .setHighlightBlock()
-                  .run();
+                editor.chain().focus().setHighlightBlock().run();
               },
             },
           },
         ];
       },
-      getDraggableMenuItems: ({ editor }: any) => {
+      getDraggableMenuItems: ({ editor: _editor }: any) => {
         return {
-          extendsKey: "convert-to",
-          title: () => "高亮块",
+          extendsKey: 'convert-to',
+          title: () => '高亮块',
           icon: markRaw(MingcuteMarkPenLine),
           action: ({ editor, pos, node, close }: any) => {
             if (node) {
@@ -71,10 +68,15 @@ export const HighlightBlock = Node.create<HighlightBlockOptions>({
           {
             priority: 45,
             icon: markRaw(MingcuteMarkPenLine),
-            title: "高亮块",
-            keywords: ["highlight", "callout", "gaoliangkuai", "glk", "tip"],
+            title: '高亮块',
+            keywords: ['highlight', 'callout', 'gaoliangkuai', 'glk', 'tip'],
             command: ({ editor, range }: any) => {
-              editor.chain().focus().deleteRange(range).setHighlightBlock().run();
+              editor
+                .chain()
+                .focus()
+                .deleteRange(range)
+                .setHighlightBlock()
+                .run();
             },
           },
         ];
@@ -85,16 +87,16 @@ export const HighlightBlock = Node.create<HighlightBlockOptions>({
   addAttributes() {
     return {
       icon: {
-        default: "🏕️",
+        default: '🏕️',
       },
       textColor: {
-        default: "inherit",
+        default: 'inherit',
       },
       borderColor: {
-        default: "#fb923c", // orange-400
+        default: '#fb923c', // orange-400
       },
       backgroundColor: {
-        default: "#fff7ed", // orange-50
+        default: '#fff7ed', // orange-50
       },
     };
   },
@@ -109,9 +111,9 @@ export const HighlightBlock = Node.create<HighlightBlockOptions>({
 
   renderHTML({ HTMLAttributes }) {
     return [
-      "div",
+      'div',
       mergeAttributes(this.options.HTMLAttributes, HTMLAttributes, {
-        "data-type": "highlight-block",
+        'data-type': 'highlight-block',
       }),
       0,
     ];
@@ -131,7 +133,7 @@ export const HighlightBlock = Node.create<HighlightBlockOptions>({
       toggleHighlightBlock:
         () =>
         ({ commands }: any) => {
-          return commands.toggleNode(this.name, "paragraph");
+          return commands.toggleNode(this.name, 'paragraph');
         },
     };
   },

@@ -1,15 +1,18 @@
 <script lang="ts" setup>
-import { BubbleMenu } from "@tiptap/vue-3/menus";
-import { type PropType } from "vue";
+import type { BubbleItemType, NodeBubbleMenuType } from '@HaloEditor/types';
+
+import type { PropType } from 'vue';
+
 import {
   Editor,
   EditorState,
   EditorView,
   PluginKey,
   VueEditor,
-} from "@HaloEditor/tiptap";
-import type { BubbleItemType, NodeBubbleMenuType } from "@HaloEditor/types";
-import BubbleItem from "./BubbleItem.vue";
+} from '@HaloEditor/tiptap';
+import { BubbleMenu } from '@tiptap/vue-3/menus';
+
+import BubbleItem from './BubbleItem.vue';
 
 const props = defineProps({
   editor: {
@@ -20,7 +23,7 @@ const props = defineProps({
 
 const getBubbleMenuFromExtensions = (): NodeBubbleMenuType[] => {
   const extensionManager = props.editor?.extensionManager;
-  const extendsBubbleMap: Map<string | PluginKey, NodeBubbleMenuType[]> =
+  const extendsBubbleMap: Map<PluginKey | string, NodeBubbleMenuType[]> =
     new Map();
   const bubbleMenus: NodeBubbleMenuType[] = [];
   for (const extension of extensionManager.extensions) {
@@ -78,7 +81,7 @@ const getBubbleMenuFromExtensions = (): NodeBubbleMenuType[] => {
  */
 const mergeBubbleMenu = (
   bubbleMenu: NodeBubbleMenuType,
-  extendsBubbleMenus: NodeBubbleMenuType[]
+  extendsBubbleMenus: NodeBubbleMenuType[],
 ): NodeBubbleMenuType => {
   const items = bubbleMenu.items ?? [];
   const extendsItems =
@@ -106,7 +109,7 @@ const mergeBubbleMenu = (
     }
   });
 
-  const mergedItems = [...Array.from(keyedItems.values()), ...nonKeyedItems];
+  const mergedItems = [...keyedItems.values(), ...nonKeyedItems];
 
   const shouldShowFunctions = [
     bubbleMenu.shouldShow,
@@ -116,7 +119,7 @@ const mergeBubbleMenu = (
   const mergedShouldShow =
     shouldShowFunctions.length > 0
       ? (
-          props: Parameters<NonNullable<NodeBubbleMenuType["shouldShow"]>>[0]
+          props: Parameters<NonNullable<NodeBubbleMenuType['shouldShow']>>[0],
         ) => {
           return shouldShowFunctions.every((fn) => (fn ? fn(props) : true));
         }
@@ -130,20 +133,20 @@ const mergeBubbleMenu = (
 };
 
 const sortBubbleMenuItems = (items: BubbleItemType[] | undefined) => {
-  return items?.sort((a, b) => a.priority - b.priority);
+  return items?.toSorted((a, b) => a.priority - b.priority);
 };
 
 const shouldShow = (
   props: {
     editor: Editor;
     element: HTMLElement;
-    view: EditorView;
-    state: EditorState;
-    oldState?: EditorState;
     from: number;
+    oldState?: EditorState;
+    state: EditorState;
     to: number;
+    view: EditorView;
   },
-  bubbleMenu: NodeBubbleMenuType
+  bubbleMenu: NodeBubbleMenuType,
 ) => {
   if (!props.editor.isEditable) {
     return false;
@@ -152,7 +155,7 @@ const shouldShow = (
 };
 </script>
 <template>
-  <bubble-menu
+  <BubbleMenu
     v-for="(bubbleMenu, index) in getBubbleMenuFromExtensions()"
     :key="index"
     :plugin-key="bubbleMenu?.pluginKey"
@@ -179,14 +182,14 @@ const shouldShow = (
               :editor="editor"
             />
           </template>
-          <bubble-item v-else :editor="editor" v-bind="item.props" />
+          <BubbleItem v-else :editor="editor" v-bind="item.props" />
         </template>
       </template>
       <template v-else-if="bubbleMenu.component">
         <component :is="bubbleMenu?.component" :editor="editor" />
       </template>
     </div>
-  </bubble-menu>
+  </BubbleMenu>
 </template>
 <style scoped>
 .bubble-menu {

@@ -1,5 +1,7 @@
-import TiptapLink, { type LinkOptions } from "@tiptap/extension-link";
-import type { ExtensionOptions } from "@HaloEditor/types";
+import type { ExtensionOptions } from '@HaloEditor/types';
+import type { LinkOptions } from '@tiptap/extension-link';
+
+import TiptapLink from '@tiptap/extension-link';
 
 export type ExtensionLinkOptions = ExtensionOptions & Partial<LinkOptions>;
 
@@ -7,16 +9,15 @@ export const ExtensionLink = TiptapLink.extend<ExtensionLinkOptions>({
   addOptions() {
     return {
       ...this.parent?.(),
-      ...{
-        HTMLAttributes: {
-          rel: null,
-        },
+
+      HTMLAttributes: {
+        rel: null,
       },
     };
   },
 
   renderHTML({ HTMLAttributes }) {
-    return ["a", HTMLAttributes, 0];
+    return ['a', HTMLAttributes, 0];
   },
 
   addPasteRules() {

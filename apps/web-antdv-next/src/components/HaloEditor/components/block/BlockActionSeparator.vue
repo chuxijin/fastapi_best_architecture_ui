@@ -1,6 +1,7 @@
 <script lang="ts" setup>
-import { computed } from "vue";
-import type { BubbleItemComponentProps } from "@HaloEditor/types";
+import type { BubbleItemComponentProps } from '@HaloEditor/types';
+
+import { computed } from 'vue';
 
 const props = defineProps<BubbleItemComponentProps>();
 
@@ -19,6 +20,7 @@ const visible = computed(() => {
 <style>
 .editor-block__actions-separator {
   @apply mx-1.5 h-5 bg-slate-200;
+
   width: 1px;
 }
 </style>

@@ -1,8 +1,12 @@
 <script lang="ts" setup>
-import scrollIntoView from "scroll-into-view-if-needed";
-import { ref, watch, type PropType } from "vue";
-import { i18n } from "@HaloEditor/locales";
-import type { CommandMenuItemType } from "@HaloEditor/types";
+import type { CommandMenuItemType } from '@HaloEditor/types';
+
+import type { PropType } from 'vue';
+
+import { ref, watch } from 'vue';
+
+import { i18n } from '@HaloEditor/locales';
+import scrollIntoView from 'scroll-into-view-if-needed';
 
 const props = defineProps({
   items: {
@@ -22,21 +26,21 @@ watch(
   () => props.items,
   () => {
     selectedIndex.value = 0;
-  }
+  },
 );
 
 function onKeyDown({ event }: { event: KeyboardEvent }) {
-  if (event.key === "ArrowUp" || (event.key === "k" && event.ctrlKey)) {
+  if (event.key === 'ArrowUp' || (event.key === 'k' && event.ctrlKey)) {
     handleKeyUp();
     return true;
   }
 
-  if (event.key === "ArrowDown" || (event.key === "j" && event.ctrlKey)) {
+  if (event.key === 'ArrowDown' || (event.key === 'j' && event.ctrlKey)) {
     handleKeyDown();
     return true;
   }
 
-  if (event.key === "Enter") {
+  if (event.key === 'Enter') {
     handleKeyEnter();
     return true;
   }
@@ -68,14 +72,14 @@ function handleSelectItem(index: number) {
 watch(
   () => selectedIndex.value,
   () => {
-    const selected = document.getElementById(
-      `command-item-${selectedIndex.value}`
+    const selected = document.querySelector(
+      `#command-item-${selectedIndex.value}`,
     );
 
     if (selected) {
-      scrollIntoView(selected, { behavior: "smooth", scrollMode: "if-needed" });
+      scrollIntoView(selected, { behavior: 'smooth', scrollMode: 'if-needed' });
     }
-  }
+  },
 );
 
 defineExpose({
@@ -86,7 +90,7 @@ defineExpose({
   <div
     class="relative flex max-h-72 w-60 flex-col gap-1 overflow-y-auto overflow-x-hidden rounded-lg border bg-white p-1.5 shadow-md"
   >
-    <template v-if="items.length">
+    <template v-if="items.length > 0">
       <button
         v-for="(item, index) in items"
         :id="`command-item-${index}`"
@@ -115,7 +119,7 @@ defineExpose({
       class="flex items-center justify-center p-1 text-sm text-gray-600"
     >
       <span>
-        {{ i18n.global.t("editor.extensions.commands_menu.no_results") }}
+        {{ i18n.global.t('editor.extensions.commands_menu.no_results') }}
       </span>
     </div>
   </div>

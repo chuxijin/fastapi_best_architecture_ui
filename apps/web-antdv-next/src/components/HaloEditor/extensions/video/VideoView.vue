@@ -1,19 +1,23 @@
 <script lang="ts" setup>
-import { VButton } from "#/stubs/halo-components";
-import { utils, type AttachmentSimple } from "@halo-dev/ui-shared";
-import { computed, ref } from "vue";
-import MingcuteVideoLine from "~icons/mingcute/video-line";
-import { EditorLinkObtain } from "@HaloEditor/components";
-import { ResourceReplaceButton } from "@HaloEditor/components/upload";
-import { useExternalAssetsTransfer } from "@HaloEditor/composables/use-attachment";
-import { useEditorConfig } from "@HaloEditor/config/use-editor-config";
-import { i18n } from "@HaloEditor/locales";
+import type { AttachmentSimple } from '@halo-dev/ui-shared';
+import type { NodeViewProps } from '@HaloEditor/tiptap';
+
+import { computed, ref } from 'vue';
+
+import { EditorLinkObtain } from '@HaloEditor/components';
+import { ResourceReplaceButton } from '@HaloEditor/components/upload';
+import { useExternalAssetsTransfer } from '@HaloEditor/composables/use-attachment';
+import { useEditorConfig } from '@HaloEditor/config/use-editor-config';
+import { i18n } from '@HaloEditor/locales';
 import {
   findParentNodeClosestToPos,
   NodeViewWrapper,
-  type NodeViewProps,
-} from "@HaloEditor/tiptap";
-import { ExtensionFigure } from "../figure";
+} from '@HaloEditor/tiptap';
+import MingcuteVideoLine from '~icons/mingcute/video-line';
+
+import { VButton } from '#/stubs/halo-components';
+
+import { ExtensionFigure } from '../figure';
 
 const props = defineProps<NodeViewProps>();
 
@@ -24,7 +28,7 @@ const src = computed({
     return props.node?.attrs.src;
   },
   set: (src: string) => {
-    props.updateAttributes({ src: src });
+    props.updateAttributes({ src });
   },
 });
 
@@ -76,31 +80,31 @@ const { isExternalAsset, transferring, handleTransfer } =
   useExternalAssetsTransfer(src, handleSetExternalLink);
 
 const isPercentageWidth = computed(() => {
-  return props.node?.attrs.width?.includes("%");
+  return props.node?.attrs.width?.includes('%');
 });
 
 // Get the align items of the image from the figure parent
 const alignItems = computed(() => {
   const pos = props.getPos();
   if (!pos) {
-    return "start";
+    return 'start';
   }
   const $pos = props.editor.state.doc.resolve(pos);
   const figureParent = findParentNodeClosestToPos(
     $pos,
-    (node) => node.type.name === ExtensionFigure.name
+    (node) => node.type.name === ExtensionFigure.name,
   );
 
   if (figureParent) {
     return figureParent.node.attrs.alignItems;
   }
 
-  return "start";
+  return 'start';
 });
 </script>
 
 <template>
-  <node-view-wrapper
+  <NodeViewWrapper
     as="div"
     class="flex w-full"
     :class="{
@@ -139,7 +143,7 @@ const alignItems = computed(() => {
             v-if="editorConfig.upload && isExternalAsset"
             v-tooltip="
               i18n.global.t(
-                'editor.extensions.upload.operations.transfer.tooltip'
+                'editor.extensions.upload.operations.transfer.tooltip',
               )
             "
             :loading="transferring"
@@ -149,7 +153,7 @@ const alignItems = computed(() => {
           >
             {{
               i18n.global.t(
-                "editor.extensions.upload.operations.transfer.button"
+                'editor.extensions.upload.operations.transfer.button',
               )
             }}
           </VButton>
@@ -164,7 +168,7 @@ const alignItems = computed(() => {
       <div v-show="!src" class="relative">
         <EditorLinkObtain
           ref="editorLinkObtain"
-          :accept="'video/*'"
+          accept="video/*"
           :editor="editor"
           :upload-to-attachment-file="extension.options.uploadVideo"
           :uploaded-file="node?.attrs.file"
@@ -194,7 +198,7 @@ const alignItems = computed(() => {
                       {{
                         progress
                           ? `${progress}%`
-                          : `${i18n.global.t("editor.extensions.upload.loading")}...`
+                          : `${i18n.global.t('editor.extensions.upload.loading')}...`
                       }}
                     </div>
                   </div>
@@ -204,7 +208,7 @@ const alignItems = computed(() => {
                   class="inline-block cursor-pointer text-sm hover:opacity-70"
                   @click="handleUploadAbort"
                 >
-                  {{ i18n.global.t("editor.common.button.cancel") }}
+                  {{ i18n.global.t('editor.common.button.cancel') }}
                 </div>
               </div>
             </div>
@@ -220,7 +224,7 @@ const alignItems = computed(() => {
                     <div
                       class="absolute left-[50%] top-0 -translate-x-[50%] text-xs leading-4 text-white"
                     >
-                      {{ i18n.global.t("editor.extensions.upload.error") }}
+                      {{ i18n.global.t('editor.extensions.upload.error') }}
                     </div>
                   </div>
                 </div>
@@ -228,7 +232,7 @@ const alignItems = computed(() => {
                   class="inline-block cursor-pointer text-sm hover:opacity-70"
                   @click="handleUploadRetry"
                 >
-                  {{ i18n.global.t("editor.extensions.upload.click_retry") }}
+                  {{ i18n.global.t('editor.extensions.upload.click_retry') }}
                 </div>
               </div>
             </div>
@@ -236,5 +240,5 @@ const alignItems = computed(() => {
         </EditorLinkObtain>
       </div>
     </div>
-  </node-view-wrapper>
+  </NodeViewWrapper>
 </template>

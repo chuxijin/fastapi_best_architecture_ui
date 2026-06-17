@@ -1,5 +1,3 @@
-import type { RouteLocationNormalizedGeneric } from 'vue-router';
-
 import type { TabDefinition } from '@vben/types';
 
 import type { IContextMenuItem } from '@vben-core/tabs-ui';
@@ -52,7 +50,7 @@ export function useTabbar() {
   });
 
   const { locale } = useI18n();
-  const currentTabs = ref<RouteLocationNormalizedGeneric[]>();
+  const currentTabs = ref<TabDefinition[]>();
   watch(
     [
       () => tabbarStore.getTabs,
@@ -85,7 +83,7 @@ export function useTabbar() {
     await closeTabByKey(key);
   };
 
-  function wrapperTabLocale(tab: RouteLocationNormalizedGeneric) {
+  function wrapperTabLocale(tab: TabDefinition): TabDefinition {
     return {
       ...tab,
       meta: {
@@ -150,7 +148,7 @@ export function useTabbar() {
       {
         handler: async () => {
           if (!contentIsMaximize.value) {
-            await router.push(tab.fullPath);
+            await router.push(tab.fullPath || tab.path);
           }
           toggleMaximize();
         },

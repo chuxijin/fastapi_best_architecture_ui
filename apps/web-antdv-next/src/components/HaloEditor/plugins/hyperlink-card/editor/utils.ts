@@ -1,4 +1,7 @@
-import { canSplit, TextSelection, type Transaction } from "../../..";
+/* eslint-disable unicorn/no-array-callback-reference */
+import type { Transaction } from '../../..';
+
+import { canSplit, TextSelection } from '../../..';
 
 export const splitLink = (tr: Transaction) => {
   const { selection } = tr;

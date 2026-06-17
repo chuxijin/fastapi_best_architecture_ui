@@ -1,10 +1,12 @@
 <script lang="ts" setup>
-import { computed } from "vue";
-import Input from "@HaloEditor/components/base/Input.vue";
-import { i18n } from "@HaloEditor/locales";
-import type { NodeViewProps } from "@HaloEditor/tiptap/vue-3";
-import { NodeViewWrapper } from "@HaloEditor/tiptap/vue-3";
-import { isAllowedUri } from "@HaloEditor/utils/is-allowed-uri";
+import type { NodeViewProps } from '@HaloEditor/tiptap/vue-3';
+
+import { computed } from 'vue';
+
+import Input from '@HaloEditor/components/base/Input.vue';
+import { i18n } from '@HaloEditor/locales';
+import { NodeViewWrapper } from '@HaloEditor/tiptap/vue-3';
+import { isAllowedUri } from '@HaloEditor/utils/is-allowed-uri';
 
 const props = defineProps<NodeViewProps>();
 
@@ -16,7 +18,7 @@ const src = computed({
     if (!src || !isAllowedUri(src)) {
       return;
     }
-    props.updateAttributes({ src: src });
+    props.updateAttributes({ src });
   },
 });
 
@@ -30,7 +32,7 @@ function handleSetFocus() {
 </script>
 
 <template>
-  <node-view-wrapper as="div" class="inline-block w-full">
+  <NodeViewWrapper as="div" class="inline-block w-full">
     <div
       class="relative inline-block h-full max-w-full overflow-hidden text-center transition-all"
       :style="{
@@ -39,7 +41,6 @@ function handleSetFocus() {
     >
       <div v-if="!src" class="p-1.5">
         <Input
-          ref="inputRef"
           v-model.lazy="src"
           :placeholder="i18n.global.t('editor.common.placeholder.link_input')"
           tabindex="-1"
@@ -63,5 +64,5 @@ function handleSetFocus() {
         @mouseenter="handleSetFocus"
       ></iframe>
     </div>
-  </node-view-wrapper>
+  </NodeViewWrapper>
 </template>

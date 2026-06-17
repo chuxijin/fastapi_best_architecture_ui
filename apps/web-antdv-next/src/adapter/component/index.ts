@@ -78,7 +78,9 @@ type AdapterUploadProps = UploadProps & {
 const AutoComplete = defineAsyncComponent(() =>
   loadAntdv().then((res) => res.AutoComplete),
 );
-const Button = defineAsyncComponent(() => loadAntdv().then((res) => res.Button));
+const Button = defineAsyncComponent(() =>
+  loadAntdv().then((res) => res.Button),
+);
 const Checkbox = defineAsyncComponent(() =>
   loadAntdv().then((res) => res.Checkbox),
 );
@@ -109,9 +111,13 @@ const RangePicker = defineAsyncComponent(() =>
   loadAntdv().then((res) => res.DateRangePicker),
 );
 const Rate = defineAsyncComponent(() => loadAntdv().then((res) => res.Rate));
-const Select = defineAsyncComponent(() => loadAntdv().then((res) => res.Select));
+const Select = defineAsyncComponent(() =>
+  loadAntdv().then((res) => res.Select),
+);
 const Space = defineAsyncComponent(() => loadAntdv().then((res) => res.Space));
-const Switch = defineAsyncComponent(() => loadAntdv().then((res) => res.Switch));
+const Switch = defineAsyncComponent(() =>
+  loadAntdv().then((res) => res.Switch),
+);
 const Textarea = defineAsyncComponent(() =>
   loadAntdv().then((res) => res.TextArea),
 );
@@ -124,7 +130,9 @@ const TreeSelect = defineAsyncComponent(() =>
 const Cascader = defineAsyncComponent(() =>
   loadAntdv().then((res) => res.Cascader),
 );
-const Upload = defineAsyncComponent(() => loadAntdv().then((res) => res.Upload));
+const Upload = defineAsyncComponent(() =>
+  loadAntdv().then((res) => res.Upload),
+);
 const Image = defineAsyncComponent(() => loadAntdv().then((res) => res.Image));
 const PreviewGroup = defineAsyncComponent(() =>
   loadAntdv().then((res) => res.ImagePreviewGroup),

@@ -1,13 +1,16 @@
-import { markRaw } from "vue";
-import MingcuteAlignCenterLine from "~icons/mingcute/align-center-line";
-import MingcuteAlignJustifyLine from "~icons/mingcute/align-justify-line";
-import MingcuteAlignLeftLine from "~icons/mingcute/align-left-line";
-import MingcuteAlignRightLine from "~icons/mingcute/align-right-line";
-import ToolbarItem from "@HaloEditor/components/toolbar/ToolbarItem.vue";
-import ToolbarSubItem from "@HaloEditor/components/toolbar/ToolbarSubItem.vue";
-import { i18n } from "@HaloEditor/locales";
-import { Extension, type Editor } from "@HaloEditor/tiptap";
-import type { ExtensionOptions } from "@HaloEditor/types";
+import type { Editor } from '@HaloEditor/tiptap';
+import type { ExtensionOptions } from '@HaloEditor/types';
+
+import { markRaw } from 'vue';
+
+import ToolbarItem from '@HaloEditor/components/toolbar/ToolbarItem.vue';
+import ToolbarSubItem from '@HaloEditor/components/toolbar/ToolbarSubItem.vue';
+import { i18n } from '@HaloEditor/locales';
+import { Extension } from '@HaloEditor/tiptap';
+import MingcuteAlignCenterLine from '~icons/mingcute/align-center-line';
+import MingcuteAlignJustifyLine from '~icons/mingcute/align-justify-line';
+import MingcuteAlignLeftLine from '~icons/mingcute/align-left-line';
+import MingcuteAlignRightLine from '~icons/mingcute/align-right-line';
 
 const inlineIconComponent = {
   left: MingcuteAlignLeftLine,
@@ -27,13 +30,11 @@ const getIcon = (editor: Editor) => {
   Object.entries(inlineIconComponent).forEach(([key, value]) => {
     if (editor.isActive({ textAlign: key })) {
       icon = value;
-      return;
     }
   });
   Object.entries(blockIconComponent).forEach(([key, value]) => {
     if (editor.isActive({ alignItems: key })) {
       icon = value;
-      return;
     }
   });
   return icon;
@@ -43,7 +44,7 @@ const getIcon = (editor: Editor) => {
  * The extension for the align attribute. Including inline and block nodes.
  */
 export const ExtensionAlign = Extension.create<ExtensionOptions>({
-  name: "align",
+  name: 'align',
 
   addOptions() {
     return {
@@ -56,7 +57,7 @@ export const ExtensionAlign = Extension.create<ExtensionOptions>({
             editor,
             isActive: false,
             icon: markRaw(getIcon(editor)),
-            title: i18n.global.t("editor.common.align_method"),
+            title: i18n.global.t('editor.common.align_method'),
           },
           children: [
             {
@@ -65,20 +66,16 @@ export const ExtensionAlign = Extension.create<ExtensionOptions>({
               props: {
                 editor,
                 isActive:
-                  editor.isActive({ textAlign: "left" }) ||
-                  editor.isActive({ alignItems: "start" }),
+                  editor.isActive({ textAlign: 'left' }) ||
+                  editor.isActive({ alignItems: 'start' }),
                 icon: markRaw(MingcuteAlignLeftLine),
-                title: i18n.global.t("editor.common.align_left"),
+                title: i18n.global.t('editor.common.align_left'),
                 action: () => {
-                  console.log(
-                    editor.isActive({ textAlign: "left" }),
-                    editor.isActive({ alignItems: "start" })
-                  );
                   return editor
                     .chain()
                     .focus()
-                    .setTextAlign("left")
-                    .setBlockPosition("start")
+                    .setTextAlign('left')
+                    .setBlockPosition('start')
                     .run();
                 },
               },
@@ -89,16 +86,16 @@ export const ExtensionAlign = Extension.create<ExtensionOptions>({
               props: {
                 editor,
                 isActive:
-                  editor.isActive({ textAlign: "center" }) ||
-                  editor.isActive({ alignItems: "center" }),
+                  editor.isActive({ textAlign: 'center' }) ||
+                  editor.isActive({ alignItems: 'center' }),
                 icon: markRaw(MingcuteAlignCenterLine),
-                title: i18n.global.t("editor.common.align_center"),
+                title: i18n.global.t('editor.common.align_center'),
                 action: () =>
                   editor
                     .chain()
                     .focus()
-                    .setTextAlign("center")
-                    .setBlockPosition("center")
+                    .setTextAlign('center')
+                    .setBlockPosition('center')
                     .run(),
               },
             },
@@ -108,16 +105,16 @@ export const ExtensionAlign = Extension.create<ExtensionOptions>({
               props: {
                 editor,
                 isActive:
-                  editor.isActive({ textAlign: "right" }) ||
-                  editor.isActive({ alignItems: "end" }),
+                  editor.isActive({ textAlign: 'right' }) ||
+                  editor.isActive({ alignItems: 'end' }),
                 icon: markRaw(MingcuteAlignRightLine),
-                title: i18n.global.t("editor.common.align_right"),
+                title: i18n.global.t('editor.common.align_right'),
                 action: () =>
                   editor
                     .chain()
                     .focus()
-                    .setTextAlign("right")
-                    .setBlockPosition("end")
+                    .setTextAlign('right')
+                    .setBlockPosition('end')
                     .run(),
               },
             },
@@ -126,11 +123,11 @@ export const ExtensionAlign = Extension.create<ExtensionOptions>({
               component: markRaw(ToolbarSubItem),
               props: {
                 editor,
-                isActive: editor.isActive({ textAlign: "justify" }),
+                isActive: editor.isActive({ textAlign: 'justify' }),
                 icon: markRaw(MingcuteAlignJustifyLine),
-                title: i18n.global.t("editor.common.align_justify"),
+                title: i18n.global.t('editor.common.align_justify'),
                 action: () =>
-                  editor.chain().focus().setTextAlign("justify").run(),
+                  editor.chain().focus().setTextAlign('justify').run(),
               },
             },
           ],

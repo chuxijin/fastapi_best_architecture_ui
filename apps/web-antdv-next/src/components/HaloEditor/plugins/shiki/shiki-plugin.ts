@@ -1,4 +1,10 @@
+/* eslint-disable unicorn/prefer-code-point, unicorn/no-array-callback-reference, unicorn/no-array-method-this-argument */
+
 // The code comes from https://github.com/timomeh/tiptap-extension-code-block-shiki/blob/main/lib/highlighter.ts
+
+import type { BundledLanguage, BundledTheme } from 'shiki';
+
+import type { PluginView, PMNode } from '#/components/HaloEditor';
 
 import {
   Decoration,
@@ -6,19 +12,17 @@ import {
   findChildren,
   Plugin,
   PluginKey,
-  type PluginView,
-  type PMNode,
-} from "#/components/HaloEditor";
-import type { BundledLanguage, BundledTheme } from "shiki";
+} from '#/components/HaloEditor';
+
 import {
   getShiki,
   initHighlighter,
   loadLanguage,
   loadTheme,
-} from "./highlighter";
+} from './highlighter';
 
 interface CachedTokens {
-  tokens: Array<Array<{ content: string; color: string }>>;
+  tokens: Array<Array<{ color: string; content: string }>>;
   themeBg: string;
 }
 
@@ -65,13 +69,13 @@ function createBlockDecorations(
     const tokens = rawTokens.map((line) =>
       line.map((token) => ({
         content: token.content,
-        color: token.color || "#000000",
+        color: token.color || '#000000',
       })),
     );
 
     cachedData = {
       tokens,
-      themeBg: themeResolved.bg || "",
+      themeBg: themeResolved.bg || '',
     };
 
     tokensCache.set(hash, cachedData);
@@ -117,10 +121,10 @@ function getDecorations({
   defaultTheme,
   defaultLanguage,
 }: {
-  doc: PMNode;
-  name: string;
   defaultLanguage: BundledLanguage | null | undefined;
   defaultTheme: BundledTheme;
+  doc: PMNode;
+  name: string;
 }) {
   const decorations: Decoration[] = [];
   const codeBlockCodes = findChildren(doc, (node) => node.type.name === name);
@@ -135,7 +139,7 @@ function getDecorations({
     const theme = block.node.attrs.theme || defaultTheme;
 
     if (!highlighter.getLoadedLanguages().includes(language)) {
-      language = "plaintext";
+      language = 'plaintext';
     }
 
     const themeToApply = highlighter.getLoadedThemes().includes(theme)
@@ -160,34 +164,19 @@ export function ShikiPlugin({
   defaultLanguage,
   defaultTheme,
 }: {
-  name: string;
   defaultLanguage: BundledLanguage | null | undefined;
   defaultTheme: BundledTheme;
+  name: string;
 }) {
   // biome-ignore lint/suspicious/noExplicitAny: not sure
   const shikiPlugin: Plugin<any> = new Plugin({
-    key: new PluginKey("shiki"),
+    key: new PluginKey('shiki'),
 
     view(view) {
       // This small view is just for initial async handling
       class ShikiPluginView implements PluginView {
         constructor() {
           this.initDecorations();
-        }
-
-        update() {
-          this.checkUndecoratedBlocks();
-        }
-        destroy() {
-          return;
-        }
-
-        // Initialize shiki async, and then highlight initial document
-        async initDecorations() {
-          const doc = view.state.doc;
-          await initHighlighter({ doc, name, defaultLanguage, defaultTheme });
-          const tr = view.state.tr.setMeta("shikiPluginForceDecoration", true);
-          view.dispatch(tr);
         }
 
         // When new codeblocks were added and they have missing themes or
@@ -214,11 +203,26 @@ export function ShikiPlugin({
 
           if (didLoadSomething) {
             const tr = view.state.tr.setMeta(
-              "shikiPluginForceDecoration",
+              'shikiPluginForceDecoration',
               true,
             );
             view.dispatch(tr);
           }
+        }
+        destroy() {
+          return;
+        }
+
+        // Initialize shiki async, and then highlight initial document
+        async initDecorations() {
+          const doc = view.state.doc;
+          await initHighlighter({ doc, name, defaultLanguage, defaultTheme });
+          const tr = view.state.tr.setMeta('shikiPluginForceDecoration', true);
+          view.dispatch(tr);
+        }
+
+        update() {
+          this.checkUndecoratedBlocks();
         }
       }
 
@@ -250,7 +254,7 @@ export function ShikiPlugin({
           transaction.docChanged &&
           // Apply decorations if:
           // selection includes named node,
-          ([oldNodeName, newNodeName].includes(name) ||
+          ([newNodeName, oldNodeName].includes(name) ||
             // OR transaction adds/removes named node,
             newNodes.length !== oldNodes.length ||
             // OR transaction has changes that completely encapsulte a node
@@ -274,7 +278,7 @@ export function ShikiPlugin({
             }));
         // only create code decoration when it's necessary to do so
         if (
-          transaction.getMeta("shikiPluginForceDecoration") ||
+          transaction.getMeta('shikiPluginForceDecoration') ||
           didChangeSomeCodeBlock
         ) {
           return getDecorations({

@@ -21,7 +21,7 @@ const activeTab = ref('bank');
 const tabConfig = {
   bank: {
     title:
-      '"题库加入"表示学员是通过管理员添加或购买该题库的激活码（通用激活码）激活的方式成为该题库的学员。',
+      '"内容加入"表示学员是通过管理员添加或购买该内容的激活码（通用激活码）激活的方式成为该内容的学员。',
     getColumns: () => [
       { field: 'id', title: 'ID', width: 80 },
       { field: 'student', title: '学员', minWidth: 150 },
@@ -49,7 +49,7 @@ const tabConfig = {
     ],
   },
   class: {
-    title: '"班级加入"表示学员是通过加入班级的方式成为该题库的学员。',
+    title: '"班级加入"表示学员是通过加入班级的方式成为该内容的学员。',
     getColumns: () => [
       { field: 'id', title: 'ID', width: 80 },
       { field: 'student', title: '学员', minWidth: 150 },
@@ -76,7 +76,7 @@ const tabConfig = {
     ],
   },
   vip: {
-    title: '"VIP加入"表示学员是通过加入VIP的方式成为该题库的学员。',
+    title: '"VIP加入"表示学员是通过加入VIP的方式成为该内容的学员。',
     getColumns: () => [
       { field: 'id', title: 'ID', width: 80 },
       { field: 'student', title: '学员', minWidth: 150 },
@@ -152,7 +152,7 @@ const gridOptions: VxeTableGridOptions<any> = {
     custom: true,
     zoom: true,
   },
-  columns: computed(() => currentConfig.value.getColumns()),
+  columns: currentConfig.value.getColumns(),
   proxyConfig: {
     ajax: {
       query: async (_, formValues) => {
@@ -179,6 +179,9 @@ function onRefresh() {
 
 function handleTabChange(key: string) {
   activeTab.value = key;
+  gridApi.setGridOptions({
+    columns: currentConfig.value.getColumns(),
+  });
   onRefresh();
 }
 </script>
@@ -190,7 +193,7 @@ function handleTabChange(key: string) {
       class="-mt-4 mb-3"
       @change="handleTabChange"
     >
-      <TabPane key="bank" tab="题库加入" />
+      <TabPane key="bank" tab="内容加入" />
       <TabPane key="class" tab="班级加入" />
       <TabPane key="vip" tab="VIP加入" />
     </Tabs>

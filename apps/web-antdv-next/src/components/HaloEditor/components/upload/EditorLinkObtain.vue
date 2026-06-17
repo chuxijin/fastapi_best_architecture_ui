@@ -1,56 +1,55 @@
 <script setup lang="ts">
-import type { Attachment, UploadRequestConfig } from "@HaloEditor/utils/upload";
-import { VButton, VDropdown, VSpace } from "#/stubs/halo-components";
-import {
-  utils,
-  type AttachmentLike,
-  type AttachmentSimple,
-} from "@halo-dev/ui-shared";
-import { useFileDialog } from "@vueuse/core";
-import { onUnmounted, ref, watch } from "vue";
-import { useEditorConfig } from "@HaloEditor/config/use-editor-config";
-import { i18n } from "@HaloEditor/locales";
-import type { Editor } from "@HaloEditor/tiptap";
-import { uploadFile } from "@HaloEditor/utils/upload";
-import Input from "../base/Input.vue";
+import type { AttachmentLike, AttachmentSimple } from '@halo-dev/ui-shared';
+import type { Editor } from '@HaloEditor/tiptap';
+import type { Attachment, UploadRequestConfig } from '@HaloEditor/utils/upload';
 
-const editorConfig = useEditorConfig();
+import { onUnmounted, ref, watch } from 'vue';
+
+import { utils } from '@halo-dev/ui-shared';
+import { useEditorConfig } from '@HaloEditor/config/use-editor-config';
+import { i18n } from '@HaloEditor/locales';
+import { uploadFile } from '@HaloEditor/utils/upload';
+import { useFileDialog } from '@vueuse/core';
+
+import { VButton, VDropdown, VSpace } from '#/stubs/halo-components';
+
+import Input from '../base/Input.vue';
 
 const props = withDefaults(
   defineProps<{
-    editor: Editor;
     accept?: string;
+    editor: Editor;
     uploadedFile?: File;
     uploadToAttachmentFile?: (
       file: File,
-      options?: UploadRequestConfig
+      options?: UploadRequestConfig,
     ) => Promise<Attachment>;
   }>(),
   {
-    accept: "*",
+    accept: '*',
     uploadedFile: undefined,
     uploadToAttachmentFile: undefined,
-  }
+  },
 );
 
 const emit = defineEmits<{
-  (event: "setExternalLink", attachment?: AttachmentSimple): void;
-  (event: "onUploadReady", file: File): void;
-  (event: "onUploadProgress", progress: number): void;
-  (event: "onUploadFinish"): void;
-  (event: "onUploadError", error: Error): void;
-  (event: "onUploadAbort"): void;
+  (event: 'setExternalLink', attachment?: AttachmentSimple): void;
+  (event: 'onUploadReady', file: File): void;
+  (event: 'onUploadProgress', progress: number): void;
+  (event: 'onUploadFinish'): void;
+  (event: 'onUploadError', error: Error): void;
+  (event: 'onUploadAbort'): void;
 }>();
 
-const externalLink = ref("");
+const editorConfig = useEditorConfig();
+
+const externalLink = ref('');
 
 const handleEnterSetExternalLink = () => {
   if (!externalLink.value) {
     return;
   }
-  emit("setExternalLink", {
-    url: externalLink.value,
-  });
+  emit('setExternalLink', createExternalAttachment(externalLink.value));
 };
 
 const { open, reset, onChange } = useFileDialog({
@@ -60,11 +59,23 @@ const { open, reset, onChange } = useFileDialog({
 
 const controller = ref<AbortController>();
 const originalFile = ref<File>();
-const uploadState = ref<"init" | "uploading" | "error">("init");
+const uploadState = ref<'error' | 'init' | 'uploading'>('init');
 const uploadProgress = ref<number | undefined>(undefined);
 
 // 优先使用 prop 传入的上传函数，其次使用全局 config
-const resolvedUpload = () => props.uploadToAttachmentFile || editorConfig.upload;
+const resolvedUpload = () =>
+  props.uploadToAttachmentFile || editorConfig.upload;
+
+function createExternalAttachment(url: string): AttachmentSimple {
+  return {
+    caption: '',
+    mediaType: '',
+    name: url,
+    permalink: url,
+    size: 0,
+    url,
+  };
+}
 
 /**
  *
@@ -75,42 +86,41 @@ const resolvedUpload = () => props.uploadToAttachmentFile || editorConfig.upload
 const handleUploadFile = (file: File) => {
   const upload = resolvedUpload();
   if (!upload) {
-    console.warn("[Editor] No upload function provided. File upload skipped.");
+    console.warn('[Editor] No upload function provided. File upload skipped.');
     return;
   }
   controller.value = new AbortController();
   originalFile.value = file;
-  uploadState.value = "uploading";
+  uploadState.value = 'uploading';
   uploadProgress.value = undefined;
-  emit("onUploadReady", file);
+  emit('onUploadReady', file);
   uploadFile(file, upload, {
     controller: controller.value,
     onUploadProgress: (progress) => {
       uploadProgress.value = progress;
-      emit("onUploadProgress", progress);
+      emit('onUploadProgress', progress);
     },
 
     onFinish: (attachment?: Attachment) => {
-      if (attachment) {
-        emit("setExternalLink", {
-          url: attachment.status?.permalink,
-        } as AttachmentSimple);
+      const url = attachment?.status?.permalink;
+      if (url) {
+        emit('setExternalLink', createExternalAttachment(url));
       }
       handleResetUpload();
-      emit("onUploadFinish");
+      emit('onUploadFinish');
     },
 
     onError: (error: Error) => {
-      if (error.name !== "CanceledError") {
-        uploadState.value = "error";
+      if (error.name !== 'CanceledError') {
+        uploadState.value = 'error';
       }
-      emit("onUploadError", error);
+      emit('onUploadError', error);
     },
   });
 };
 
 const handleUploadAbort = () => {
-  emit("onUploadAbort");
+  emit('onUploadAbort');
   handleResetUpload();
 };
 
@@ -126,7 +136,7 @@ const handleUploadRetry = () => {
 };
 
 const handleResetUpload = () => {
-  uploadState.value = "init";
+  uploadState.value = 'init';
   controller.value?.abort();
   controller.value = undefined;
   originalFile.value = undefined;
@@ -153,7 +163,7 @@ watch(
   },
   {
     immediate: true,
-  }
+  },
 );
 
 onUnmounted(() => {
@@ -170,12 +180,14 @@ defineExpose({
 const attachmentSelectorModalVisible = ref(false);
 
 function onAttachmentSelect(attachments: AttachmentLike[]) {
-  if (!attachments.length) {
+  if (attachments.length === 0) {
     return;
   }
   const attachment = attachments[0];
   const attachmentSimple = utils.attachment.convertToSimple(attachment);
-  emit("setExternalLink", attachmentSimple);
+  if (attachmentSimple) {
+    emit('setExternalLink', attachmentSimple);
+  }
   attachmentSelectorModalVisible.value = false;
 }
 </script>
@@ -213,23 +225,20 @@ function onAttachmentSelect(attachments: AttachmentLike[]) {
           <slot name="icon"></slot>
         </div>
         <VSpace>
-          <VButton
-            v-if="resolvedUpload()"
-            @click="open()"
-          >
-            {{ i18n.global.t("editor.common.button.upload") }}
+          <VButton v-if="resolvedUpload()" @click="open()">
+            {{ i18n.global.t('editor.common.button.upload') }}
           </VButton>
 
           <VButton
             v-if="editorConfig.attachmentSelector"
             @click="attachmentSelectorModalVisible = true"
           >
-            {{ i18n.global.t("editor.extensions.upload.attachment.title") }}
+            {{ i18n.global.t('editor.extensions.upload.attachment.title') }}
           </VButton>
 
           <VDropdown>
             <VButton>
-              {{ i18n.global.t("editor.extensions.upload.permalink.title") }}
+              {{ i18n.global.t('editor.extensions.upload.permalink.title') }}
             </VButton>
             <template #popper>
               <div class="w-80">
@@ -238,7 +247,7 @@ function onAttachmentSelect(attachments: AttachmentLike[]) {
                   auto-focus
                   :placeholder="
                     i18n.global.t(
-                      'editor.extensions.upload.permalink.placeholder'
+                      'editor.extensions.upload.permalink.placeholder',
                     )
                   "
                   @keydown.enter="handleEnterSetExternalLink"

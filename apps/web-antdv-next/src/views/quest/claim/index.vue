@@ -22,6 +22,8 @@ const drawerRef = ref<InstanceType<typeof ReviewDrawer>>();
 const formOptions: VbenFormProps = {
   collapsed: false,
   showCollapseButton: false,
+  wrapperClass: 'grid-cols-3',
+  actionWrapperClass: 'col-start-3',
   submitButtonOptions: { content: $t('common.form.query') },
   schema: querySchema,
 };

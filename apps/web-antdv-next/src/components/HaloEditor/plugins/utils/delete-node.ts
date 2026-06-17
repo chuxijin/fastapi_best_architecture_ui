@@ -1,4 +1,5 @@
-import type { Editor } from "#/components/HaloEditor";
+ 
+import type { Editor } from '#/components/HaloEditor';
 
 export const deleteNode = (nodeType: string, editor: Editor) => {
   const { state } = editor;
@@ -9,20 +10,17 @@ export const deleteNode = (nodeType: string, editor: Editor) => {
     for (let d = $pos.depth; d > 0; d--) {
       const node = $pos.node(d);
       if (node.type.name === nodeType) {
-        // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-        // @ts-ignore
+        // @ts-expect-error
         if (editor.dispatchTransaction)
-          // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-          // @ts-ignore
+          // @ts-expect-error
           editor.dispatchTransaction(
-            state.tr.delete($pos.before(d), $pos.after(d)).scrollIntoView()
+            state.tr.delete($pos.before(d), $pos.after(d)).scrollIntoView(),
           );
         done = true;
       }
     }
   } else {
-    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-    // @ts-ignore
+    // @ts-expect-error
     const node = state.selection.node;
     if (node && node.type.name === nodeType) {
       editor.chain().deleteSelection().run();
@@ -37,9 +35,9 @@ export const deleteNode = (nodeType: string, editor: Editor) => {
       const node = state.tr.doc.nodeAt(pos);
 
       if (node && node.type.name === nodeType) {
-        // @ts-ignore
+        // @ts-expect-error
         if (editor.dispatchTransaction)
-          // @ts-ignore
+          // @ts-expect-error
           editor.dispatchTransaction(state.tr.delete(pos, pos + node.nodeSize));
         done = true;
       }

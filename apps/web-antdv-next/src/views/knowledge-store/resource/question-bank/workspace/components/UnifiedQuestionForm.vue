@@ -3,10 +3,7 @@ import type { DifficultyType, QuestionType } from '#/api';
 
 import { onMounted, ref, watch } from 'vue';
 
-import {
-  MaterialSymbolsAdd,
-  MaterialSymbolsDelete,
-} from '@vben/icons';
+import { MaterialSymbolsAdd, MaterialSymbolsDelete } from '@vben/icons';
 
 import {
   Button,
@@ -130,45 +127,6 @@ onMounted(() => {
 
 // ==================== 共享：解析内容 ====================
 const analysisContent = ref<string>('');
-
-function toOptionsData(
-  source: any,
-): null | Record<string, { code: string; content: string }> {
-  if (!source) return null;
-
-  const data = source.options_data;
-  if (data && typeof data === 'object' && !Array.isArray(data)) {
-    const entries = Object.entries(data)
-      .map(([key, value]: [string, any]) => {
-        const code = value?.code || value?.option_code || key;
-        const content = value?.content || value?.content_ref?.content || '';
-        return [code, { code, content }] as const;
-      })
-      .filter(([, item]: [string, any]) => item.content !== '');
-    if (entries.length > 0) {
-      return Object.fromEntries(entries);
-    }
-  }
-
-  if (Array.isArray(source.options) && source.options.length > 0) {
-    const entries = source.options
-      .map((item: any, idx: number) => {
-        const code =
-          item?.option_code ||
-          item?.code ||
-          optionLabels[idx] ||
-          String(idx + 1);
-        const content = item?.content || item?.content_ref?.content || '';
-        return [code, { code, content }] as const;
-      })
-      .filter(([, item]: [string, any]) => item.content !== '');
-    if (entries.length > 0) {
-      return Object.fromEntries(entries);
-    }
-  }
-
-  return null;
-}
 
 // ==================== 选项配置 ====================
 const choiceTypeOptions = [
@@ -396,11 +354,8 @@ async function submit() {
 async function loadQuestionData(questionId: number) {
   try {
     const detail = (await getQuestionDetailApi(questionId)) as any;
-    const detailOptionsData = toOptionsData(detail);
-    const prefillOptionsData = toOptionsData(props.prefillData);
     const merged = {
       ...detail,
-      options_data: detailOptionsData ?? prefillOptionsData ?? null,
       answer_data: detail.answer_data ?? props.prefillData?.answer_data ?? null,
       analysis_content:
         detail.analysis_content ?? props.prefillData?.analysis_content ?? '',
@@ -445,9 +400,10 @@ async function loadQuestionData(questionId: number) {
           }
         : undefined);
 
-    const defaultPlacement = Array.isArray(merged.placements) && merged.placements.length > 0 
-      ? merged.placements[0] 
-      : null;
+    const defaultPlacement =
+      Array.isArray(merged.placements) && merged.placements.length > 0
+        ? merged.placements[0]
+        : null;
 
     // 填充共享数据
     formData.value = {
@@ -455,9 +411,14 @@ async function loadQuestionData(questionId: number) {
       type: merged.type,
       usage: merged.usage || 'all',
       difficulty: merged.difficulty || 'medium',
-      score: merged.score ?? defaultPlacement?.score ?? merged.default_score ?? (['fill', 'shortAnswer'].includes(props.questionType) ? 5 : 1),
+      score:
+        merged.score ??
+        defaultPlacement?.score ??
+        merged.default_score ??
+        (['fill', 'shortAnswer'].includes(props.questionType) ? 5 : 1),
       sort_order: merged.sort_order ?? defaultPlacement?.sort_order ?? 0,
-      chapter_id: merged.chapter_id ?? defaultPlacement?.chapter_id ?? undefined,
+      chapter_id:
+        merged.chapter_id ?? defaultPlacement?.chapter_id ?? undefined,
       stem: merged.stem,
       knowledge_point: normalizedKnowledgePoint,
       source: merged.source || '',
@@ -501,17 +462,14 @@ async function loadQuestionData(questionId: number) {
       // fall through
       case 'single': {
         choiceType.value = merged.type as any;
-        if (merged.options_data && typeof merged.options_data === 'object') {
-          options.value = Object.entries(merged.options_data).map(
-            ([optionKey, optRaw]: [string, any]) => {
-              const opt = optRaw || {};
-              return {
-                label: opt.code || optionKey,
-                content: opt.content || '',
-                is_correct: false,
-              };
-            },
-          );
+        const detailOptions =
+          merged.options || props.prefillData?.options || [];
+        if (Array.isArray(detailOptions) && detailOptions.length > 0) {
+          options.value = detailOptions.map((opt: any) => ({
+            label: opt.option_code,
+            content: opt.content || '',
+            is_correct: false,
+          }));
         } else {
           options.value = [
             { label: 'A', content: '', is_correct: false },
@@ -684,9 +642,7 @@ defineExpose({
 
       <!-- 题干 -->
       <Col :span="24" class="mb-4">
-        <div class="form-label">
-          题干<span class="text-red-500">*</span>
-        </div>
+        <div class="form-label">题干<span class="text-red-500">*</span></div>
         <HaloEditorWrapper v-model="formData.stem" :height="150" />
       </Col>
 
@@ -898,7 +854,6 @@ defineExpose({
         </div>
       </Col>
     </Row>
-
   </div>
 </template>
 
@@ -934,6 +889,3 @@ defineExpose({
   border-radius: 6px;
 }
 </style>
-
-
-

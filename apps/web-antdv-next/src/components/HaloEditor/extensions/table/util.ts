@@ -1,13 +1,25 @@
-import type { EditorState, Rect, Selection, Transaction } from "@HaloEditor/tiptap/pm";
-import { CellSelection, Node, selectedRect, TableMap } from "@HaloEditor/tiptap/pm";
-import { findParentNode } from "@HaloEditor/tiptap/vue-3";
+/* eslint-disable unicorn/no-array-reduce, unicorn/prefer-spread */
+import type {
+  EditorState,
+  Rect,
+  Selection,
+  Transaction,
+} from '@HaloEditor/tiptap/pm';
+
+import {
+  CellSelection,
+  Node,
+  selectedRect,
+  TableMap,
+} from '@HaloEditor/tiptap/pm';
+import { findParentNode } from '@HaloEditor/tiptap/vue-3';
 
 export const selectTable = (tr: Transaction) => {
   const table = findTable(tr.selection);
   if (table) {
     const { node } = table;
     const { map } = TableMap.get(node);
-    if (map && map.length) {
+    if (map && map.length > 0) {
       const head = table.start + map[0];
       const anchor = table.start + map[map.length - 1];
       const $head = tr.doc.resolve(head);
@@ -19,9 +31,9 @@ export const selectTable = (tr: Transaction) => {
 };
 
 const select =
-  (type: "row" | "column") => (index: number) => (tr: Transaction) => {
+  (type: 'column' | 'row') => (index: number) => (tr: Transaction) => {
     const table = findTable(tr.selection);
-    const isRowSelection = type === "row";
+    const isRowSelection = type === 'row';
 
     if (table) {
       const map = TableMap.get(table.node);
@@ -68,18 +80,16 @@ const select =
     return tr;
   };
 
-export const selectColumn = select("column");
+export const selectColumn = select('column');
 
-export const selectRow = select("row");
+export const selectRow = select('row');
 
 export const getCellsInColumn =
   (columnIndex: number | number[]) => (selection: Selection) => {
     const table = findTable(selection);
     if (table) {
       const map = TableMap.get(table.node);
-      const indexes = Array.isArray(columnIndex)
-        ? columnIndex
-        : Array.from([columnIndex]);
+      const indexes = Array.isArray(columnIndex) ? columnIndex : [columnIndex];
       return indexes.reduce(
         (acc, index) => {
           if (index >= 0 && index <= map.width - 1) {
@@ -95,15 +105,15 @@ export const getCellsInColumn =
                 const pos = nodePos + table.start;
                 return { pos, start: pos + 1, node };
               }) as unknown as {
+                node: Node | null | undefined;
                 pos: number;
                 start: number;
-                node: Node | null | undefined;
-              }[]
+              }[],
             );
           }
           return acc;
         },
-        [] as { pos: number; start: number; node: Node | null | undefined }[]
+        [] as { node: Node | null | undefined; pos: number; start: number }[],
       );
     }
   };
@@ -113,9 +123,7 @@ export const getCellsInRow =
     const table = findTable(selection);
     if (table) {
       const map = TableMap.get(table.node);
-      const indexes = Array.isArray(rowIndex)
-        ? rowIndex
-        : Array.from([rowIndex]);
+      const indexes = Array.isArray(rowIndex) ? rowIndex : [rowIndex];
       return indexes.reduce(
         (acc, index) => {
           if (index >= 0 && index <= map.height - 1) {
@@ -131,33 +139,32 @@ export const getCellsInRow =
                 const pos = nodePos + table.start;
                 return { pos, start: pos + 1, node };
               }) as unknown as {
+                node: Node | null | undefined;
                 pos: number;
                 start: number;
-                node: Node | null | undefined;
-              }[]
+              }[],
             );
           }
           return acc;
         },
-        [] as { pos: number; start: number; node: Node | null | undefined }[]
+        [] as { node: Node | null | undefined; pos: number; start: number }[],
       );
     }
   };
 
 export const findTable = (selection: Selection) => {
-  return findParentNode((node) => node.type.spec.tableRole === "table")(
-    selection
+  return findParentNode((node) => node.type.spec.tableRole === 'table')(
+    selection,
   ) as
+    | undefined
     | {
-        pos: number;
-        start: number;
         depth: number;
         node: Node;
-      }
-    | undefined;
+        pos: number;
+        start: number;
+      };
 };
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export const isRectSelected = (rect: any) => (selection: CellSelection) => {
   const map = TableMap.get(selection.$anchorCell.node(-1));
   const start = selection.$anchorCell.start(-1);
@@ -165,12 +172,12 @@ export const isRectSelected = (rect: any) => (selection: CellSelection) => {
   const selectedCells = map.cellsInRect(
     map.rectBetween(
       selection.$anchorCell.pos - start,
-      selection.$headCell.pos - start
-    )
+      selection.$headCell.pos - start,
+    ),
   );
 
-  for (let i = 0, count = cells.length; i < count; i++) {
-    if (selectedCells.indexOf(cells[i]) === -1) {
+  for (let count = cells.length, i = 0; i < count; i++) {
+    if (!selectedCells.includes(cells[i])) {
       return false;
     }
   }
@@ -178,12 +185,10 @@ export const isRectSelected = (rect: any) => (selection: CellSelection) => {
   return true;
 };
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export const isCellSelection = (selection: any) => {
   return selection instanceof CellSelection;
 };
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export const isColumnSelected = (columnIndex: number) => (selection: any) => {
   if (isCellSelection(selection)) {
     const map = TableMap.get(selection.$anchorCell.node(-1));
@@ -209,7 +214,6 @@ export const isColumnSelected = (columnIndex: number) => (selection: any) => {
   return false;
 };
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export const isRowSelected = (rowIndex: number) => (selection: any) => {
   if (isCellSelection(selection)) {
     const map = TableMap.get(selection.$anchorCell.node(-1));
@@ -234,7 +238,6 @@ export const isRowSelected = (rowIndex: number) => (selection: any) => {
   return false;
 };
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export const isTableSelected = (selection: any) => {
   if (isCellSelection(selection)) {
     const map = TableMap.get(selection.$anchorCell.node(-1));
@@ -256,7 +259,7 @@ export const hasTableBefore = (editorState: EditorState) => {
 
   const previousNode = editorState.doc.resolve(previousNodePos).node();
 
-  if (!previousNode || !(previousNode.type.name === "table")) {
+  if (!previousNode || !(previousNode.type.name === 'table')) {
     return false;
   }
 
@@ -316,7 +319,7 @@ export const nextCell = (map: TableMap) => (pos: number, dir: number) => {
       map.map[nextCellRect.top * map.width + nextCellRect.left];
     const temporaryRect = map.findCell(temporaryPos);
     if (
-      temporaryRect.top != nextCellRect.top ||
+      temporaryRect.top !== nextCellRect.top ||
       temporaryRect.left < nextCellRect.left
     ) {
       return findNextCellPos({
@@ -349,7 +352,7 @@ export const nextCell = (map: TableMap) => (pos: number, dir: number) => {
     const temporaryPos =
       map.map[nextCellRect.top * map.width + nextCellRect.left];
     const temporaryRect = map.findCell(temporaryPos);
-    if (temporaryRect.top != nextCellRect.top) {
+    if (temporaryRect.top !== nextCellRect.top) {
       return findPreviousCellPos(nextCellRect);
     }
     return temporaryPos;
@@ -358,7 +361,7 @@ export const nextCell = (map: TableMap) => (pos: number, dir: number) => {
   function nextCellRectByPos(innerPos: number, innerDir: number) {
     // Get the current cell boundary
     const { top, left, right, bottom } = map.findCell(innerPos);
-    if (innerDir == 0) {
+    if (innerDir === 0) {
       return {
         top,
         left,

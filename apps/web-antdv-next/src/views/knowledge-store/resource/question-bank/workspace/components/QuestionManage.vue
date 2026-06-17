@@ -222,26 +222,23 @@ async function onActionClick({
           ? { name: detail.chapter_name }
           : undefined;
 
-        detail.options = [];
-        if (detail.options_data) {
-          detail.options = Object.values(detail.options_data).map(
-            (opt: any) => {
-              let is_correct = false;
-              const correct = detail.analysis?.answer_data?.correct;
-              if (Array.isArray(correct)) {
-                is_correct = correct.includes(opt.code);
-              } else if (typeof correct === 'string') {
-                is_correct = opt.code === correct;
-              }
+        const rawOptions = detail.options || [];
+        detail.options = rawOptions.map((opt: any) => {
+          let is_correct = false;
+          const correct = detail.analysis?.answer_data?.correct;
+          const optCode = opt.option_code;
+          if (Array.isArray(correct)) {
+            is_correct = correct.includes(optCode);
+          } else if (typeof correct === 'string') {
+            is_correct = optCode === correct;
+          }
 
-              return {
-                label: opt.code,
-                content: opt.content,
-                is_correct,
-              };
-            },
-          );
-        }
+          return {
+            label: optCode,
+            content: opt.content,
+            is_correct,
+          };
+        });
 
         previewModalApi.setData(detail);
         previewModalApi.open();

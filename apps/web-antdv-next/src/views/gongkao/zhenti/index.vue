@@ -424,7 +424,7 @@ function isObjectiveType(type: string | undefined) {
           <span class="text-gray-500">
             共 {{ answersList.length }} 个答案版本
           </span>
-          <VbenButton size="small" @click="handleAddAnswer">
+          <VbenButton size="sm" @click="handleAddAnswer">
             <MaterialSymbolsAdd class="size-4" />
             添加答案
           </VbenButton>
@@ -451,7 +451,7 @@ function isObjectiveType(type: string | undefined) {
               <template #extra>
                 <div class="flex gap-2">
                   <VbenButton
-                    size="small"
+                    size="sm"
                     variant="outline"
                     @click="handleEditAnswer(answer)"
                   >
@@ -462,7 +462,7 @@ function isObjectiveType(type: string | undefined) {
                     @confirm="handleDeleteAnswer(answer)"
                   >
                     <VbenButton
-                      size="small"
+                      size="sm"
                       variant="outline"
                       class="text-red-500"
                     >

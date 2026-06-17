@@ -15,7 +15,7 @@ interface ParsedShortcut {
  * Check if the current platform is Mac
  */
 const isMac = () =>
-  typeof navigator !== "undefined" && /Mac/.test(navigator.platform);
+  typeof navigator !== 'undefined' && /Mac/.test(navigator.platform);
 
 /**
  * Parse shortcut string
@@ -29,9 +29,9 @@ const isMac = () =>
  * @returns Parsed shortcut object
  */
 export function parseShortcut(shortcut: string): ParsedShortcut {
-  const parts = shortcut.split("-");
+  const parts = shortcut.split('-');
   const result: ParsedShortcut = {
-    key: "",
+    key: '',
     ctrlKey: false,
     shiftKey: false,
     altKey: false,
@@ -48,29 +48,34 @@ export function parseShortcut(shortcut: string): ParsedShortcut {
 
     const modifier = part.toLowerCase();
     switch (modifier) {
-      case "mod":
+      case 'alt':
+      case 'option': {
+        result.altKey = true;
+        break;
+      }
+      case 'cmd':
+      case 'command':
+      case 'meta': {
+        result.metaKey = true;
+        break;
+      }
+      case 'control':
+      case 'ctrl': {
+        result.ctrlKey = true;
+        break;
+      }
+      case 'mod': {
         if (isMac()) {
           result.metaKey = true;
         } else {
           result.ctrlKey = true;
         }
         break;
-      case "ctrl":
-      case "control":
-        result.ctrlKey = true;
-        break;
-      case "shift":
+      }
+      case 'shift': {
         result.shiftKey = true;
         break;
-      case "alt":
-      case "option":
-        result.altKey = true;
-        break;
-      case "cmd":
-      case "command":
-      case "meta":
-        result.metaKey = true;
-        break;
+      }
     }
   }
 
@@ -85,17 +90,17 @@ export function parseShortcut(shortcut: string): ParsedShortcut {
  */
 function normalizeKey(key: string): string {
   const keyMap: Record<string, string> = {
-    space: " ",
-    enter: "Enter",
-    tab: "Tab",
-    backspace: "Backspace",
-    delete: "Delete",
-    escape: "Escape",
-    esc: "Escape",
-    arrowleft: "ArrowLeft",
-    arrowright: "ArrowRight",
-    arrowup: "ArrowUp",
-    arrowdown: "ArrowDown",
+    space: ' ',
+    enter: 'Enter',
+    tab: 'Tab',
+    backspace: 'Backspace',
+    delete: 'Delete',
+    escape: 'Escape',
+    esc: 'Escape',
+    arrowleft: 'ArrowLeft',
+    arrowright: 'ArrowRight',
+    arrowup: 'ArrowUp',
+    arrowdown: 'ArrowDown',
   };
 
   const lowerKey = key.toLowerCase();
@@ -121,8 +126,8 @@ export function matchShortcut(event: KeyboardEvent, shortcut: string): boolean {
 
   let eventKey = event.key.toLowerCase();
 
-  if (event.key === " ") {
-    eventKey = " ";
+  if (event.key === ' ') {
+    eventKey = ' ';
   }
 
   if (eventKey !== parsed.key.toLowerCase()) {
@@ -156,46 +161,49 @@ export function formatShortcut(shortcut: string): string {
 
   if (isMac()) {
     if (parsed.ctrlKey) {
-      parts.push("⌃");
+      parts.push('⌃');
     }
     if (parsed.altKey) {
-      parts.push("⌥");
+      parts.push('⌥');
     }
     if (parsed.shiftKey) {
-      parts.push("⇧");
+      parts.push('⇧');
     }
     if (parsed.metaKey) {
-      parts.push("⌘");
+      parts.push('⌘');
     }
   } else {
     if (parsed.ctrlKey) {
-      parts.push("Ctrl");
+      parts.push('Ctrl');
     }
     if (parsed.altKey) {
-      parts.push("Alt");
+      parts.push('Alt');
     }
-    if (parsed.shiftKey) parts.push("Shift");
+    if (parsed.shiftKey) parts.push('Shift');
     if (parsed.metaKey) {
-      parts.push("Meta");
+      parts.push('Meta');
     }
   }
 
   let key = parsed.key;
   switch (key) {
-    case " ":
-      key = "Space";
+    case ' ': {
+      key = 'Space';
       break;
-    case "Enter":
-      key = "↵";
+    }
+    case 'Delete': {
+      key = 'Del';
       break;
-    case "Delete":
-      key = "Del";
+    }
+    case 'Enter': {
+      key = '↵';
       break;
+    }
   }
   if (key.length === 1) {
     key = key.toUpperCase();
   }
   parts.push(key);
 
-  return isMac() ? parts.join("") : parts.join("+");
+  return isMac() ? parts.join('') : parts.join('+');
 }

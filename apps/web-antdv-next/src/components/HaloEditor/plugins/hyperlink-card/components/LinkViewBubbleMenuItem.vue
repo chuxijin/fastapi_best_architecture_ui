@@ -1,12 +1,8 @@
 <script lang="ts" setup>
-import LinkViewMenu from "../components/LinkViewMenu.vue";
-import type { LinkViewType } from "../editor/link-view-type";
-import { VDropdown } from "#/stubs/halo-components";
-import {
-  BubbleButton,
-  type BubbleItemComponentProps,
-  type Editor,
-} from "../../..";
+import { VDropdown } from '#/stubs/halo-components';
+
+import { BubbleButton } from '../../..';
+import LinkViewMenu from '../components/LinkViewMenu.vue';
 
 interface Props {
   editor: any;
@@ -16,22 +12,23 @@ interface Props {
   type?: ({ editor }: { editor: any }) => any;
 }
 
-const props = withDefaults(
-  defineProps<Props>(),
-  {
-    isActive: () => false,
-    // @unocss-skip-start
-    visible: () => true,
-    // @unocss-skip-end
-    action: undefined,
-    type: undefined,
-  }
-);
+const props = withDefaults(defineProps<Props>(), {
+  isActive: () => false,
+  // @unocss-skip-start
+  visible: () => true,
+  // @unocss-skip-end
+  action: undefined,
+  type: undefined,
+});
 </script>
 
 <template>
   <template v-if="visible({ editor })">
-    <VDropdown class=":uno: inline-flex" :triggers="['click']" :popper-triggers="['click']">
+    <VDropdown
+      class=":uno: inline-flex"
+      :triggers="['click']"
+      :popper-triggers="['click']"
+    >
       <BubbleButton
         :text="type?.({ editor }).title"
         show-more-indicator
@@ -42,9 +39,11 @@ const props = withDefaults(
         </template>
       </BubbleButton>
       <template #popper>
-        <div class=":uno: relative max-h-96 w-56 overflow-hidden overflow-y-auto">
+        <div
+          class=":uno: relative max-h-96 w-56 overflow-hidden overflow-y-auto"
+        >
           <KeepAlive>
-            <LinkViewMenu v-bind="props"></LinkViewMenu>
+            <LinkViewMenu v-bind="props" />
           </KeepAlive>
         </div>
       </template>

@@ -1,21 +1,28 @@
+import type {
+  ExtendedRegExpMatchArray,
+  ExtensionOptions,
+  Range,
+} from '#/components/HaloEditor';
+
+import { markRaw } from 'vue';
+
+import TablerMath from '~icons/tabler/math';
+
 import {
-  Node,
-  VueNodeViewRenderer,
+  Editor,
   mergeAttributes,
+  Node,
   nodeInputRule,
   nodePasteRule,
-  type ExtendedRegExpMatchArray,
-  Editor,
   ToolboxItem,
-  type Range,
-  type ExtensionOptions,
-} from "#/components/HaloEditor";
-import KaTeXInlineView from "./KaTeXInlineView.vue";
-import KaTeXBlockView from "./KaTeXBlockView.vue";
-import { markRaw } from "vue";
-import TablerMath from "~icons/tabler/math";
-import { renderKatex } from "./render-katex";
-import "katex/dist/katex.min.css";
+  VueNodeViewRenderer,
+} from '#/components/HaloEditor';
+
+import KaTeXBlockView from './KaTeXBlockView.vue';
+import KaTeXInlineView from './KaTeXInlineView.vue';
+import { renderKatex } from './render-katex';
+
+import 'katex/dist/katex.min.css';
 
 export const inlineInputRegex = /(?:^|\s)((?:\$)((?:[^$]+))(?:\$))$/;
 export const inlinePasteRegex = /(?:^|\s)((?:\$)((?:[^$]+))(?:\$))/g;
@@ -23,8 +30,8 @@ export const blockInputRegex = /^\$\$[\s\n]$/;
 export const blockPasteRegex = /^\$\$((?:[^$]+))\$\$/g;
 
 export const ExtensionKatexInline = Node.create<ExtensionOptions>({
-  name: "katexInline",
-  group: "inline math",
+  name: 'katexInline',
+  group: 'inline math',
   inline: true,
   atom: true,
   code: true,
@@ -32,7 +39,7 @@ export const ExtensionKatexInline = Node.create<ExtensionOptions>({
   addAttributes() {
     return {
       content: {
-        default: "",
+        default: '',
         rendered: false,
         isRequired: true,
         parseHTML: (element: HTMLElement) => {
@@ -40,7 +47,7 @@ export const ExtensionKatexInline = Node.create<ExtensionOptions>({
         },
       },
       style: {
-        default: "margin: 0 0.05em;",
+        default: 'margin: 0 0.05em;',
       },
       editMode: {
         default: false,
@@ -60,12 +67,12 @@ export const ExtensionKatexInline = Node.create<ExtensionOptions>({
             props: {
               editor,
               icon: markRaw(TablerMath),
-              title: "KaTeX 行内公式",
+              title: 'KaTeX 行内公式',
               action: () => {
                 editor
                   .chain()
                   .focus()
-                  .insertContent([{ type: "katexInline" }])
+                  .insertContent([{ type: 'katexInline' }])
                   .run();
               },
             },
@@ -76,14 +83,14 @@ export const ExtensionKatexInline = Node.create<ExtensionOptions>({
         return {
           priority: 200,
           icon: markRaw(TablerMath),
-          title: "KaTeX 行内公式",
-          keywords: ["katex", "gongshi", "shuxuegongshi"],
+          title: 'KaTeX 行内公式',
+          keywords: ['katex', 'gongshi', 'shuxuegongshi'],
           command: ({ editor, range }: { editor: Editor; range: Range }) => {
             editor
               .chain()
               .focus()
               .deleteRange(range)
-              .insertContent([{ type: "katexInline" }])
+              .insertContent([{ type: 'katexInline' }])
               .run();
           },
         };
@@ -94,25 +101,25 @@ export const ExtensionKatexInline = Node.create<ExtensionOptions>({
   parseHTML() {
     return [
       {
-        tag: "span[math-inline]",
+        tag: 'span[math-inline]',
       },
       {
-        tag: "span.katex-inline",
+        tag: 'span.katex-inline',
       },
     ];
   },
 
   renderHTML({ node, HTMLAttributes }) {
-    const content = node.attrs.content || "";
+    const content = node.attrs.content || '';
 
     try {
       const renderedHtml = renderKatex(content, true);
 
-      const span = document.createElement("span");
+      const span = document.createElement('span');
       span.innerHTML = renderedHtml;
 
       const attributes = mergeAttributes(HTMLAttributes, {
-        class: "katex-inline",
+        class: 'katex-inline',
       });
       Object.entries(attributes).forEach(([key, value]) => {
         if (value !== null && value !== undefined) {
@@ -122,13 +129,13 @@ export const ExtensionKatexInline = Node.create<ExtensionOptions>({
 
       return { dom: span };
     } catch (error) {
-      console.error("KaTeX render error:", error);
+      console.error('KaTeX render error:', error);
     }
 
     return [
-      "span",
+      'span',
       mergeAttributes(HTMLAttributes, {
-        "math-inline": "",
+        'math-inline': '',
       }),
       content,
     ];
@@ -167,8 +174,8 @@ export const ExtensionKatexInline = Node.create<ExtensionOptions>({
 });
 
 export const ExtensionKatexBlock = Node.create<ExtensionOptions>({
-  name: "katexBlock",
-  group: "block",
+  name: 'katexBlock',
+  group: 'block',
   selectable: true,
   defining: true,
   atom: true,
@@ -178,7 +185,7 @@ export const ExtensionKatexBlock = Node.create<ExtensionOptions>({
   addAttributes() {
     return {
       content: {
-        default: "",
+        default: '',
         rendered: false,
         isRequired: true,
         parseHTML: (element: HTMLElement) => {
@@ -190,7 +197,7 @@ export const ExtensionKatexBlock = Node.create<ExtensionOptions>({
         rendered: false,
       },
       style: {
-        default: "text-align: center; display: block; margin: 1em 0;",
+        default: 'text-align: center; display: block; margin: 1em 0;',
       },
     };
   },
@@ -206,12 +213,12 @@ export const ExtensionKatexBlock = Node.create<ExtensionOptions>({
             props: {
               editor,
               icon: markRaw(TablerMath),
-              title: "KaTeX 块级公式",
+              title: 'KaTeX 块级公式',
               action: () => {
                 editor
                   .chain()
                   .focus()
-                  .insertContent([{ type: "katexBlock" }])
+                  .insertContent([{ type: 'katexBlock' }])
                   .run();
               },
             },
@@ -222,14 +229,14 @@ export const ExtensionKatexBlock = Node.create<ExtensionOptions>({
         return {
           priority: 200,
           icon: markRaw(TablerMath),
-          title: "KaTeX 块级公式",
-          keywords: ["katex", "gongshi", "shuxuegongshi"],
+          title: 'KaTeX 块级公式',
+          keywords: ['katex', 'gongshi', 'shuxuegongshi'],
           command: ({ editor, range }: { editor: Editor; range: Range }) => {
             editor
               .chain()
               .focus()
               .deleteRange(range)
-              .insertContent([{ type: "katexBlock" }])
+              .insertContent([{ type: 'katexBlock' }])
               .run();
           },
         };
@@ -240,7 +247,7 @@ export const ExtensionKatexBlock = Node.create<ExtensionOptions>({
   parseHTML() {
     return [
       {
-        tag: "div[math-display]",
+        tag: 'div[math-display]',
         getAttrs: (element: HTMLElement) => {
           return {
             content: element.textContent,
@@ -248,7 +255,7 @@ export const ExtensionKatexBlock = Node.create<ExtensionOptions>({
         },
       },
       {
-        tag: "div.katex-block",
+        tag: 'div.katex-block',
         getAttrs: (element: HTMLElement) => {
           return {
             content: element.textContent,
@@ -259,15 +266,15 @@ export const ExtensionKatexBlock = Node.create<ExtensionOptions>({
   },
 
   renderHTML({ node, HTMLAttributes }) {
-    const content = node.attrs.content || "";
+    const content = node.attrs.content || '';
     try {
       const renderedHtml = renderKatex(content, false);
 
-      const div = document.createElement("div");
+      const div = document.createElement('div');
       div.innerHTML = renderedHtml;
 
       const attributes = mergeAttributes(HTMLAttributes, {
-        class: "katex-block",
+        class: 'katex-block',
       });
       Object.entries(attributes).forEach(([key, value]) => {
         if (value !== null && value !== undefined) {
@@ -277,13 +284,13 @@ export const ExtensionKatexBlock = Node.create<ExtensionOptions>({
 
       return { dom: div };
     } catch (error) {
-      console.error("KaTeX render error:", error);
+      console.error('KaTeX render error:', error);
     }
 
     return [
-      "div",
+      'div',
       mergeAttributes(HTMLAttributes, {
-        "math-display": "",
+        'math-display': '',
       }),
       content,
     ];
@@ -298,7 +305,7 @@ export const ExtensionKatexBlock = Node.create<ExtensionOptions>({
         type: this.type,
         getAttributes: () => {
           return {
-            content: "",
+            content: '',
             editMode: true,
           };
         },
@@ -322,18 +329,18 @@ export const ExtensionKatexBlock = Node.create<ExtensionOptions>({
 });
 
 const findKatexRawContent = (element: HTMLElement) => {
-  const annotation = element.querySelector("annotation");
+  const annotation = element.querySelector('annotation');
   if (annotation) {
     return annotation.textContent;
   }
 
-  if (element.hasAttribute("content")) {
-    return element.getAttribute("content");
+  if (element.hasAttribute('content')) {
+    return element.getAttribute('content');
   }
 
   if (element.firstChild?.nodeType === 3) {
     return element.textContent;
   }
 
-  return "";
+  return '';
 };

@@ -1,5 +1,5 @@
 <script lang="ts" setup>
-import MingcuteCheckCircleLine from "~icons/mingcute/check-circle-line";
+import MingcuteCheckCircleLine from '~icons/mingcute/check-circle-line';
 
 const props = withDefaults(
   defineProps<{
@@ -9,18 +9,18 @@ const props = withDefaults(
   {
     disabled: false,
     isActive: false,
-  }
+  },
 );
 
 const emit = defineEmits<{
-  (event: "click", e: MouseEvent): void;
+  (event: 'click', e: MouseEvent): void;
 }>();
 
 function handleClick(e: MouseEvent) {
   if (props.disabled) {
     return;
   }
-  emit("click", e);
+  emit('click', e);
 }
 </script>
 <template>
@@ -43,7 +43,7 @@ function handleClick(e: MouseEvent) {
         'group-hover:bg-white': !disabled,
       }"
     >
-      <slot name="icon" />
+      <slot name="icon"></slot>
     </div>
 
     <div
@@ -53,7 +53,7 @@ function handleClick(e: MouseEvent) {
         { 'group-hover:font-medium group-hover:text-gray-900': !disabled },
       ]"
     >
-      <slot />
+      <slot></slot>
     </div>
 
     <MingcuteCheckCircleLine

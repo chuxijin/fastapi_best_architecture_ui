@@ -1,10 +1,13 @@
 <script setup lang="ts">
-import { computed } from "vue";
-import Input from "@HaloEditor/components/base/Input.vue";
-import { i18n } from "@HaloEditor/locales";
-import type { BubbleItemComponentProps } from "@HaloEditor/types";
-import { isAllowedUri } from "@HaloEditor/utils/is-allowed-uri";
-import { ExtensionIframe } from "./index";
+import type { BubbleItemComponentProps } from '@HaloEditor/types';
+
+import { computed } from 'vue';
+
+import Input from '@HaloEditor/components/base/Input.vue';
+import { i18n } from '@HaloEditor/locales';
+import { isAllowedUri } from '@HaloEditor/utils/is-allowed-uri';
+
+import { ExtensionIframe } from './index';
 
 const props = defineProps<BubbleItemComponentProps>();
 
@@ -16,10 +19,7 @@ const src = computed({
     if (!src || !isAllowedUri(src)) {
       return;
     }
-    props.editor
-      .chain()
-      .updateAttributes(ExtensionIframe.name, { src: src })
-      .run();
+    props.editor.chain().updateAttributes(ExtensionIframe.name, { src }).run();
   },
 });
 </script>

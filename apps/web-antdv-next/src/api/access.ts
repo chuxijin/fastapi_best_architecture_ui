@@ -226,6 +226,97 @@ export function setAccessPackItemsApi(
   return requestClient.put(`/api/v1/access/packs/${pk}/items`, data);
 }
 
+// ==================== Resource Rule (资源规则) ====================
+
+export interface AccessRuleValidPeriod {
+  valid_from?: null | string;
+  valid_to?: null | string;
+}
+
+export interface AccessRuleResult {
+  id: number;
+  resource_type: string;
+  resource_id: number;
+  entitlement_code: string;
+  grant_mode: string;
+  priority: number;
+  valid_period: AccessRuleValidPeriod | null;
+  audience_filter: Record<string, unknown>;
+  inherit_to_children: boolean;
+  status: string;
+  created_time: string;
+  updated_time?: null | string;
+}
+
+export interface CreateAccessRuleParams {
+  resource_type: string;
+  resource_id: number;
+  entitlement_code: string;
+  grant_mode: string;
+  priority?: number;
+  valid_period?: AccessRuleValidPeriod | null;
+  audience_filter?: Record<string, unknown>;
+  inherit_to_children?: boolean;
+  metadata?: Record<string, unknown>;
+}
+
+export interface UpdateAccessRuleParams {
+  grant_mode?: string;
+  priority?: number;
+  valid_period?: AccessRuleValidPeriod | null;
+  audience_filter?: null | Record<string, unknown>;
+  inherit_to_children?: boolean;
+  metadata?: null | Record<string, unknown>;
+  status?: string;
+}
+
+export interface AccessRuleQueryParams extends PaginationParams {
+  resource_type?: string;
+  resource_id?: number;
+  entitlement_code?: string;
+  grant_mode?: string;
+  status?: string;
+}
+
+export interface BulkUpsertAccessRulesParams {
+  resource_type: string;
+  resource_ids: number[];
+  entitlement_code: string;
+  grant_mode: string;
+  priority?: number;
+  valid_period?: AccessRuleValidPeriod | null;
+}
+
+export function getAccessRuleListApi(params?: AccessRuleQueryParams) {
+  return requestClient.get<PaginationResult<AccessRuleResult>>(
+    '/api/v1/access/rules',
+    { params },
+  );
+}
+
+export function getAccessRuleApi(pk: number) {
+  return requestClient.get<AccessRuleResult>(`/api/v1/access/rules/${pk}`);
+}
+
+export function createAccessRuleApi(data: CreateAccessRuleParams) {
+  return requestClient.post('/api/v1/access/rules', data);
+}
+
+export function updateAccessRuleApi(pk: number, data: UpdateAccessRuleParams) {
+  return requestClient.put(`/api/v1/access/rules/${pk}`, data);
+}
+
+export function deleteAccessRuleApi(pk: number) {
+  return requestClient.delete(`/api/v1/access/rules/${pk}`);
+}
+
+export function bulkUpsertAccessRulesApi(data: BulkUpsertAccessRulesParams) {
+  return requestClient.post<{ created: number }>(
+    '/api/v1/access/rules/bulk-upsert',
+    data,
+  );
+}
+
 // ==================== Subscription Template (订阅模板) ====================
 
 export interface SubscriptionTemplateResult {
@@ -414,6 +505,7 @@ export interface UserSubscriptionResult {
   id: number;
   user_id: number;
   username: null | string;
+  nickname: null | string;
   template_id: number;
   template_code: string;
   template_name: null | string;
@@ -483,21 +575,46 @@ export function extendSubscriptionApi(
 
 export interface DecideStep {
   evaluator: string;
-  decision: string;
+  outcome: string;
   reason: null | string;
+  matched?: null | Record<string, unknown>;
+}
+
+export interface DecideDecision {
+  allowed: boolean;
+  decision: string;
+  reason_code: string;
+  matched_grant: null | string;
+  consumed_ledger_id: null | number;
+  explanation: DecideStep[];
+}
+
+export interface DecideRule {
+  id: number;
+  resource_type: string;
+  resource_id: number;
+  entitlement_code: string;
+  grant_mode: string;
+  priority: number;
+  inherit_to_children: boolean;
+}
+
+export interface DecideSnapshot {
+  subscription_ids: number[];
+  direct_grant_ids: number[];
+  entitlement_codes: string[];
 }
 
 export interface DecideResult {
-  allow: boolean;
-  reason: null | string;
-  matched_rule: null | string;
-  steps: DecideStep[];
+  decision: DecideDecision;
+  rules: DecideRule[];
+  snapshot: DecideSnapshot;
 }
 
 export interface DecideRequestParams {
   user_id: number;
   resource_type: string;
-  resource_id: string;
+  resource_id: number | string;
 }
 
 export function runAccessDecideApi(data: DecideRequestParams) {

@@ -40,7 +40,7 @@ export const usageOptions: Array<{ label: string; value: UsageType }> = [
  * 创建题目表单 Schema
  */
 export function createQuestionFormSchema(
-  bankId: number,
+  _bankId: number,
   chapterOptions: Array<{ label: string; value: number }>,
 ): VbenFormSchema[] {
   return [

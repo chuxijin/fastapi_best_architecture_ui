@@ -7,7 +7,7 @@ import type {
 
 import { computed, h, nextTick, ref, watch } from 'vue';
 
-import { VbenTree } from '@vben/common-ui';
+import { Tree as VbenTree } from '@vben/common-ui';
 import { createIconifyIcon } from '@vben/icons';
 
 import { message } from 'ant-design-vue';

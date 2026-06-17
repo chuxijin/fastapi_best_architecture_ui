@@ -2,7 +2,7 @@
 import type { VbenFormProps } from '@vben/common-ui';
 
 import type { VxeTableGridOptions } from '#/adapter/vxe-table';
-import type { BankParams, BankResult } from '#/api';
+import type { BankMountResult, BankParams, BankResult } from '#/api';
 
 import { computed, ref } from 'vue';
 import { useRouter } from 'vue-router';
@@ -14,7 +14,15 @@ import { Image, message } from 'ant-design-vue';
 
 import { useVbenForm } from '#/adapter/form';
 import { useVbenVxeGrid } from '#/adapter/vxe-table';
-import { createBankApi, getBankListApi, updateBankApi } from '#/api';
+import {
+  createBankApi,
+  createBankMountApi,
+  deleteBankMountApi,
+  getBankListApi,
+  getBankMountListApi,
+  updateBankApi,
+  updateBankMountApi,
+} from '#/api';
 import {
   formSchema,
   querySchema,
@@ -24,6 +32,12 @@ import {
 } from '#/views/knowledge-store/resource/question-bank/data';
 
 const router = useRouter();
+
+const bankTypeMap: Record<number, string> = {
+  1: '习题',
+  2: '试卷',
+  3: '合集',
+};
 
 const formOptions: VbenFormProps = {
   collapsed: false,
@@ -91,6 +105,8 @@ function toBankParams(
     bank_type: Number(values.bank_type ?? base?.bank_type ?? 1),
     scene_mask: Number(values.scene_mask ?? base?.scene_mask ?? 1),
     parent_id: values.parent_id ?? base?.parent_id ?? null,
+    chapter_source_bank_id:
+      values.chapter_source_bank_id ?? base?.chapter_source_bank_id ?? null,
     status: Number(values.status ?? base?.status ?? 1),
     scope: Number(values.scope ?? base?.scope ?? 1),
   };
@@ -177,6 +193,10 @@ function onActionClick({ code, row }: { code: string; row: BankResult }) {
       });
       break;
     }
+    case 'mount': {
+      mountModalApi.setData(row).open();
+      break;
+    }
     case 'share': {
       message.info('分享功能开发中');
       break;
@@ -193,7 +213,7 @@ function onActionClick({ code, row }: { code: string; row: BankResult }) {
       const action = newStatus === 1 ? '上架' : '下架';
       updateBankApi(row.id, toBankParams({ status: newStatus }, row)).then(
         () => {
-          message.success(`${action}题库成功: ${row.name}`);
+          message.success(`${action}内容成功: ${row.name}`);
           onRefresh();
         },
       );
@@ -222,7 +242,7 @@ const [Form, formApi] = useVbenForm({
 const formData = ref<BankResult | null>(null);
 
 const modalTitle = computed(() => {
-  return formData.value?.id ? '编辑题库' : '添加题库';
+  return formData.value?.id ? '编辑内容' : '添加内容';
 });
 
 const [Modal, modalApi] = useVbenModal({
@@ -237,10 +257,10 @@ const [Modal, modalApi] = useVbenModal({
       try {
         if (formData.value?.id) {
           await updateBankApi(formData.value.id, payload);
-          message.success(`编辑题库成功: ${payload.name}`);
+          message.success(`编辑内容成功: ${payload.name}`);
         } else {
           await createBankApi(payload);
-          message.success(`添加题库成功: ${payload.name}`);
+          message.success(`添加内容成功: ${payload.name}`);
         }
         await modalApi.close();
         onRefresh();
@@ -269,6 +289,184 @@ const [Modal, modalApi] = useVbenModal({
     }
   },
 });
+
+const currentMountItem = ref<BankResult | null>(null);
+const mountList = ref<BankMountResult[]>([]);
+const availableCollections = ref<BankResult[]>([]);
+const selectedCollectionId = ref<number>();
+const mountSortOrder = ref(0);
+const mountLoading = ref(false);
+const collectionLoading = ref(false);
+const createMountLoading = ref(false);
+const updateMountLoadingMap = ref<Record<number, boolean>>({});
+
+const mountColumns = [
+  { title: '合集', dataIndex: 'collection_name', key: 'collection' },
+  { title: '排序', dataIndex: 'sort_order', key: 'sort_order', width: 120 },
+  { title: '状态', dataIndex: 'status', key: 'status', width: 120 },
+  {
+    title: '创建时间',
+    dataIndex: 'created_time',
+    key: 'created_time',
+    width: 180,
+  },
+  { title: '操作', key: 'operation', width: 120 },
+];
+
+const mountedCollectionIds = computed(() => {
+  return new Set(mountList.value.map((item) => item.collection_id));
+});
+
+const collectionOptions = computed(() => {
+  const currentId = currentMountItem.value?.id;
+  return availableCollections.value.map((item) => ({
+    disabled: item.id === currentId || mountedCollectionIds.value.has(item.id),
+    label: `${item.name}（ID: ${item.id}）`,
+    value: item.id,
+  }));
+});
+
+function flattenBanks(nodes: BankResult[], result: BankResult[] = []) {
+  for (const node of nodes) {
+    result.push(node);
+    if (node.children?.length) {
+      flattenBanks(node.children, result);
+    }
+  }
+  return result;
+}
+
+function getBankTypeLabel(bankType?: null | number) {
+  if (!bankType) {
+    return '未知';
+  }
+  return bankTypeMap[bankType] || '未知';
+}
+
+function selectFirstAvailableCollection() {
+  const option = collectionOptions.value.find((item) => !item.disabled);
+  selectedCollectionId.value = option?.value;
+}
+
+async function loadMounts(itemId: number) {
+  mountLoading.value = true;
+  try {
+    mountList.value = await getBankMountListApi({ item_id: itemId });
+  } finally {
+    mountLoading.value = false;
+  }
+}
+
+async function loadAvailableCollections() {
+  collectionLoading.value = true;
+  try {
+    const data = await getBankListApi({ bank_type: 3, status: 1 });
+    availableCollections.value = flattenBanks(data);
+  } finally {
+    collectionLoading.value = false;
+  }
+}
+
+async function loadMountModalData(row: BankResult) {
+  selectedCollectionId.value = undefined;
+  mountSortOrder.value = 0;
+  await Promise.all([loadMounts(row.id), loadAvailableCollections()]);
+  selectFirstAvailableCollection();
+}
+
+async function onCreateMount() {
+  if (!currentMountItem.value) {
+    return;
+  }
+  if (!selectedCollectionId.value) {
+    message.warning('请选择要挂载到的合集');
+    return;
+  }
+  createMountLoading.value = true;
+  try {
+    await createBankMountApi({
+      collection_id: selectedCollectionId.value,
+      item_id: currentMountItem.value.id,
+      sort_order: mountSortOrder.value,
+      status: 1,
+    });
+    message.success('挂载合集成功');
+    await loadMountModalData(currentMountItem.value);
+    onRefresh();
+  } finally {
+    createMountLoading.value = false;
+  }
+}
+
+async function onUpdateMount(
+  record: BankMountResult | Record<string, unknown>,
+) {
+  const mountRecord = record as BankMountResult;
+  updateMountLoadingMap.value = {
+    ...updateMountLoadingMap.value,
+    [mountRecord.id]: true,
+  };
+  try {
+    await updateBankMountApi(mountRecord.id, {
+      sort_order: mountRecord.sort_order,
+      status: mountRecord.status,
+    });
+    message.success('更新挂载成功');
+    if (currentMountItem.value) {
+      await loadMounts(currentMountItem.value.id);
+      onRefresh();
+    }
+  } finally {
+    updateMountLoadingMap.value = {
+      ...updateMountLoadingMap.value,
+      [mountRecord.id]: false,
+    };
+  }
+}
+
+async function onMountStatusChange(
+  record: BankMountResult | Record<string, unknown>,
+  checked: boolean,
+) {
+  const mountRecord = record as BankMountResult;
+  mountRecord.status = checked ? 1 : 0;
+  await onUpdateMount(mountRecord);
+}
+
+async function onDeleteMount(
+  record: BankMountResult | Record<string, unknown>,
+) {
+  const mountRecord = record as BankMountResult;
+  await deleteBankMountApi({ ids: [mountRecord.id] });
+  message.success('移除挂载成功');
+  if (currentMountItem.value) {
+    await loadMountModalData(currentMountItem.value);
+    onRefresh();
+  }
+}
+
+const [MountModal, mountModalApi] = useVbenModal({
+  class: 'w-7/12',
+  destroyOnClose: true,
+  async onConfirm() {
+    await mountModalApi.close();
+  },
+  onOpenChange(isOpen) {
+    if (isOpen) {
+      const data = mountModalApi.getData<BankResult>();
+      currentMountItem.value = data;
+      if (data?.id) {
+        loadMountModalData(data);
+      }
+    } else {
+      currentMountItem.value = null;
+      mountList.value = [];
+      availableCollections.value = [];
+      selectedCollectionId.value = undefined;
+      updateMountLoadingMap.value = {};
+    }
+  },
+});
 </script>
 
 <template>
@@ -277,7 +475,7 @@ const [Modal, modalApi] = useVbenModal({
       <template #toolbar-actions>
         <VbenButton @click="() => modalApi.setData(null).open()">
           <MaterialSymbolsAdd class="size-5" />
-          添加题库
+          添加内容
         </VbenButton>
       </template>
 
@@ -303,10 +501,16 @@ const [Modal, modalApi] = useVbenModal({
               编码: {{ row.code }}
             </div>
             <div class="mb-1 text-sm text-muted-foreground">
+              类型: {{ getBankTypeLabel(row.bank_type) }}
+            </div>
+            <div class="mb-1 text-sm text-muted-foreground">
               {{ row.desc || '暂无描述' }}
             </div>
             <div class="flex gap-4 text-sm">
-              <span>题目数: {{ row.q_count_cache }}</span>
+              <span>
+                {{ row.bank_type === 3 ? '内容数' : '题目数' }}:
+                {{ row.q_count_cache }}
+              </span>
               <span>总分: {{ row.total_score_cache }}</span>
               <span>购买数: {{ row.buy_count }}</span>
               <span>范围: {{ scopeMap[row.scope] }}</span>
@@ -323,8 +527,8 @@ const [Modal, modalApi] = useVbenModal({
       <template #detail_default>
         <div class="text-sm">
           <div class="mb-1">所属分类: 暂无</div>
-          <div class="mb-1">题库时效: 永久</div>
-          <div>子题库数: 0</div>
+          <div class="mb-1">内容时效: 永久</div>
+          <div>子内容数: 0</div>
         </div>
       </template>
 
@@ -339,5 +543,107 @@ const [Modal, modalApi] = useVbenModal({
     <Modal :title="modalTitle">
       <Form />
     </Modal>
+
+    <MountModal title="挂载合集">
+      <div class="space-y-4">
+        <div v-if="currentMountItem" class="rounded border p-3">
+          <div class="font-medium">{{ currentMountItem.name }}</div>
+          <div class="mt-1 text-sm text-muted-foreground">
+            ID: {{ currentMountItem.id }} · 类型:
+            {{ getBankTypeLabel(currentMountItem.bank_type) }} · 编码:
+            {{ currentMountItem.code }}
+          </div>
+        </div>
+
+        <div class="flex flex-wrap items-end gap-3">
+          <div class="min-w-72 flex-1">
+            <div class="mb-1 text-sm text-muted-foreground">选择合集</div>
+            <a-select
+              v-model:value="selectedCollectionId"
+              allow-clear
+              class="w-full"
+              :loading="collectionLoading"
+              :options="collectionOptions"
+              placeholder="请选择要挂载到的合集"
+              show-search
+              :filter-option="
+                (input, option) =>
+                  String(option?.label ?? '')
+                    .toLowerCase()
+                    .includes(input.toLowerCase())
+              "
+            />
+          </div>
+          <div class="w-32">
+            <div class="mb-1 text-sm text-muted-foreground">排序</div>
+            <a-input-number
+              v-model:value="mountSortOrder"
+              class="w-full"
+              :min="0"
+            />
+          </div>
+          <a-button
+            type="primary"
+            :loading="createMountLoading"
+            @click="onCreateMount"
+          >
+            添加挂载
+          </a-button>
+        </div>
+
+        <a-table
+          :columns="mountColumns"
+          :data-source="mountList"
+          :loading="mountLoading"
+          :pagination="false"
+          row-key="id"
+          size="small"
+        >
+          <template #bodyCell="{ column, record }">
+            <template v-if="column.key === 'collection'">
+              <div class="font-medium">
+                {{ record.collection_name || `合集 ${record.collection_id}` }}
+              </div>
+              <div class="text-xs text-muted-foreground">
+                ID: {{ record.collection_id }}
+              </div>
+            </template>
+            <template v-else-if="column.key === 'sort_order'">
+              <a-input-number
+                v-model:value="record.sort_order"
+                class="w-24"
+                :min="0"
+              />
+            </template>
+            <template v-else-if="column.key === 'status'">
+              <a-switch
+                :checked="record.status === 1"
+                checked-children="启用"
+                un-checked-children="停用"
+                @change="(checked) => onMountStatusChange(record, checked)"
+              />
+            </template>
+            <template v-else-if="column.key === 'operation'">
+              <a-space>
+                <a-button
+                  size="small"
+                  type="link"
+                  :loading="updateMountLoadingMap[record.id]"
+                  @click="onUpdateMount(record)"
+                >
+                  保存
+                </a-button>
+                <a-popconfirm
+                  title="确认移除这个挂载关系？"
+                  @confirm="onDeleteMount(record)"
+                >
+                  <a-button danger size="small" type="link">移除</a-button>
+                </a-popconfirm>
+              </a-space>
+            </template>
+          </template>
+        </a-table>
+      </div>
+    </MountModal>
   </Page>
 </template>

@@ -1,1 +1,1 @@
-export { default as ToolboxItem } from "./ToolboxItem.vue";
+export { default as ToolboxItem } from './ToolboxItem.vue';

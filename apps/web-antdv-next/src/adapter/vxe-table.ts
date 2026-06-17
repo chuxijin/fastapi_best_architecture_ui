@@ -14,7 +14,15 @@ import {
 import { get, isFunction, isString } from '@vben/utils';
 
 import { objectOmit } from '@vueuse/core';
-import { Button, Dropdown, Image, Popconfirm, Switch, Tag } from 'antdv-next';
+import {
+  Button,
+  Dropdown,
+  Image,
+  Menu,
+  Popconfirm,
+  Switch,
+  Tag,
+} from 'antdv-next';
 
 import { $t } from '#/locales';
 import { DictEnum, getDictOptions } from '#/utils/dict';

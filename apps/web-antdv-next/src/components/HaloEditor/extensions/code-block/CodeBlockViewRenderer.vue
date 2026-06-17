@@ -1,16 +1,16 @@
 <script lang="ts" setup>
-import { useTimeout } from "@vueuse/core";
-import { computed } from "vue";
-import MingcuteCheckCircleLine from "~icons/mingcute/check-circle-line";
-import MingcuteCopyLine from "~icons/mingcute/copy-line";
-import MingcuteRightSmallFill from "~icons/mingcute/right-small-fill";
-import { i18n } from "@HaloEditor/locales";
-import {
-  NodeViewContent,
-  NodeViewWrapper,
-  type NodeViewProps,
-} from "@HaloEditor/tiptap/vue-3";
-import CodeBlockSelect from "./CodeBlockSelect.vue";
+import type { NodeViewProps } from '@HaloEditor/tiptap/vue-3';
+
+import { computed } from 'vue';
+
+import { i18n } from '@HaloEditor/locales';
+import { NodeViewContent, NodeViewWrapper } from '@HaloEditor/tiptap/vue-3';
+import { useTimeout } from '@vueuse/core';
+import MingcuteCheckCircleLine from '~icons/mingcute/check-circle-line';
+import MingcuteCopyLine from '~icons/mingcute/copy-line';
+import MingcuteRightSmallFill from '~icons/mingcute/right-small-fill';
+
+import CodeBlockSelect from './CodeBlockSelect.vue';
 
 const props = defineProps<NodeViewProps>();
 
@@ -18,19 +18,19 @@ const languageOptions = computed(() => {
   let languages: Array<{
     label: string;
     value: string;
-  }> = [];
+  }>;
   const lang = props.extension.options.languages;
-  if (typeof lang === "function") {
+  if (typeof lang === 'function') {
     languages = lang(props.editor.state);
   } else {
     languages = lang;
   }
   languages = languages || [];
   const languageValues = languages.map((language) => language.value);
-  if (languageValues.indexOf("auto") === -1) {
+  if (!languageValues.includes('auto')) {
     languages.unshift({
-      label: "Auto",
-      value: "auto",
+      label: 'Auto',
+      value: 'auto',
     });
   }
   return languages;
@@ -38,10 +38,10 @@ const languageOptions = computed(() => {
 
 const selectedLanguage = computed({
   get: () => {
-    return props.node?.attrs.language || "auto";
+    return props.node?.attrs.language || 'auto';
   },
   set: (language: string) => {
-    props.updateAttributes({ language: language });
+    props.updateAttributes({ language });
   },
 });
 
@@ -51,9 +51,9 @@ const themeOptions = computed(() => {
         label: string;
         value: string;
       }>
-    | undefined = [];
+    | undefined;
   const theme = props.extension.options.themes;
-  if (typeof theme === "function") {
+  if (typeof theme === 'function') {
     themes = theme(props.editor.state);
   } else {
     themes = theme;
@@ -70,7 +70,7 @@ const selectedTheme = computed({
     return props.node?.attrs.theme || themeOptions.value?.[0].value;
   },
   set: (theme: string) => {
-    props.updateAttributes({ theme: theme });
+    props.updateAttributes({ theme });
   },
 });
 
@@ -79,7 +79,7 @@ const collapsed = computed<boolean>({
     return props.node.attrs.collapsed || false;
   },
   set: (collapsed: boolean) => {
-    props.updateAttributes({ collapsed: collapsed });
+    props.updateAttributes({ collapsed });
   },
 });
 
@@ -94,7 +94,7 @@ const handleCopyCode = () => {
 };
 </script>
 <template>
-  <node-view-wrapper
+  <NodeViewWrapper
     as="div"
     class="code-node mt-3 overflow-hidden rounded border-[1px]"
   >
@@ -123,8 +123,7 @@ const handleCopyCode = () => {
           class="w-48"
           :container="editor.options.element"
           :options="languageOptions"
-        >
-        </CodeBlockSelect>
+        />
         <CodeBlockSelect
           v-if="themeOptions && themeOptions.length > 0"
           v-model="selectedTheme"
@@ -132,8 +131,7 @@ const handleCopyCode = () => {
           class="w-48"
           :options="themeOptions"
           @select="editor.commands.focus()"
-        >
-        </CodeBlockSelect>
+        />
       </div>
       <div class="flex items-center pr-3">
         <button
@@ -155,6 +153,6 @@ const handleCopyCode = () => {
         </button>
       </div>
     </div>
-    <pre v-show="!collapsed"><node-view-content as="code" class="hljs" /></pre>
-  </node-view-wrapper>
+    <pre v-show="!collapsed"><NodeViewContent as="code" class="hljs" /></pre>
+  </NodeViewWrapper>
 </template>

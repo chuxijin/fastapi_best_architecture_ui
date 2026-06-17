@@ -7,7 +7,7 @@ import type {
   RouteRecordNormalized,
 } from 'vue-router';
 
-import type { TabDefinition } from '@vben-core/typings';
+import type { TabDefinition, TabRouteMatched } from '@vben-core/typings';
 
 import { markRaw, toRaw } from 'vue';
 
@@ -26,6 +26,15 @@ interface RouteCached {
   component: VNode;
   key: string;
   route: RouteLocationNormalizedLoadedGeneric;
+}
+
+interface TabKeySource {
+  fullPath?: string;
+  meta?: {
+    fullPathKey?: boolean;
+  };
+  path: string;
+  query?: RouteLocationNormalized['query'];
 }
 
 interface TabbarState {
@@ -606,7 +615,7 @@ export const useTabbarStore = defineStore('core-tabbar', {
       return [...this.affixTabs, ...normalTabs].filter(Boolean);
     },
     getCachedRoutes(): Map<string, RouteCached> {
-      return this.cachedRoutes;
+      return this.cachedRoutes as Map<string, RouteCached>;
     },
   },
   persist: [
@@ -679,7 +688,7 @@ function cloneTab(route: TabDefinition): TabDefinition {
           name: item.name,
           path: item.path,
         }))
-      : undefined) as RouteRecordNormalized[],
+      : []) as TabRouteMatched[],
     meta: {
       ...meta,
       newTabTitle: meta.newTabTitle,
@@ -708,13 +717,11 @@ function isTabShown(tab: TabDefinition) {
  * 从route获取tab页的key
  * @param tab
  */
-function getTabKey(tab: RouteLocationNormalized | RouteRecordNormalized) {
-  const {
-    fullPath,
-    path,
-    meta: { fullPathKey } = {},
-    query = {},
-  } = tab as RouteLocationNormalized;
+function getTabKey(tab: RouteRecordNormalized | TabKeySource) {
+  const { path } = tab;
+  const fullPath = 'fullPath' in tab ? tab.fullPath : undefined;
+  const fullPathKey = tab.meta?.fullPathKey;
+  const query = 'query' in tab ? (tab.query ?? {}) : {};
   // pageKey可能是数组（查询参数重复时可能出现）
   const pageKey = Array.isArray(query.pageKey)
     ? query.pageKey[0]
@@ -759,11 +766,19 @@ function equalTab(a: TabDefinition, b: TabDefinition) {
 
 function routeToTab(route: RouteRecordNormalized) {
   return {
+    hash: '',
+    matched: [
+      {
+        meta: route.meta,
+        name: route.name,
+        path: route.path,
+      },
+    ],
     meta: route.meta,
     name: route.name,
     path: route.path,
     key: getTabKey(route),
-  } as TabDefinition;
+  } satisfies TabDefinition;
 }
 
 export { getTabKey };

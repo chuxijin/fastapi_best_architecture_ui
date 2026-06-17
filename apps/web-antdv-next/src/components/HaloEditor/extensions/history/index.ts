@@ -1,11 +1,13 @@
-import { UndoRedo as TiptapHistory } from "@tiptap/extensions";
-import { markRaw } from "vue";
-import MdiRedoVariant from "~icons/mdi/redo-variant";
-import MdiUndoVariant from "~icons/mdi/undo-variant";
-import ToolbarItem from "@HaloEditor/components/toolbar/ToolbarItem.vue";
-import { i18n } from "@HaloEditor/locales";
-import type { Editor } from "@HaloEditor/tiptap";
-import type { ExtensionOptions } from "@HaloEditor/types";
+import type { Editor } from '@HaloEditor/tiptap';
+import type { ExtensionOptions } from '@HaloEditor/types';
+
+import { markRaw } from 'vue';
+
+import ToolbarItem from '@HaloEditor/components/toolbar/ToolbarItem.vue';
+import { i18n } from '@HaloEditor/locales';
+import { UndoRedo as TiptapHistory } from '@tiptap/extensions';
+import MdiRedoVariant from '~icons/mdi/redo-variant';
+import MdiUndoVariant from '~icons/mdi/undo-variant';
 
 export const ExtensionHistory = TiptapHistory.extend<ExtensionOptions>({
   addOptions() {
@@ -20,7 +22,7 @@ export const ExtensionHistory = TiptapHistory.extend<ExtensionOptions>({
               editor,
               isActive: false,
               icon: markRaw(MdiUndoVariant),
-              title: i18n.global.t("editor.menus.undo"),
+              title: i18n.global.t('editor.menus.undo'),
               action: () => editor.chain().undo().focus().run(),
             },
           },
@@ -31,7 +33,7 @@ export const ExtensionHistory = TiptapHistory.extend<ExtensionOptions>({
               editor,
               isActive: false,
               icon: markRaw(MdiRedoVariant),
-              title: i18n.global.t("editor.menus.redo"),
+              title: i18n.global.t('editor.menus.redo'),
               action: () => editor.chain().redo().focus().run(),
             },
           },

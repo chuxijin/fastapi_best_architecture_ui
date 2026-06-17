@@ -38,10 +38,10 @@ import HaloEditorWrapper from '#/components/HaloEditor/HaloEditorWrapper.vue';
 
 import { questionTypeMap } from '../workspace/components/question-data';
 
-interface ReviewQuestionDetail extends QuestionDetail {
+type ReviewQuestionDetail = Omit<QuestionDetail, 'options'> & {
   options?: Array<{ code?: string; content?: string; option_code?: string }>;
   placements?: any[];
-}
+};
 
 interface KnowledgeTreeOption {
   children?: KnowledgeTreeOption[];
@@ -899,7 +899,7 @@ onMounted(() => {
         <div class="mt-3 flex flex-wrap items-center gap-2">
           <Button type="primary" @click="handleSearch">开始审核</Button>
           <Button @click="prevQuestion">上一题</Button>
-          <Button @click="nextQuestion">下一题</Button>
+          <Button @click="() => nextQuestion()">下一题</Button>
           <span class="text-sm text-gray-500"
             >当前进度：{{ progressText }}</span
           >
@@ -1184,6 +1184,3 @@ onMounted(() => {
     </div>
   </Page>
 </template>
-
-
-

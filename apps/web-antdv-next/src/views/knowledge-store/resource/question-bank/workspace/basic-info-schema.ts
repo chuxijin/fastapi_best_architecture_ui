@@ -10,19 +10,19 @@ export const basicInfoSchema: VbenFormSchema[] = [
   {
     component: 'Input',
     componentProps: {
-      placeholder: '请输入题库名称',
+      placeholder: '请输入内容名称',
     },
     fieldName: 'name',
-    label: '题库名称',
+    label: '内容名称',
     rules: 'required',
   },
   {
     component: 'Input',
     componentProps: {
-      placeholder: '请输入题库编码',
+      placeholder: '请输入内容编码',
     },
     fieldName: 'code',
-    label: '题库编码',
+    label: '内容编码',
     rules: 'required',
   },
   {
@@ -47,14 +47,14 @@ export const basicInfoSchema: VbenFormSchema[] = [
     component: 'RadioGroup',
     componentProps: {
       options: [
-        { label: '普通题库', value: 1 },
+        { label: '习题', value: 1 },
         { label: '试卷', value: 2 },
         { label: '合集', value: 3 },
       ],
     },
     defaultValue: 1,
     fieldName: 'bank_type',
-    label: '题库类型',
+    label: '内容类型',
     rules: 'required',
   },
   {
@@ -76,10 +76,10 @@ export const basicInfoSchema: VbenFormSchema[] = [
         return flatten(banks || []);
       },
       class: 'w-full',
-      placeholder: '请选择父题库（可选）',
+      placeholder: '请选择父合集（可选）',
     },
     fieldName: 'parent_id',
-    label: '所属父题库',
+    label: '所属父合集',
   },
   {
     component: 'ApiSelect',
@@ -109,7 +109,7 @@ export const basicInfoSchema: VbenFormSchema[] = [
       step: 0.1,
     },
     fieldName: 'difficulty',
-    label: '题库难度',
+    label: '内容难度',
   },
   {
     component: 'Select',
@@ -165,10 +165,10 @@ export const basicInfoSchema: VbenFormSchema[] = [
   {
     component: 'Textarea',
     componentProps: {
-      placeholder: '请输入题库描述',
+      placeholder: '请输入内容描述',
       rows: 3,
     },
     fieldName: 'desc',
-    label: '题库描述',
+    label: '内容描述',
   },
 ];

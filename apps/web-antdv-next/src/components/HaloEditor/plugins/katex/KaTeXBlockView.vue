@@ -1,21 +1,24 @@
 <script lang="ts" setup>
-import { NodeViewWrapper, nodeViewProps } from "#/components/HaloEditor";
-import { computed, watch, ref } from "vue";
-import { useMagicKeys } from "@vueuse/core";
-import { renderKatex } from "./render-katex";
-import IcOutlineTipsAndUpdates from "~icons/ic/outline-tips-and-updates";
-import IcOutlineFullscreen from "~icons/ic/outline-fullscreen";
-import IcOutlineFullscreenExit from "~icons/ic/outline-fullscreen-exit";
+import { computed, ref, watch } from 'vue';
+
+import { useMagicKeys } from '@vueuse/core';
+import IcOutlineFullscreen from '~icons/ic/outline-fullscreen';
+import IcOutlineFullscreenExit from '~icons/ic/outline-fullscreen-exit';
+import IcOutlineTipsAndUpdates from '~icons/ic/outline-tips-and-updates';
+
+import { nodeViewProps, NodeViewWrapper } from '#/components/HaloEditor';
+
+import { renderKatex } from './render-katex';
 
 const props = defineProps(nodeViewProps);
 
 const content = computed(() => {
-  return props.node.attrs.content || "";
+  return props.node.attrs.content || '';
 });
 
 const renderedKatex = computed(() => {
   if (!content.value) {
-    return "";
+    return '';
   }
   return renderKatex(content.value, false);
 });
@@ -24,11 +27,14 @@ const fullscreen = ref(false);
 
 const { escape } = useMagicKeys();
 
-watch(() => escape?.value, (value) => {
-  if (value && fullscreen.value) {
-    fullscreen.value = false;
-  }
-});
+watch(
+  () => escape?.value,
+  (value) => {
+    if (value && fullscreen.value) {
+      fullscreen.value = false;
+    }
+  },
+);
 
 function onEditorChange(e: Event) {
   const value = (e.target as HTMLTextAreaElement).value;
@@ -37,9 +43,12 @@ function onEditorChange(e: Event) {
 </script>
 
 <template>
-  <node-view-wrapper
+  <NodeViewWrapper
     class="katex-block-container"
-    :class="{ 'katex-block-fullscreen': fullscreen, 'border-none': !props.editor.isEditable }"
+    :class="{
+      'katex-block-fullscreen': fullscreen,
+      'border-none': !props.editor.isEditable,
+    }"
     :style="!props.editor.isEditable ? 'border: none; margin-top: 0;' : ''"
     as="div"
   >
@@ -60,7 +69,11 @@ function onEditorChange(e: Event) {
           class="katex-block-fullscreen-icon text-gray-500 hover:text-primary transition-colors flex items-center justify-center p-1 rounded hover:bg-gray-100"
           @click="fullscreen = !fullscreen"
         >
-          <IcOutlineFullscreenExit class="size-5" v-if="fullscreen" v-tooltip="'退出全屏'" />
+          <IcOutlineFullscreenExit
+            class="size-5"
+            v-if="fullscreen"
+            v-tooltip="'退出全屏'"
+          />
           <IcOutlineFullscreen class="size-5" v-else v-tooltip="'全屏'" />
         </div>
       </div>
@@ -69,45 +82,51 @@ function onEditorChange(e: Event) {
       <div class="katex-block-code" v-if="props.editor.isEditable">
         <textarea
           :value="content"
-          style="width: 100%; height: 100%; outline: none; padding: 10px; resize: none; font-family: monospace; border: none; background: #fdfdfd;"
+          style="
+            width: 100%;
+            height: 100%;
+            padding: 10px;
+            font-family: monospace;
+            resize: none;
+            outline: none;
+            background: #fdfdfd;
+            border: none;
+          "
           placeholder="输入 LaTeX 公式"
           @input="onEditorChange"
         ></textarea>
       </div>
-      <div
-        class="katex-block-preview"
-        v-html="renderedKatex"
-      ></div>
+      <div class="katex-block-preview" v-html="renderedKatex"></div>
     </div>
-  </node-view-wrapper>
+  </NodeViewWrapper>
 </template>
 
 <style scoped>
 .katex-block-container {
   display: flex;
   flex-direction: column;
+  margin-top: 0.75em;
+  overflow: hidden;
   border: 1px #e7e7e7 solid;
   border-radius: 4px;
-  overflow: hidden;
-  margin-top: 0.75em;
 }
 
 .katex-block-nav {
-  border-bottom: 1px #e7e7e7 solid;
-  display: flex;
-  padding: 5px 10px;
-  align-items: center;
   position: sticky;
   top: 0;
   z-index: 1;
+  display: flex;
+  align-items: center;
+  padding: 5px 10px;
   background: #fff;
+  border-bottom: 1px #e7e7e7 solid;
 }
 
 .katex-block-nav-start {
-  flex: 1;
   display: flex;
-  align-items: center;
+  flex: 1;
   gap: 10px;
+  align-items: center;
   font-size: 14px;
 }
 
@@ -129,21 +148,18 @@ function onEditorChange(e: Event) {
 }
 
 .katex-block-preview {
-  padding: 5px;
   height: 100%;
+  padding: 5px;
 }
 
 .katex-block-fullscreen {
   position: fixed;
-  top: 0;
-  left: 0;
-  bottom: 0;
-  right: 0;
+  inset: 0;
   z-index: 9999;
   width: 100%;
   height: 100%;
-  background: #fff;
   margin-top: 0;
+  background: #fff;
 }
 
 .katex-block-fullscreen-icon {

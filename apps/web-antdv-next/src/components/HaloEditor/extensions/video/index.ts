@@ -1,20 +1,13 @@
-import type { Attachment, UploadRequestConfig } from "@HaloEditor/utils/upload";
-import { isEmpty } from "es-toolkit/compat";
-import { markRaw } from "vue";
-import LucideCaptions from "~icons/lucide/captions";
-import MdiCogPlay from "~icons/mdi/cog-play";
-import MdiCogPlayOutline from "~icons/mdi/cog-play-outline";
-import MdiMotionPlay from "~icons/mdi/motion-play";
-import MdiMotionPlayOutline from "~icons/mdi/motion-play-outline";
-import MdiPlayCircle from "~icons/mdi/play-circle";
-import MdiPlayCircleOutline from "~icons/mdi/play-circle-outline";
-import MingcuteLinkLine from "~icons/mingcute/link-line";
-import MingcuteShare3Line from "~icons/mingcute/share-3-line";
-import MingcuteVideoLine from "~icons/mingcute/video-line";
-import { BlockActionSeparator } from "@HaloEditor/components";
-import MingcuteDelete2Line from "@HaloEditor/components/icon/MingcuteDelete2Line.vue";
-import ToolboxItem from "@HaloEditor/components/toolbox/ToolboxItem.vue";
-import { i18n } from "@HaloEditor/locales";
+import type { EditorState, Range } from '@HaloEditor/tiptap';
+import type { ExtensionOptions, NodeBubbleMenuType } from '@HaloEditor/types';
+import type { Attachment, UploadRequestConfig } from '@HaloEditor/utils/upload';
+
+import { markRaw } from 'vue';
+
+import { BlockActionSeparator } from '@HaloEditor/components';
+import MingcuteDelete2Line from '@HaloEditor/components/icon/MingcuteDelete2Line.vue';
+import ToolboxItem from '@HaloEditor/components/toolbox/ToolboxItem.vue';
+import { i18n } from '@HaloEditor/locales';
 import {
   Editor,
   findChildren,
@@ -27,19 +20,28 @@ import {
   PluginKey,
   TextSelection,
   VueNodeViewRenderer,
-  type EditorState,
-  type Range,
-} from "@HaloEditor/tiptap";
-import type { ExtensionOptions, NodeBubbleMenuType } from "@HaloEditor/types";
-import { deleteNode } from "@HaloEditor/utils";
-import { ExtensionFigure } from "../figure";
-import { ExtensionFigureCaption } from "../figure/figure-caption";
-import { ExtensionParagraph } from "../paragraph";
-import BubbleItemVideoLink from "./BubbleItemVideoLink.vue";
-import BubbleItemVideoPosition from "./BubbleItemVideoPosition.vue";
-import BubbleItemVideoSize from "./BubbleItemVideoSize.vue";
-import VideoView from "./VideoView.vue";
-declare module "@HaloEditor/tiptap" {
+} from '@HaloEditor/tiptap';
+import { deleteNode } from '@HaloEditor/utils';
+import { isEmpty } from 'es-toolkit/compat';
+import LucideCaptions from '~icons/lucide/captions';
+import MdiCogPlay from '~icons/mdi/cog-play';
+import MdiCogPlayOutline from '~icons/mdi/cog-play-outline';
+import MdiMotionPlay from '~icons/mdi/motion-play';
+import MdiMotionPlayOutline from '~icons/mdi/motion-play-outline';
+import MdiPlayCircle from '~icons/mdi/play-circle';
+import MdiPlayCircleOutline from '~icons/mdi/play-circle-outline';
+import MingcuteLinkLine from '~icons/mingcute/link-line';
+import MingcuteShare3Line from '~icons/mingcute/share-3-line';
+import MingcuteVideoLine from '~icons/mingcute/video-line';
+
+import { ExtensionFigure } from '../figure';
+import { ExtensionFigureCaption } from '../figure/figure-caption';
+import { ExtensionParagraph } from '../paragraph';
+import BubbleItemVideoLink from './BubbleItemVideoLink.vue';
+import BubbleItemVideoPosition from './BubbleItemVideoPosition.vue';
+import BubbleItemVideoSize from './BubbleItemVideoSize.vue';
+import VideoView from './VideoView.vue';
+declare module '@HaloEditor/tiptap' {
   interface Commands<ReturnType> {
     video: {
       setVideo: (options: { src: string }) => ReturnType;
@@ -47,22 +49,22 @@ declare module "@HaloEditor/tiptap" {
   }
 }
 
-export const VIDEO_BUBBLE_MENU_KEY = new PluginKey("videoBubbleMenu");
+export const VIDEO_BUBBLE_MENU_KEY = new PluginKey('videoBubbleMenu');
 
 export type ExtensionVideoOptions = ExtensionOptions & {
   uploadVideo?: (
     file: File,
-    options?: UploadRequestConfig
+    options?: UploadRequestConfig,
   ) => Promise<Attachment>;
 };
 
 export const ExtensionVideo = Node.create<ExtensionVideoOptions>({
-  name: "video",
+  name: 'video',
   fakeSelection: true,
 
   inline: false,
 
-  group: "block",
+  group: 'block',
 
   addAttributes() {
     return {
@@ -70,13 +72,13 @@ export const ExtensionVideo = Node.create<ExtensionVideoOptions>({
       src: {
         default: null,
         parseHTML: (element) => {
-          return element.getAttribute("src");
+          return element.getAttribute('src');
         },
       },
       width: {
-        default: "100%",
+        default: '100%',
         parseHTML: (element) => {
-          return element.getAttribute("width") || element.style.width || null;
+          return element.getAttribute('width') || element.style.width || null;
         },
         renderHTML(attributes) {
           return {
@@ -85,9 +87,9 @@ export const ExtensionVideo = Node.create<ExtensionVideoOptions>({
         },
       },
       height: {
-        default: "auto",
+        default: 'auto',
         parseHTML: (element) => {
-          return element.getAttribute("height") || element.style.height || null;
+          return element.getAttribute('height') || element.style.height || null;
         },
         renderHTML: (attributes) => {
           return {
@@ -98,7 +100,7 @@ export const ExtensionVideo = Node.create<ExtensionVideoOptions>({
       autoplay: {
         default: null,
         parseHTML: (element) => {
-          return element.getAttribute("autoplay");
+          return element.getAttribute('autoplay');
         },
         renderHTML: (attributes) => {
           return {
@@ -109,7 +111,7 @@ export const ExtensionVideo = Node.create<ExtensionVideoOptions>({
       controls: {
         default: true,
         parseHTML: (element) => {
-          return element.getAttribute("controls");
+          return element.getAttribute('controls');
         },
         renderHTML: (attributes) => {
           return {
@@ -120,7 +122,7 @@ export const ExtensionVideo = Node.create<ExtensionVideoOptions>({
       loop: {
         default: null,
         parseHTML: (element) => {
-          return element.getAttribute("loop");
+          return element.getAttribute('loop');
         },
         renderHTML: (attributes) => {
           return {
@@ -143,13 +145,13 @@ export const ExtensionVideo = Node.create<ExtensionVideoOptions>({
   parseHTML() {
     return [
       {
-        tag: "video",
+        tag: 'video',
       },
     ];
   },
 
   renderHTML({ HTMLAttributes }) {
-    return ["video", mergeAttributes(HTMLAttributes)];
+    return ['video', mergeAttributes(HTMLAttributes)];
   },
 
   addCommands() {
@@ -181,7 +183,7 @@ export const ExtensionVideo = Node.create<ExtensionVideoOptions>({
   addProseMirrorPlugins() {
     return [
       new Plugin({
-        key: new PluginKey("videoLegacyFormat"),
+        key: new PluginKey('videoLegacyFormat'),
         appendTransaction: (transactions, _oldState, newState) => {
           const docChanged = transactions.some((tr) => tr.docChanged);
           if (!docChanged) {
@@ -201,7 +203,7 @@ export const ExtensionVideo = Node.create<ExtensionVideoOptions>({
               return;
             }
 
-            let blockPosition = "start";
+            let blockPosition = 'start';
             let deletePreviousNode = false;
             let previousNodePos = -1;
             let previousNodeSize = 0;
@@ -213,14 +215,14 @@ export const ExtensionVideo = Node.create<ExtensionVideoOptions>({
             ) {
               if (previousNode.attrs.textAlign) {
                 const textAlignToBlockPositionMap: Record<string, string> = {
-                  left: "start",
-                  center: "center",
-                  right: "end",
-                  justify: "center",
+                  left: 'start',
+                  center: 'center',
+                  right: 'end',
+                  justify: 'center',
                 };
                 blockPosition =
                   textAlignToBlockPositionMap[previousNode.attrs.textAlign] ??
-                  "start";
+                  'start';
               }
               if (previousNode.textContent?.trim().length === 0) {
                 deletePreviousNode = true;
@@ -231,10 +233,10 @@ export const ExtensionVideo = Node.create<ExtensionVideoOptions>({
 
             const figureNode = newState.schema.nodes.figure.create(
               {
-                contentType: "video",
+                contentType: 'video',
                 alignItems: blockPosition,
               },
-              [node]
+              [node],
             );
 
             if (deletePreviousNode) {
@@ -242,7 +244,7 @@ export const ExtensionVideo = Node.create<ExtensionVideoOptions>({
               tr.replaceRangeWith(
                 pos - previousNodeSize,
                 pos - previousNodeSize + node.nodeSize,
-                figureNode
+                figureNode,
               );
             } else {
               tr.replaceRangeWith(pos, pos + node.nodeSize, figureNode);
@@ -265,8 +267,8 @@ export const ExtensionVideo = Node.create<ExtensionVideoOptions>({
         return {
           priority: 100,
           icon: markRaw(MingcuteVideoLine),
-          title: "editor.extensions.commands_menu.video",
-          keywords: ["video", "shipin"],
+          title: 'editor.extensions.commands_menu.video',
+          keywords: ['video', 'shipin'],
           command: ({ editor, range }: { editor: Editor; range: Range }) => {
             editor
               .chain()
@@ -274,11 +276,11 @@ export const ExtensionVideo = Node.create<ExtensionVideoOptions>({
               .deleteRange(range)
               .insertContent([
                 {
-                  type: "figure",
-                  attrs: { contentType: "video" },
-                  content: [{ type: "video", attrs: { src: "" } }],
+                  type: 'figure',
+                  attrs: { contentType: 'video' },
+                  content: [{ type: 'video', attrs: { src: '' } }],
                 },
-                { type: "paragraph", content: "" },
+                { type: 'paragraph', content: '' },
               ])
               .run();
           },
@@ -292,16 +294,16 @@ export const ExtensionVideo = Node.create<ExtensionVideoOptions>({
             props: {
               editor,
               icon: markRaw(MingcuteVideoLine),
-              title: i18n.global.t("editor.extensions.commands_menu.video"),
+              title: i18n.global.t('editor.extensions.commands_menu.video'),
               action: () => {
                 editor
                   .chain()
                   .focus()
                   .insertContent([
                     {
-                      type: "figure",
-                      attrs: { contentType: "video" },
-                      content: [{ type: "video", attrs: { src: "" } }],
+                      type: 'figure',
+                      attrs: { contentType: 'video' },
+                      content: [{ type: 'video', attrs: { src: '' } }],
                     },
                   ])
                   .run();
@@ -317,7 +319,7 @@ export const ExtensionVideo = Node.create<ExtensionVideoOptions>({
             return isActive(state, ExtensionVideo.name);
           },
           options: {
-            placement: "top-start",
+            placement: 'top-start',
           },
           items: [
             {
@@ -328,11 +330,11 @@ export const ExtensionVideo = Node.create<ExtensionVideoOptions>({
                 icon: markRaw(
                   editor.getAttributes(ExtensionVideo.name).controls
                     ? MdiCogPlay
-                    : MdiCogPlayOutline
+                    : MdiCogPlayOutline,
                 ),
                 visible({ editor }) {
                   return !isEmpty(
-                    editor.getAttributes(ExtensionVideo.name).src
+                    editor.getAttributes(ExtensionVideo.name).src,
                   );
                 },
                 action: () => {
@@ -349,8 +351,8 @@ export const ExtensionVideo = Node.create<ExtensionVideoOptions>({
                     .run();
                 },
                 title: editor.getAttributes(ExtensionVideo.name).controls
-                  ? i18n.global.t("editor.extensions.video.disable_controls")
-                  : i18n.global.t("editor.extensions.video.enable_controls"),
+                  ? i18n.global.t('editor.extensions.video.disable_controls')
+                  : i18n.global.t('editor.extensions.video.enable_controls'),
               },
             },
             {
@@ -361,13 +363,13 @@ export const ExtensionVideo = Node.create<ExtensionVideoOptions>({
                 },
                 visible({ editor }) {
                   return !isEmpty(
-                    editor.getAttributes(ExtensionVideo.name).src
+                    editor.getAttributes(ExtensionVideo.name).src,
                   );
                 },
                 icon: markRaw(
                   editor.getAttributes(ExtensionVideo.name).autoplay
                     ? MdiPlayCircle
-                    : MdiPlayCircleOutline
+                    : MdiPlayCircleOutline,
                 ),
                 action: () => {
                   return editor
@@ -383,8 +385,8 @@ export const ExtensionVideo = Node.create<ExtensionVideoOptions>({
                     .run();
                 },
                 title: editor.getAttributes(ExtensionVideo.name).autoplay
-                  ? i18n.global.t("editor.extensions.video.disable_autoplay")
-                  : i18n.global.t("editor.extensions.video.enable_autoplay"),
+                  ? i18n.global.t('editor.extensions.video.disable_autoplay')
+                  : i18n.global.t('editor.extensions.video.enable_autoplay'),
               },
             },
             {
@@ -395,13 +397,13 @@ export const ExtensionVideo = Node.create<ExtensionVideoOptions>({
                 },
                 visible({ editor }) {
                   return !isEmpty(
-                    editor.getAttributes(ExtensionVideo.name).src
+                    editor.getAttributes(ExtensionVideo.name).src,
                   );
                 },
                 icon: markRaw(
                   editor.getAttributes(ExtensionVideo.name).loop
                     ? MdiMotionPlay
-                    : MdiMotionPlayOutline
+                    : MdiMotionPlayOutline,
                 ),
                 action: () => {
                   editor
@@ -416,8 +418,8 @@ export const ExtensionVideo = Node.create<ExtensionVideoOptions>({
                     .run();
                 },
                 title: editor.getAttributes(ExtensionVideo.name).loop
-                  ? i18n.global.t("editor.extensions.video.disable_loop")
-                  : i18n.global.t("editor.extensions.video.enable_loop"),
+                  ? i18n.global.t('editor.extensions.video.disable_loop')
+                  : i18n.global.t('editor.extensions.video.enable_loop'),
               },
             },
             {
@@ -426,7 +428,7 @@ export const ExtensionVideo = Node.create<ExtensionVideoOptions>({
               props: {
                 visible({ editor }) {
                   return !isEmpty(
-                    editor.getAttributes(ExtensionVideo.name).src
+                    editor.getAttributes(ExtensionVideo.name).src,
                   );
                 },
               },
@@ -437,7 +439,7 @@ export const ExtensionVideo = Node.create<ExtensionVideoOptions>({
               props: {
                 visible({ editor }) {
                   return !isEmpty(
-                    editor.getAttributes(ExtensionVideo.name).src
+                    editor.getAttributes(ExtensionVideo.name).src,
                   );
                 },
               },
@@ -448,7 +450,7 @@ export const ExtensionVideo = Node.create<ExtensionVideoOptions>({
               props: {
                 visible({ editor }) {
                   return !isEmpty(
-                    editor.getAttributes(ExtensionVideo.name).src
+                    editor.getAttributes(ExtensionVideo.name).src,
                   );
                 },
               },
@@ -459,7 +461,7 @@ export const ExtensionVideo = Node.create<ExtensionVideoOptions>({
               props: {
                 visible({ editor }) {
                   return !isEmpty(
-                    editor.getAttributes(ExtensionVideo.name).src
+                    editor.getAttributes(ExtensionVideo.name).src,
                   );
                 },
               },
@@ -468,7 +470,7 @@ export const ExtensionVideo = Node.create<ExtensionVideoOptions>({
               priority: 80,
               props: {
                 icon: markRaw(MingcuteLinkLine),
-                title: i18n.global.t("editor.common.button.edit_link"),
+                title: i18n.global.t('editor.common.button.edit_link'),
                 action: () => {
                   return markRaw(BubbleItemVideoLink);
                 },
@@ -479,15 +481,15 @@ export const ExtensionVideo = Node.create<ExtensionVideoOptions>({
               props: {
                 visible({ editor }) {
                   return !isEmpty(
-                    editor.getAttributes(ExtensionVideo.name).src
+                    editor.getAttributes(ExtensionVideo.name).src,
                   );
                 },
                 icon: markRaw(MingcuteShare3Line),
-                title: i18n.global.t("editor.common.tooltip.open_link"),
+                title: i18n.global.t('editor.common.tooltip.open_link'),
                 action: () => {
                   window.open(
                     editor.getAttributes(ExtensionVideo.name).src,
-                    "_blank"
+                    '_blank',
                   );
                 },
               },
@@ -497,14 +499,14 @@ export const ExtensionVideo = Node.create<ExtensionVideoOptions>({
               props: {
                 visible({ editor }) {
                   return !isEmpty(
-                    editor.getAttributes(ExtensionVideo.name).src
+                    editor.getAttributes(ExtensionVideo.name).src,
                   );
                 },
                 icon: markRaw(LucideCaptions),
-                title: i18n.global.t("editor.extensions.video.edit_caption"),
+                title: i18n.global.t('editor.extensions.video.edit_caption'),
                 action: ({ editor }) => {
                   const figureParent = findParentNode(
-                    (node) => node.type.name === ExtensionFigure.name
+                    (node) => node.type.name === ExtensionFigure.name,
                   )(editor.state.selection);
 
                   if (!figureParent) {
@@ -526,7 +528,7 @@ export const ExtensionVideo = Node.create<ExtensionVideoOptions>({
                   }
                   const imageNodePos = findChildren(
                     editor.state.selection.$from.node(),
-                    (node) => node.type.name === ExtensionVideo.name
+                    (node) => node.type.name === ExtensionVideo.name,
                   )[0];
                   const figureCaptionNode =
                     editor.schema.nodes.figureCaption.create({
@@ -539,7 +541,7 @@ export const ExtensionVideo = Node.create<ExtensionVideoOptions>({
                       const insertPos = pos + node.nodeSize - 1;
                       tr.insert(insertPos, figureCaptionNode);
                       tr.setSelection(
-                        TextSelection.near(tr.doc.resolve(insertPos + 1))
+                        TextSelection.near(tr.doc.resolve(insertPos + 1)),
                       );
                       return true;
                     })
@@ -555,15 +557,15 @@ export const ExtensionVideo = Node.create<ExtensionVideoOptions>({
               priority: 120,
               props: {
                 icon: markRaw(MingcuteDelete2Line),
-                title: i18n.global.t("editor.common.button.delete"),
+                title: i18n.global.t('editor.common.button.delete'),
                 action: ({ editor }) => {
                   const figureParent = findParentNode(
-                    (node) => node.type.name === "figure"
+                    (node) => node.type.name === 'figure',
                   )(editor.state.selection);
 
                   deleteNode(
-                    figureParent ? "figure" : ExtensionVideo.name,
-                    editor
+                    figureParent ? 'figure' : ExtensionVideo.name,
+                    editor,
                   );
                 },
               },
@@ -588,18 +590,18 @@ export const getVideoElement = (editor: Editor): HTMLVideoElement | null => {
   }
 
   if (domNode instanceof HTMLElement) {
-    let video = domNode.querySelector("video");
+    let video = domNode.querySelector('video');
     if (video) {
       return video;
     }
 
-    if (domNode.tagName === "VIDEO") {
+    if (domNode.tagName === 'VIDEO') {
       return domNode as HTMLVideoElement;
     }
 
     const parent = domNode.parentElement;
     if (parent) {
-      video = parent.querySelector("video");
+      video = parent.querySelector('video');
       if (video) {
         return video;
       }
@@ -612,8 +614,8 @@ export const getVideoElement = (editor: Editor): HTMLVideoElement | null => {
 export const getVideoSizePercentage = (
   editor: Editor,
   percentage: number,
-  videoElement?: HTMLVideoElement | null
-): { width: number; height: number } | undefined => {
+  videoElement?: HTMLVideoElement | null,
+): undefined | { height: number; width: number } => {
   const element = videoElement || getVideoElement(editor);
   if (!element || element.readyState < 1) {
     return undefined;
@@ -628,7 +630,7 @@ export const getVideoSizePercentage = (
 
 export const handleSetSize = (
   editor: Editor,
-  size: { width?: string; height?: string }
+  size: { height?: string; width?: string },
 ) => {
   editor
     .chain()

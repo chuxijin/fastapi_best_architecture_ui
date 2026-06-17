@@ -91,7 +91,7 @@ const queryFormOptions: VbenFormProps = {
   showCollapseButton: true, // 显示折叠按钮
   wrapperClass: 'grid-cols-1 md:grid-cols-4',
   submitButtonOptions: {
-    content: $t('common.search'),
+    content: $t('common.form.query'),
   },
   schema: createResourceQuerySchema(), // 使用默认的空选项
 };
@@ -323,7 +323,6 @@ const [EditModal, editModalApi] = useVbenModal({
         Object.assign(formData.value, getDefaultFormData());
         // 确保新增态没有残留的 id，便于显示智能识别区域
 
-        // @ts-ignore
         delete (formData.value as any).id;
       }
     }
@@ -425,7 +424,6 @@ function onCreate() {
   });
   // 确保新增态没有残留的 id，便于显示智能识别区域
 
-  // @ts-ignore
   delete (formData.value as any).id;
   editModalApi.setData(null);
   editModalApi.open();

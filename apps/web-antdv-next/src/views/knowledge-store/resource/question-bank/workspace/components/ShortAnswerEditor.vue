@@ -125,6 +125,3 @@ function setDefault(index: number) {
     </Button>
   </div>
 </template>
-
-
-

@@ -1,14 +1,16 @@
-import type { BlockquoteOptions } from "@tiptap/extension-blockquote";
-import TiptapBlockquote from "@tiptap/extension-blockquote";
-import { markRaw } from "vue";
-import MingcuteBlockquoteLine from "~icons/mingcute/blockquote-line";
-import ToolbarItem from "@HaloEditor/components/toolbar/ToolbarItem.vue";
-import { i18n } from "@HaloEditor/locales";
-import type { Editor } from "@HaloEditor/tiptap";
-import type { ExtensionOptions } from "@HaloEditor/types";
+import type { Editor } from '@HaloEditor/tiptap';
+import type { ExtensionOptions } from '@HaloEditor/types';
+import type { BlockquoteOptions } from '@tiptap/extension-blockquote';
 
-export type ExtensionBlockquoteOptions = Partial<BlockquoteOptions> &
-  ExtensionOptions;
+import { markRaw } from 'vue';
+
+import ToolbarItem from '@HaloEditor/components/toolbar/ToolbarItem.vue';
+import { i18n } from '@HaloEditor/locales';
+import TiptapBlockquote from '@tiptap/extension-blockquote';
+import MingcuteBlockquoteLine from '~icons/mingcute/blockquote-line';
+
+export type ExtensionBlockquoteOptions = ExtensionOptions &
+  Partial<BlockquoteOptions>;
 
 export const ExtensionBlockquote =
   TiptapBlockquote.extend<ExtensionBlockquoteOptions>({
@@ -23,7 +25,7 @@ export const ExtensionBlockquote =
               editor,
               isActive: editor.isActive(TiptapBlockquote.name),
               icon: markRaw(MingcuteBlockquoteLine),
-              title: i18n.global.t("editor.common.quote"),
+              title: i18n.global.t('editor.common.quote'),
               action: () => {
                 editor.commands.toggleBlockquote();
               },

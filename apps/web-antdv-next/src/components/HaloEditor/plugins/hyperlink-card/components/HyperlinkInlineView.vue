@@ -1,6 +1,7 @@
 <script lang="ts" setup>
-import { NodeViewWrapper, nodeViewProps } from "../../..";
-import { ref, watch, onMounted, computed } from "vue";
+import { computed, onMounted, ref, watch } from 'vue';
+
+import { nodeViewProps, NodeViewWrapper } from '../../..';
 
 const props = defineProps(nodeViewProps);
 
@@ -13,18 +14,31 @@ interface SiteData {
 }
 
 const loading = ref(false);
-const siteData = ref<SiteData | null>(null);
+const siteData = ref<null | SiteData>(null);
 
-const customTitle = computed(() => props.node.attrs?.["custom-title"]);
-const customImage = computed(() => props.node.attrs?.["custom-image"]);
+const customTitle = computed(() => props.node.attrs?.['custom-title']);
+const customImage = computed(() => props.node.attrs?.['custom-image']);
 
-const displayTitle = computed(() => customTitle.value || siteData.value?.title || props.node.attrs.href);
-const displayIcon = computed(() => customImage.value || siteData.value?.icon || siteData.value?.image || "");
-const relAttr = computed(() => props.node.attrs.target === "_blank" ? "noopener" : undefined);
+const displayTitle = computed(
+  () => customTitle.value || siteData.value?.title || props.node.attrs.href,
+);
+const displayIcon = computed(
+  () =>
+    customImage.value || siteData.value?.icon || siteData.value?.image || '',
+);
+const relAttr = computed(() =>
+  props.node.attrs.target === '_blank' ? 'noopener' : undefined,
+);
 const normalizedHref = computed(() => {
-  const href = props.node.attrs.href || "";
-  if (!href) return "";
-  if (/^https?:\/\//.test(href) || href.startsWith("/") || href.startsWith("#") || href.startsWith("mailto:")) return href;
+  const href = props.node.attrs.href || '';
+  if (!href) return '';
+  if (
+    /^https?:\/\//.test(href) ||
+    href.startsWith('/') ||
+    href.startsWith('#') ||
+    href.startsWith('mailto:')
+  )
+    return href;
   return `https://${href}`;
 });
 const isExternal = computed(() => {
@@ -40,7 +54,7 @@ async function fetchSiteData(url: string) {
   if (customTitle.value && customImage.value) {
     siteData.value = {
       title: customTitle.value,
-      description: "",
+      description: '',
       image: customImage.value,
       icon: customImage.value,
       url,
@@ -49,12 +63,14 @@ async function fetchSiteData(url: string) {
   }
   loading.value = true;
   try {
-    const res = await fetch(`${import.meta.env.VITE_GLOB_API_URL}/api/v1/content/link-detail?url=${encodeURIComponent(url)}`);
+    const res = await fetch(
+      `${import.meta.env.VITE_GLOB_API_URL}/api/v1/content/link-detail?url=${encodeURIComponent(url)}`,
+    );
     if (res.ok) {
       siteData.value = await res.json();
     }
-  } catch (e) {
-    console.error("fetchSiteData error:", e);
+  } catch (error) {
+    console.error('fetchSiteData error:', error);
   } finally {
     loading.value = false;
   }
@@ -72,12 +88,16 @@ watch(
     if (value) {
       fetchSiteData(value);
     }
-  }
+  },
 );
 </script>
 
 <template>
-  <node-view-wrapper as="span" class="hlic-host" :class="{ 'hlic-selected': selected }">
+  <NodeViewWrapper
+    as="span"
+    class="hlic-host"
+    :class="{ 'hlic-selected': selected }"
+  >
     <!-- Loading -->
     <span v-if="loading" class="hlic-wrapper hlic-loading">
       <span class="hlic-skeleton-icon"></span>
@@ -110,8 +130,9 @@ watch(
       :href="normalizedHref"
       :target="node.attrs.target || '_self'"
       :rel="relAttr"
-    >{{ node.attrs.href }}</a>
-  </node-view-wrapper>
+      >{{ node.attrs.href }}</a
+    >
+  </NodeViewWrapper>
 </template>
 
 <style scoped>
@@ -123,8 +144,8 @@ watch(
 }
 
 .hlic-selected {
-  box-shadow: 0 0 0 1px var(--halo-hyperlink-card-border-hover-color, #a1a1aa);
   border-radius: 0.25rem;
+  box-shadow: 0 0 0 1px var(--halo-hyperlink-card-border-hover-color, #a1a1aa);
 }
 
 /* 基础重置 */
@@ -147,15 +168,15 @@ watch(
 
 /* 共用行内容器 */
 .hlic-wrapper {
-  margin-left: 0.25rem;
-  margin-right: 0.25rem;
   display: inline-flex;
   align-items: center;
-  border-radius: 0.25rem;
-  background-color: var(--halo-hyperlink-card-inline-bg-color, #fafafa);
   padding: 0.125rem 0.375rem;
+  margin-right: 0.25rem;
+  margin-left: 0.25rem;
   font-size: 90%;
   color: var(--halo-hyperlink-card-inline-title-color, #27272a);
+  background-color: var(--halo-hyperlink-card-inline-bg-color, #fafafa);
+  border-radius: 0.25rem;
   transition: all 150ms cubic-bezier(0.4, 0, 0.2, 1);
 }
 
@@ -177,15 +198,14 @@ watch(
 /* 外链图标 */
 .hlic-external-icon {
   --un-icon: url("data:image/svg+xml;utf8,%3Csvg viewBox='0 0 24 24' width='1em' height='1em' xmlns='http://www.w3.org/2000/svg' %3E%3Cpath fill='none' stroke='currentColor' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M12 6H6a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-6m-7 1l9-9m-5 0h5v5'/%3E%3C/svg%3E");
-  -webkit-mask: var(--un-icon) no-repeat;
-  mask: var(--un-icon) no-repeat;
-  -webkit-mask-size: 100% 100%;
-  mask-size: 100% 100%;
-  background-color: currentColor;
-  color: inherit;
+
   width: 1em;
   height: 1em;
+  color: inherit;
   color: var(--halo-hyperlink-card-inline-title-color, #27272a);
+  background-color: currentcolor;
+  mask: var(--un-icon) no-repeat;
+  mask-size: 100% 100%;
 }
 
 /* Fallback */
@@ -202,21 +222,27 @@ watch(
 .hlic-skeleton-icon {
   width: 1rem;
   height: 1rem;
-  animation: hlic-pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
-  border-radius: 0.125rem;
   background-color: var(--halo-hyperlink-card-skeleton-color, #e4e4e7);
+  border-radius: 0.125rem;
+  animation: hlic-pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
 }
 
 .hlic-skeleton-text {
-  height: 0.75rem;
   width: 4rem;
-  animation: hlic-pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
-  border-radius: 0.25rem;
+  height: 0.75rem;
   background-color: var(--halo-hyperlink-card-skeleton-color, #e4e4e7);
+  border-radius: 0.25rem;
+  animation: hlic-pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
 }
 
 @keyframes hlic-pulse {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.5; }
+  0%,
+  100% {
+    opacity: 1;
+  }
+
+  50% {
+    opacity: 0.5;
+  }
 }
 </style>

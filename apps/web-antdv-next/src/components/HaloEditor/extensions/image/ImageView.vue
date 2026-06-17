@@ -1,20 +1,24 @@
 <script lang="ts" setup>
-import { IconImageAddLine, VButton } from "#/stubs/halo-components";
-import { utils, type AttachmentSimple } from "@halo-dev/ui-shared";
-import { computed, onMounted, onUnmounted, ref, watch } from "vue";
-import { EditorLinkObtain } from "@HaloEditor/components";
-import { ResourceReplaceButton } from "@HaloEditor/components/upload";
-import { useExternalAssetsTransfer } from "@HaloEditor/composables/use-attachment";
-import { useEditorConfig } from "@HaloEditor/config/use-editor-config";
-import { i18n } from "@HaloEditor/locales";
+import type { AttachmentSimple } from '@halo-dev/ui-shared';
+import type { NodeViewProps } from '@HaloEditor/tiptap';
+
+import { computed, onMounted, onUnmounted, ref, watch } from 'vue';
+
+import { EditorLinkObtain } from '@HaloEditor/components';
+import { ResourceReplaceButton } from '@HaloEditor/components/upload';
+import { useExternalAssetsTransfer } from '@HaloEditor/composables/use-attachment';
+import { useEditorConfig } from '@HaloEditor/config/use-editor-config';
+import { i18n } from '@HaloEditor/locales';
 import {
   findParentNodeClosestToPos,
   NodeViewWrapper,
-  type NodeViewProps,
-} from "@HaloEditor/tiptap";
-import { fileToBase64 } from "@HaloEditor/utils/upload";
-import { ExtensionFigure } from "../figure";
-import { ExtensionImage } from "./index";
+} from '@HaloEditor/tiptap';
+import { fileToBase64 } from '@HaloEditor/utils/upload';
+
+import { IconImageAddLine, VButton } from '#/stubs/halo-components';
+
+import { ExtensionFigure } from '../figure';
+import { ExtensionImage } from './index';
 
 const props = defineProps<NodeViewProps>();
 
@@ -26,7 +30,7 @@ const src = computed({
   },
   set: (src: string) => {
     props.updateAttributes({
-      src: src,
+      src,
     });
   },
 });
@@ -36,7 +40,7 @@ const alt = computed({
     return props.node?.attrs.alt;
   },
   set: (alt: string) => {
-    props.updateAttributes({ alt: alt });
+    props.updateAttributes({ alt });
   },
 });
 
@@ -45,7 +49,7 @@ const href = computed({
     return props.node?.attrs.href;
   },
   set: (href: string) => {
-    props.updateAttributes({ href: href });
+    props.updateAttributes({ href });
   },
 });
 
@@ -53,19 +57,19 @@ const href = computed({
 const alignItems = computed(() => {
   const pos = props.getPos();
   if (!pos) {
-    return "start";
+    return 'start';
   }
   const $pos = props.editor.state.doc.resolve(pos);
   const figureParent = findParentNodeClosestToPos(
     $pos,
-    (node) => node.type.name === ExtensionFigure.name
+    (node) => node.type.name === ExtensionFigure.name,
   );
 
   if (figureParent) {
     return figureParent.node.attrs.alignItems;
   }
 
-  return "start";
+  return 'start';
 });
 
 const fileBase64 = ref<string>();
@@ -159,8 +163,8 @@ function setupResizeListener() {
   }
 
   const handleElement = resizeHandleRef.value;
-  let startX: number, startWidth: number;
-  let rafId: number | null = null;
+  let startWidth: number, startX: number;
+  let rafId: null | number = null;
 
   function handleMouseDown(e: MouseEvent) {
     if (e.button !== 0) {
@@ -171,15 +175,15 @@ function setupResizeListener() {
     e.stopPropagation();
     startX = e.clientX;
     startWidth = resizeRef.value?.clientWidth || 1;
-    document.documentElement.addEventListener("mousemove", doDrag, false);
-    document.documentElement.addEventListener("mouseup", stopDrag, false);
+    document.documentElement.addEventListener('mousemove', doDrag, false);
+    document.documentElement.addEventListener('mouseup', stopDrag, false);
     document.documentElement.addEventListener(
-      "contextmenu",
+      'contextmenu',
       handleContextMenu,
-      false
+      false,
     );
-    document.documentElement.addEventListener("mouseleave", stopDrag, false);
-    window.addEventListener("blur", stopDrag, false);
+    document.documentElement.addEventListener('mouseleave', stopDrag, false);
+    window.addEventListener('blur', stopDrag, false);
   }
 
   function doDrag(e: MouseEvent) {
@@ -200,11 +204,11 @@ function setupResizeListener() {
         1,
         Math.min(
           startWidth + e.clientX - startX,
-          props.editor.view.dom?.clientWidth || 0
-        )
+          props.editor.view.dom?.clientWidth || 0,
+        ),
       );
 
-      const width = newWidth.toFixed(0) + "px";
+      const width = `${newWidth.toFixed(0)}px`;
       props.editor
         .chain()
         .updateAttributes(ExtensionImage.name, { width })
@@ -225,30 +229,30 @@ function setupResizeListener() {
       cancelAnimationFrame(rafId);
       rafId = null;
     }
-    document.documentElement.removeEventListener("mousemove", doDrag, false);
-    document.documentElement.removeEventListener("mouseup", stopDrag, false);
+    document.documentElement.removeEventListener('mousemove', doDrag, false);
+    document.documentElement.removeEventListener('mouseup', stopDrag, false);
     document.documentElement.removeEventListener(
-      "contextmenu",
+      'contextmenu',
       handleContextMenu,
-      false
+      false,
     );
-    document.documentElement.removeEventListener("mouseleave", stopDrag, false);
-    window.removeEventListener("blur", stopDrag, false);
+    document.documentElement.removeEventListener('mouseleave', stopDrag, false);
+    window.removeEventListener('blur', stopDrag, false);
   }
 
-  handleElement.addEventListener("mousedown", handleMouseDown);
+  handleElement.addEventListener('mousedown', handleMouseDown);
 
   cleanupResize = () => {
-    handleElement.removeEventListener("mousedown", handleMouseDown);
-    document.documentElement.removeEventListener("mousemove", doDrag, false);
-    document.documentElement.removeEventListener("mouseup", stopDrag, false);
+    handleElement.removeEventListener('mousedown', handleMouseDown);
+    document.documentElement.removeEventListener('mousemove', doDrag, false);
+    document.documentElement.removeEventListener('mouseup', stopDrag, false);
     document.documentElement.removeEventListener(
-      "contextmenu",
+      'contextmenu',
       handleContextMenu,
-      false
+      false,
     );
-    document.documentElement.removeEventListener("mouseleave", stopDrag, false);
-    window.removeEventListener("blur", stopDrag, false);
+    document.documentElement.removeEventListener('mouseleave', stopDrag, false);
+    window.removeEventListener('blur', stopDrag, false);
     if (rafId !== null) {
       cancelAnimationFrame(rafId);
     }
@@ -280,7 +284,7 @@ const { isExternalAsset, transferring, handleTransfer } =
   useExternalAssetsTransfer(src, handleSetExternalLink);
 
 const isPercentageWidth = computed(() => {
-  return props.node?.attrs.width?.includes("%");
+  return props.node?.attrs.width?.includes('%');
 });
 </script>
 
@@ -333,7 +337,7 @@ const isPercentageWidth = computed(() => {
             v-if="editorConfig.upload && isExternalAsset"
             v-tooltip="
               i18n.global.t(
-                'editor.extensions.upload.operations.transfer.tooltip'
+                'editor.extensions.upload.operations.transfer.tooltip',
               )
             "
             :loading="transferring"
@@ -343,7 +347,7 @@ const isPercentageWidth = computed(() => {
           >
             {{
               i18n.global.t(
-                "editor.extensions.upload.operations.transfer.button"
+                'editor.extensions.upload.operations.transfer.button',
               )
             }}
           </VButton>
@@ -369,7 +373,7 @@ const isPercentageWidth = computed(() => {
                   <div
                     class="absolute left-[50%] top-0 -translate-x-[50%] text-xs leading-4 text-white"
                   >
-                    {{ i18n.global.t("editor.extensions.upload.error") }}
+                    {{ i18n.global.t('editor.extensions.upload.error') }}
                   </div>
                 </div>
               </div>
@@ -377,7 +381,7 @@ const isPercentageWidth = computed(() => {
                 class="inline-block cursor-pointer text-sm hover:opacity-70"
                 @click="handleUploadRetry"
               >
-                {{ i18n.global.t("editor.extensions.upload.click_retry") }}
+                {{ i18n.global.t('editor.extensions.upload.click_retry') }}
               </div>
             </template>
             <template v-else>
@@ -397,7 +401,7 @@ const isPercentageWidth = computed(() => {
                     {{
                       uploadProgress
                         ? `${uploadProgress}%`
-                        : `${i18n.global.t("editor.extensions.upload.loading")}...`
+                        : `${i18n.global.t('editor.extensions.upload.loading')}...`
                     }}
                   </div>
                 </div>
@@ -407,7 +411,7 @@ const isPercentageWidth = computed(() => {
                 class="inline-block cursor-pointer text-sm hover:opacity-70"
                 @click="handleUploadAbort"
               >
-                {{ i18n.global.t("editor.common.button.cancel") }}
+                {{ i18n.global.t('editor.common.button.cancel') }}
               </div>
             </template>
           </div>
@@ -416,7 +420,7 @@ const isPercentageWidth = computed(() => {
       <div v-show="!src && !fileBase64">
         <EditorLinkObtain
           ref="editorLinkObtain"
-          :accept="'image/*'"
+          accept="image/*"
           :editor="editor"
           :upload-to-attachment-file="extension.options.uploadImage"
           :uploaded-file="node?.attrs.file"

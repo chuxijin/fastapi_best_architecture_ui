@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import type { MenuProps } from 'ant-design-vue';
+
 import type { BankResult } from '#/api';
 
 import { computed, h, onBeforeUnmount, ref, watch } from 'vue';
@@ -53,7 +54,7 @@ const sectionLabelMap = {
   daily: '每日一练',
   certificate: '证书模板',
   correction: '错题校正',
-  delete: '删除题库',
+  delete: '删除内容',
 } as const;
 
 type SectionKey = keyof typeof sectionLabelMap;
@@ -66,7 +67,7 @@ const pendingTips: Partial<Record<SectionKey, string>> = {
   daily: '每日一练功能开发中',
   certificate: '证书模板功能开发中',
   correction: '错题校正功能开发中',
-  delete: '删除题库功能开发中',
+  delete: '删除内容功能开发中',
 };
 
 const bankId = computed(() => Number(route.params.id ?? route.query.id));
@@ -174,7 +175,7 @@ const menuItems = computed<MenuProps['items']>(() => [
       },
       {
         key: 'delete',
-        label: '删除题库',
+        label: '删除内容',
         icon: h(MaterialSymbolsDeleteOutline, { class: 'size-4' }),
         danger: true,
       },
@@ -195,7 +196,7 @@ function buildSectionRoute(section: SectionKey) {
 
 function updateRouteTitle(name?: string) {
   const sectionTitle = sectionLabelMap[activeSection.value];
-  const title = name ? `${name} - ${sectionTitle}` : '题库工作台';
+  const title = name ? `${name} - ${sectionTitle}` : '刷题内容工作台';
   route.meta.title = title;
   if (typeof document !== 'undefined') {
     document.title = title;
@@ -213,18 +214,19 @@ function goToSection(section: SectionKey) {
   router.push(buildSectionRoute(section));
 }
 
-function handleMenuClick({ key }: { key: string }) {
-  if (!sectionKeys.has(key)) {
+const handleMenuClick: MenuProps['onClick'] = ({ key }) => {
+  const section = String(key);
+  if (!sectionKeys.has(section)) {
     return;
   }
 
-  goToSection(key as SectionKey);
+  goToSection(section as SectionKey);
 
-  const tip = pendingTips[key as SectionKey];
+  const tip = pendingTips[section as SectionKey];
   if (tip) {
     message.info(tip);
   }
-}
+};
 
 watch(
   () => route.params.tab,
@@ -260,7 +262,7 @@ watch(
   bankId,
   async (value) => {
     if (!value || Number.isNaN(value)) {
-      message.error('题库 ID 无效');
+      message.error('内容 ID 无效');
       router.push('/knowledge-store/resource/question-bank');
       return;
     }
@@ -269,7 +271,7 @@ watch(
     try {
       bankInfo.value = await getBankDetailApi(value);
     } catch {
-      message.error('获取题库信息失败');
+      message.error('获取内容信息失败');
       router.back();
     } finally {
       loading.value = false;
@@ -288,7 +290,7 @@ watch(
 
 onBeforeUnmount(() => {
   const title =
-    typeof originalTitle === 'string' ? originalTitle : '题库工作台';
+    typeof originalTitle === 'string' ? originalTitle : '刷题内容工作台';
   route.meta.title = title;
   if (typeof document !== 'undefined') {
     document.title = title;
@@ -301,10 +303,10 @@ onBeforeUnmount(() => {
     <Card class="workspace-header" :bordered="false">
       <div class="workspace-header__main">
         <div class="min-w-0 flex-1">
-          <div class="workspace-header__eyebrow">题库工作台</div>
+          <div class="workspace-header__eyebrow">刷题内容工作台</div>
           <div class="workspace-header__title-row">
             <h1 class="workspace-header__title">
-              {{ bankInfo?.name || '加载题库中...' }}
+              {{ bankInfo?.name || '加载内容中...' }}
             </h1>
             <Tag
               v-if="bankInfo"
@@ -327,15 +329,16 @@ onBeforeUnmount(() => {
           </div>
           <p class="workspace-header__desc">
             {{
-              bankInfo?.desc || '围绕当前题库完成基础配置、内容建设与后续扩展。'
+              bankInfo?.desc ||
+              '围绕当前刷题内容完成基础配置、内容建设与后续扩展。'
             }}
           </p>
         </div>
         <div class="workspace-header__actions">
           <Button @click="goToSection('question')">题目管理</Button>
-          <Button type="primary" @click="goToSection('import')"
-            >题目导入</Button
-          >
+          <Button type="primary" @click="goToSection('import')">
+            题目导入
+          </Button>
           <Button
             @click="router.push('/knowledge-store/resource/question-bank')"
           >
@@ -351,18 +354,18 @@ onBeforeUnmount(() => {
           <Menu
             mode="inline"
             :items="menuItems"
-            :selectedKeys="[activeSection]"
+            :selected-keys="[activeSection]"
             class="workspace-menu"
             @click="handleMenuClick"
           />
         </Card>
 
         <div class="workspace-panel">
-          <div v-if="loading" class="panel-placeholder">题库信息加载中...</div>
+          <div v-if="loading" class="panel-placeholder">内容信息加载中...</div>
 
           <Empty
             v-else-if="!bankInfo"
-            description="暂未获取到题库信息"
+            description="暂未获取到内容信息"
             class="panel-empty"
           />
 
@@ -387,23 +390,23 @@ onBeforeUnmount(() => {
               <div class="overview-shortcuts">
                 <Button @click="goToSection('basic')">编辑基本信息</Button>
                 <Button @click="goToSection('chapter')">维护章节</Button>
-                <Button type="primary" @click="goToSection('question')"
-                  >管理题目</Button
-                >
+                <Button type="primary" @click="goToSection('question')">
+                  管理题目
+                </Button>
                 <Button @click="goToSection('material')">管理材料</Button>
                 <Button @click="goToSection('import')">导入题目</Button>
               </div>
             </Card>
 
             <Card :bordered="false" class="overview-card">
-              <template #title>题库概况</template>
+              <template #title>内容概况</template>
               <div class="overview-detail-grid">
                 <div>
-                  <label>题库名称</label>
+                  <label>内容名称</label>
                   <p>{{ bankInfo.name }}</p>
                 </div>
                 <div>
-                  <label>题库编码</label>
+                  <label>内容编码</label>
                   <p>{{ bankInfo.code }}</p>
                 </div>
                 <div>

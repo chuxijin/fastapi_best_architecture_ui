@@ -7,8 +7,9 @@ import type {
 } from '#/adapter/vxe-table';
 import type { CreateQuestParams, QuestResult, UpdateQuestParams } from '#/api';
 
-import { computed, ref } from 'vue';
+import { computed, nextTick, ref, watch } from 'vue';
 
+import dayjs from 'dayjs';
 import { Page, useVbenDrawer, VbenButton } from '@vben/common-ui';
 import { MaterialSymbolsAdd } from '@vben/icons';
 import { $t } from '@vben/locales';
@@ -25,19 +26,24 @@ import {
 } from '#/api';
 import HaloEditorWrapper from '#/components/HaloEditor/HaloEditorWrapper.vue';
 
-import { querySchema, schema, useColumns } from './data';
+import { querySchema, rewardFieldMap, schema, useColumns } from './data';
 
 interface FormQuestData extends Partial<CreateQuestParams> {
   id?: number;
-  reward_data_text?: string;
+  reward_amount?: number;
+  reward_days?: number;
+  reward_feature_code?: string;
 }
 
 const formData = ref<FormQuestData>({});
 const detailHtml = ref('');
+const currentRewardType = ref('points');
 
 const formOptions: VbenFormProps = {
-  collapsed: true,
-  showCollapseButton: true,
+  collapsed: false,
+  showCollapseButton: false,
+  wrapperClass: 'grid-cols-3',
+  actionWrapperClass: 'col-start-3',
   submitButtonOptions: { content: $t('common.form.query') },
   schema: querySchema,
 };
@@ -99,13 +105,57 @@ const drawerTitle = computed(() => {
     : $t('ui.actionTitle.create', ['任务']);
 });
 
-function parseRewardData(text?: string): Record<string, any> | undefined {
-  if (!text || !text.trim()) return undefined;
-  try {
-    const parsed = JSON.parse(text);
-    return typeof parsed === 'object' && parsed !== null ? parsed : undefined;
-  } catch {
-    throw new Error('奖励数据 JSON 格式错误');
+watch(
+  () => formData.value.reward_type,
+  (val) => {
+    currentRewardType.value = val || 'points';
+    nextTick(() => toggleRewardFields());
+  },
+);
+
+const currentRewardFields = computed(() => {
+  return rewardFieldMap[currentRewardType.value] || [];
+});
+
+function toggleRewardFields() {
+  const container = document.querySelector('.reward-fields-container');
+  if (!container) return;
+  container.className = `reward-fields-container reward-type-${currentRewardType.value}`;
+}
+
+function buildRewardData(values: FormQuestData): Record<string, any> | undefined {
+  switch (values.reward_type) {
+    case 'points': {
+      const amount = values.reward_amount;
+      if (!amount || amount <= 0) return undefined;
+      return { amount };
+    }
+    case 'vip': {
+      const days = values.reward_days;
+      if (!days || days <= 0) return undefined;
+      return { days };
+    }
+    case 'feature': {
+      const code = values.reward_feature_code?.trim();
+      if (!code) return undefined;
+      return { feature_code: code };
+    }
+    default:
+      return undefined;
+  }
+}
+
+function decomposeRewardData(rewardType: string, rewardData?: Record<string, any>) {
+  if (!rewardData) return {};
+  switch (rewardType) {
+    case 'points':
+      return { reward_amount: rewardData.amount };
+    case 'vip':
+      return { reward_days: rewardData.days };
+    case 'feature':
+      return { reward_feature_code: rewardData.feature_code };
+    default:
+      return {};
   }
 }
 
@@ -120,13 +170,14 @@ const [Drawer, drawerApi] = useVbenDrawer({
       const values = await formApi.getValues<FormQuestData>();
       let rewardData: Record<string, any> | undefined;
       try {
-        rewardData = parseRewardData(values.reward_data_text);
+        rewardData = buildRewardData(values);
       } catch (error) {
         message.error((error as Error).message);
         return;
       }
       const payload: CreateQuestParams = {
         code: values.code as string,
+        quest_type: values.quest_type as string,
         name: values.name as string,
         brief: values.brief as string,
         info: values.info,
@@ -162,10 +213,15 @@ const [Drawer, drawerApi] = useVbenDrawer({
     formApi.resetForm();
     if (data) {
       formData.value = { ...data };
-      const rewardDataText = data.reward_data
-        ? JSON.stringify(data.reward_data, null, 2)
-        : '';
-      formApi.setValues({ ...data, reward_data_text: rewardDataText });
+      const decomposed = decomposeRewardData(data.reward_type, data.reward_data);
+      const formatted: Record<string, any> = { ...data, ...decomposed };
+      if (data.start_time) {
+        formatted.start_time = dayjs(data.start_time).format('YYYY-MM-DD HH:mm:ss');
+      }
+      if (data.end_time) {
+        formatted.end_time = dayjs(data.end_time).format('YYYY-MM-DD HH:mm:ss');
+      }
+      formApi.setValues(formatted);
       detailHtml.value = data.detail || '';
     } else {
       formData.value = {};
@@ -186,7 +242,9 @@ const [Drawer, drawerApi] = useVbenDrawer({
       </template>
     </Grid>
     <Drawer :title="drawerTitle">
-      <Form />
+      <div class="reward-fields-container" :class="`reward-type-${currentRewardType}`">
+        <Form />
+      </div>
       <div class="mt-4">
         <div class="mb-2 font-medium">任务详情(富文本)</div>
         <HaloEditorWrapper
@@ -198,3 +256,21 @@ const [Drawer, drawerApi] = useVbenDrawer({
     </Drawer>
   </Page>
 </template>
+
+<style scoped>
+.reward-fields-container :deep(.reward-field) {
+  display: none;
+}
+.reward-type-points :deep(.reward-field-points) {
+  display: block;
+}
+.reward-type-vip :deep(.reward-field-vip) {
+  display: block;
+}
+.reward-type-feature :deep(.reward-field-feature) {
+  display: block;
+}
+.reward-type-chaoji_course :deep(.reward-field-chaoji_course) {
+  display: block;
+}
+</style>

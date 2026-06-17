@@ -1,10 +1,12 @@
+/* eslint-disable unicorn/no-array-callback-reference */
+import type { Mappable } from '@HaloEditor/tiptap/pm';
+
 import {
   EditorState,
   Node,
   ResolvedPos,
   Selection,
-  type Mappable,
-} from "@HaloEditor/tiptap/pm";
+} from '@HaloEditor/tiptap/pm';
 
 /**
  * The RangeSelection class represents a selection range within a document.
@@ -27,52 +29,8 @@ class RangeSelection extends Selection {
     super($anchor, $head);
   }
 
-  map(doc: Node, mapping: Mappable): Selection {
-    const $head = doc.resolve(mapping.map(this.head));
-    const $anchor = doc.resolve(mapping.map(this.anchor));
-    return new RangeSelection($anchor, $head);
-  }
-
-  eq(other: Selection): boolean {
-    return (
-      other instanceof RangeSelection &&
-      other.anchor == this.anchor &&
-      other.head == this.head
-    );
-  }
-
-  getBookmark() {
-    return new RangeBookmark(this.anchor, this.head);
-  }
-
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  toJSON(): any {
-    return { type: "range", anchor: this.anchor, head: this.head };
-  }
-
-  /**
-   * Validates if the given positions can form a valid RangeSelection in the given state.
-   *
-   * @param state - The editor state.
-   * @param anchor - The starting position.
-   * @param head - The ending position.
-   * @returns True if the positions form a valid RangeSelection, otherwise false.
-   */
-  static valid(state: EditorState, anchor: number, head: number) {
-    const nodes = rangeNodesBetween(
-      state.doc.resolve(anchor),
-      state.doc.resolve(head)
-    );
-
-    if (nodes.length === 0) {
-      return false;
-    }
-
-    if (nodes.reverse()[0].pos < 0) {
-      return false;
-    }
-
-    return true;
+  static allRange(doc: Node) {
+    return new RangeSelection(doc.resolve(0), doc.resolve(doc.content.size));
   }
 
   /**
@@ -116,40 +74,78 @@ class RangeSelection extends Selection {
     const toOffset =
       headPos - anchorPos - lastNode.pos - lastNode.node.nodeSize;
     const anchor =
-      dir > 0
-        ? anchorPos + fromOffset
-        : headPos - (toOffset > 0 ? 0 : toOffset);
+      dir > 0 ? anchorPos + fromOffset : headPos - Math.min(toOffset, 0);
     const head =
-      dir > 0
-        ? headPos - (toOffset > 0 ? 0 : toOffset)
-        : anchorPos + fromOffset;
+      dir > 0 ? headPos - Math.min(toOffset, 0) : anchorPos + fromOffset;
     return new RangeSelection(doc.resolve(anchor), doc.resolve(head));
-  }
-
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  static fromJSON(doc: Node, json: any) {
-    if (typeof json.anchor != "number" || typeof json.head != "number") {
-      throw new RangeError("Invalid input for RangeSelection.fromJSON");
-    }
-
-    return new RangeSelection(doc.resolve(json.anchor), doc.resolve(json.head));
   }
 
   static create(doc: Node, anchor: number, head: number) {
     return new this(doc.resolve(anchor), doc.resolve(head));
   }
 
-  static allRange(doc: Node) {
-    return new RangeSelection(doc.resolve(0), doc.resolve(doc.content.size));
+  static fromJSON(doc: Node, json: any) {
+    if (typeof json.anchor !== 'number' || typeof json.head !== 'number') {
+      throw new RangeError('Invalid input for RangeSelection.fromJSON');
+    }
+
+    return new RangeSelection(doc.resolve(json.anchor), doc.resolve(json.head));
+  }
+
+  /**
+   * Validates if the given positions can form a valid RangeSelection in the given state.
+   *
+   * @param state - The editor state.
+   * @param anchor - The starting position.
+   * @param head - The ending position.
+   * @returns True if the positions form a valid RangeSelection, otherwise false.
+   */
+  static valid(state: EditorState, anchor: number, head: number) {
+    const nodes = rangeNodesBetween(
+      state.doc.resolve(anchor),
+      state.doc.resolve(head),
+    );
+
+    if (nodes.length === 0) {
+      return false;
+    }
+
+    if (nodes.toReversed()[0].pos < 0) {
+      return false;
+    }
+
+    return true;
+  }
+
+  eq(other: Selection): boolean {
+    return (
+      other instanceof RangeSelection &&
+      other.anchor === this.anchor &&
+      other.head === this.head
+    );
+  }
+
+  getBookmark() {
+    return new RangeBookmark(this.anchor, this.head);
+  }
+
+  map(doc: Node, mapping: Mappable): Selection {
+    const $head = doc.resolve(mapping.map(this.head));
+    const $anchor = doc.resolve(mapping.map(this.anchor));
+    return new RangeSelection($anchor, $head);
+  }
+
+  toJSON(): any {
+    return { type: 'range', anchor: this.anchor, head: this.head };
   }
 }
 
-Selection.jsonID("range", RangeSelection);
+Selection.jsonID('range', RangeSelection);
 
 class RangeBookmark {
   constructor(
     readonly anchor: number,
-    readonly head: number
+    readonly head: number,
   ) {}
 
   map(mapping: Mappable) {
@@ -162,7 +158,7 @@ class RangeBookmark {
 
 export function checkRangeSelection($anchor: ResolvedPos, $head: ResolvedPos) {
   if ($anchor.pos === $head.pos) {
-    console.warn("The RangeSelection cannot be empty.");
+    console.warn('The RangeSelection cannot be empty.');
   }
 }
 
@@ -173,21 +169,21 @@ export function rangeNodesBetween($anchor: ResolvedPos, $head: ResolvedPos) {
   const headPos = dir > 0 ? $head.pos : $anchor.pos;
 
   const nodes: Array<{
-    node: Node;
-    pos: number;
-    parent: Node | null;
     index: number;
+    node: Node;
+    parent: Node | null;
+    pos: number;
   }> = [];
   doc.nodesBetween(
     anchorPos,
     headPos,
     (node, pos, parent, index) => {
-      if (node.isText || node.type.name === "paragraph") {
+      if (node.isText || node.type.name === 'paragraph') {
         return true;
       }
       nodes.push({ node, pos, parent, index });
     },
-    -anchorPos
+    -anchorPos,
   );
   return nodes;
 }

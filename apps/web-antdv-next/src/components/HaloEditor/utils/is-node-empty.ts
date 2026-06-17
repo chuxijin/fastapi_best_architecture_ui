@@ -1,4 +1,4 @@
-import type { Node } from "@tiptap/pm/model";
+import type { Node } from '@tiptap/pm/model';
 
 export const isEmpty = (node: Node) => {
   return isNodeDefault(node) || isNodeContentEmpty(node);
@@ -30,7 +30,7 @@ export const isNodeContentEmpty = (node: Node) => {
 };
 
 export const isParagraphEmpty = (node: Node) => {
-  if (node.type.name !== "paragraph") {
+  if (node.type.name !== 'paragraph') {
     return false;
   }
 

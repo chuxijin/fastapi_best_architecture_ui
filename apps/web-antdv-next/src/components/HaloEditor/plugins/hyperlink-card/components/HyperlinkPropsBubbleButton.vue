@@ -1,10 +1,13 @@
 <script lang="ts" setup>
-import { HyperlinkInlineCardExtension } from "../editor";
-import { VButton, VDropdown, vTooltip } from "#/stubs/halo-components";
-import { BubbleButton, type BubbleItemComponentProps, Input } from "../../..";
-import { computed, ref } from "vue";
-import MingcuteEdit4Line from "~icons/mingcute/edit-4-line";
-import RiGlobalLine from "~icons/ri/global-line";
+import { computed, ref } from 'vue';
+
+import MingcuteEdit4Line from '~icons/mingcute/edit-4-line';
+import RiGlobalLine from '~icons/ri/global-line';
+
+import { VButton, VDropdown, vTooltip } from '#/stubs/halo-components';
+
+import { BubbleButton, Input } from '../../..';
+import { HyperlinkInlineCardExtension } from '../editor';
 
 interface Props {
   editor: any;
@@ -18,7 +21,7 @@ const props = defineProps<Props>();
 const customTitle = computed({
   get() {
     const attrs = props.editor.getAttributes(props.name);
-    return attrs?.["custom-title"];
+    return attrs?.['custom-title'];
   },
   set(value) {
     const { selection } = props.editor.state;
@@ -29,7 +32,7 @@ const customTitle = computed({
     props.editor
       .chain()
       .updateAttributes(props.name, {
-        "custom-title": value,
+        'custom-title': value,
       })
       .setNodeSelection(pos)
       .run();
@@ -39,7 +42,7 @@ const customTitle = computed({
 const customDescription = computed({
   get() {
     const attrs = props.editor.getAttributes(props.name);
-    return attrs?.["custom-description"];
+    return attrs?.['custom-description'];
   },
   set(value) {
     const { selection } = props.editor.state;
@@ -50,7 +53,7 @@ const customDescription = computed({
     props.editor
       .chain()
       .updateAttributes(props.name, {
-        "custom-description": value,
+        'custom-description': value,
       })
       .setNodeSelection(pos)
       .run();
@@ -60,7 +63,7 @@ const customDescription = computed({
 const customImage = computed({
   get() {
     const attrs = props.editor.getAttributes(props.name);
-    return attrs?.["custom-image"];
+    return attrs?.['custom-image'];
   },
   set(value) {
     const { selection } = props.editor.state;
@@ -71,7 +74,7 @@ const customImage = computed({
     props.editor
       .chain()
       .updateAttributes(props.name, {
-        "custom-image": value,
+        'custom-image': value,
       })
       .setNodeSelection(pos)
       .run();
@@ -87,15 +90,17 @@ const isFetching = ref(false);
 async function handleGetSiteData() {
   isFetching.value = true;
   try {
-    const res = await fetch(`${import.meta.env.VITE_GLOB_API_URL}/api/v1/content/link-detail?url=${encodeURIComponent(props.editor.getAttributes(props.name)?.href || '')}`);
+    const res = await fetch(
+      `${import.meta.env.VITE_GLOB_API_URL}/api/v1/content/link-detail?url=${encodeURIComponent(props.editor.getAttributes(props.name)?.href || '')}`,
+    );
     const data = await res.json();
     if (data) {
       customTitle.value = data.title;
       customDescription.value = data.description;
       customImage.value = data.image || data.icon;
     }
-  } catch(e) {
-    console.error(e);
+  } catch (error) {
+    console.error(error);
   } finally {
     isFetching.value = false;
   }
@@ -104,7 +109,12 @@ async function handleGetSiteData() {
 
 <template>
   <!-- @vue-ignore -->
-  <VDropdown :dispose-timeout="null" class=":uno: inline-flex" :triggers="['click']" :distance="10">
+  <VDropdown
+    :dispose-timeout="null"
+    class=":uno: inline-flex"
+    :triggers="['click']"
+    :distance="10"
+  >
     <BubbleButton title="编辑属性">
       <template #icon>
         <MingcuteEdit4Line />
@@ -127,17 +137,20 @@ async function handleGetSiteData() {
           </VButton>
         </div>
         <Input v-model="customTitle" auto-focus label="自定义标题" />
-        <Input v-if="!isInline" v-model="customDescription" label="自定义描述" />
         <Input
-          v-if="isInline || props.editor.getAttributes(props.name)?.['theme'] === 'small'"
+          v-if="!isInline"
+          v-model="customDescription"
+          label="自定义描述"
+        />
+        <Input
+          v-if="
+            isInline ||
+            props.editor.getAttributes(props.name)?.theme === 'small'
+          "
           v-model="customImage"
           label="自定义图标"
         />
-        <Input
-          v-else
-          v-model="customImage"
-          label="自定义图片 URL"
-        />
+        <Input v-else v-model="customImage" label="自定义图片 URL" />
       </div>
     </template>
   </VDropdown>

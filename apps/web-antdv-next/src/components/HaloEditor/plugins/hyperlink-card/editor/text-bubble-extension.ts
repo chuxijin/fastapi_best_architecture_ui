@@ -1,18 +1,19 @@
-import TextExtensionMenuItem from "../components/TextExtensionMenuItem.vue";
+import type { ExtensionOptions, NodeBubbleMenuType } from '../../..';
+
+import { markRaw } from 'vue';
+
 import {
   Editor,
   Extension,
   ExtensionLink,
-  type ExtensionOptions,
   isActive,
-  type NodeBubbleMenuType,
   TEXT_BUBBLE_MENU_KEY,
-} from "../../..";
-import { markRaw } from "vue";
-import linkViewTypes from "./link-view-type";
+} from '../../..';
+import TextExtensionMenuItem from '../components/TextExtensionMenuItem.vue';
+import linkViewTypes from './link-view-type';
 
 const TextBubbleExtension = Extension.create<ExtensionOptions>({
-  name: "textHyperlinkCardExtension",
+  name: 'textHyperlinkCardExtension',
 
   addOptions() {
     return {

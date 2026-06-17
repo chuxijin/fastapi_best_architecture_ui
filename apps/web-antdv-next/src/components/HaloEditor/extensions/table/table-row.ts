@@ -1,4 +1,4 @@
-import { TableRow as BuiltInTableRow } from "@tiptap/extension-table";
+import { TableRow as BuiltInTableRow } from '@tiptap/extension-table';
 
 const TableRow = BuiltInTableRow.extend({
   allowGapCursor: false,
@@ -6,8 +6,8 @@ const TableRow = BuiltInTableRow.extend({
   addAttributes() {
     return {
       style: {
-        default: "height: 60px;",
-        parseHTML: (element: HTMLElement) => element.getAttribute("style"),
+        default: 'height: 60px;',
+        parseHTML: (element: HTMLElement) => element.getAttribute('style'),
       },
     };
   },

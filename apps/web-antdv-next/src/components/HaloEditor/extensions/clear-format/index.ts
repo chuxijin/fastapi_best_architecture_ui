@@ -1,16 +1,18 @@
-import { markRaw } from "vue";
-import MingcuteEraserLine from "~icons/mingcute/eraser-line";
-import ToolbarItem from "@HaloEditor/components/toolbar/ToolbarItem.vue";
-import { i18n } from "@HaloEditor/locales";
-import type { Editor } from "@HaloEditor/tiptap";
-import { Extension } from "@HaloEditor/tiptap";
-import type { ExtensionOptions } from "@HaloEditor/types";
+import type { Editor } from '@HaloEditor/tiptap';
+import type { ExtensionOptions } from '@HaloEditor/types';
+
+import { markRaw } from 'vue';
+
+import ToolbarItem from '@HaloEditor/components/toolbar/ToolbarItem.vue';
+import { i18n } from '@HaloEditor/locales';
+import { Extension } from '@HaloEditor/tiptap';
+import MingcuteEraserLine from '~icons/mingcute/eraser-line';
 
 export type ExtensionClearFormatOptions = ExtensionOptions;
 
 export const ExtensionClearFormat =
   Extension.create<ExtensionClearFormatOptions>({
-    name: "clearFormat",
+    name: 'clearFormat',
 
     addOptions() {
       return {
@@ -22,7 +24,7 @@ export const ExtensionClearFormat =
               editor,
               isActive: false,
               icon: markRaw(MingcuteEraserLine),
-              title: i18n.global.t("editor.common.clear_format"),
+              title: i18n.global.t('editor.common.clear_format'),
               action: () => editor.chain().focus().unsetAllMarks().run(),
             },
           };
@@ -32,7 +34,7 @@ export const ExtensionClearFormat =
 
     addKeyboardShortcuts() {
       return {
-        "Mod-\\": () => this.editor.chain().focus().unsetAllMarks().run(),
+        'Mod-\\': () => this.editor.chain().focus().unsetAllMarks().run(),
       };
     },
   });

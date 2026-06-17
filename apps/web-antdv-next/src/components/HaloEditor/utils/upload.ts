@@ -1,6 +1,10 @@
+/* eslint-disable unicorn/prefer-add-event-listener */
 export interface UploadRequestConfig {
   signal?: AbortSignal;
-  onUploadProgress?: (progressEvent: { loaded: number; total?: number }) => void;
+  onUploadProgress?: (progressEvent: {
+    loaded: number;
+    total?: number;
+  }) => void;
   [key: string]: any;
 }
 
@@ -9,11 +13,11 @@ export interface Attachment {
   spec?: { displayName?: string };
   [key: string]: any;
 }
-import { chunk } from "es-toolkit";
-import { ExtensionAudio } from "@HaloEditor/extensions/audio";
-import { ExtensionImage } from "@HaloEditor/extensions/image";
-import { ExtensionVideo } from "@HaloEditor/extensions/video";
-import { Editor, PMNode } from "@HaloEditor/tiptap";
+import { ExtensionAudio } from '@HaloEditor/extensions/audio';
+import { ExtensionImage } from '@HaloEditor/extensions/image';
+import { ExtensionVideo } from '@HaloEditor/extensions/video';
+import { Editor, PMNode } from '@HaloEditor/tiptap';
+import { chunk } from 'es-toolkit';
 
 export interface FileProps {
   file: File;
@@ -28,15 +32,15 @@ export interface FileProps {
  * @returns - Editor node
  */
 export const createEditorNodeFormFile = (editor: Editor, file: File) => {
-  if (file.type.startsWith("image/")) {
+  if (file.type.startsWith('image/')) {
     return uploadImage(editor, file);
   }
 
-  if (file.type.startsWith("video/")) {
+  if (file.type.startsWith('video/')) {
     return uploadVideo(editor, file);
   }
 
-  if (file.type.startsWith("audio/")) {
+  if (file.type.startsWith('audio/')) {
     return uploadAudio(editor, file);
   }
 };
@@ -48,17 +52,15 @@ export const createEditorNodeFormFile = (editor: Editor, file: File) => {
  * @returns {boolean} - True if a file is handled, otherwise false
  */
 export const handleFileEvent = (editor: Editor, files: File[]) => {
-  if (!files.length) {
+  if (files.length === 0) {
     return false;
   }
-
-
 
   const nodes = files
     .map((file) => createEditorNodeFormFile(editor, file))
     .filter((node) => node !== undefined);
 
-  if (nodes.length) {
+  if (nodes.length > 0) {
     const tr = editor.view.state.tr;
     tr.insert(editor.view.state.selection.from, nodes);
     editor.view.dispatch(tr);
@@ -74,7 +76,7 @@ export const handleFileEvent = (editor: Editor, files: File[]) => {
 export const uploadImage = (editor: Editor, file: File) => {
   const { state } = editor;
   return state.schema.nodes[ExtensionImage.name].create({
-    file: file,
+    file,
   });
 };
 
@@ -87,7 +89,7 @@ export const uploadImage = (editor: Editor, file: File) => {
 export const uploadVideo = (editor: Editor, file: File) => {
   const { state } = editor;
   return state.schema.nodes[ExtensionVideo.name].create({
-    file: file,
+    file,
   });
 };
 
@@ -100,7 +102,7 @@ export const uploadVideo = (editor: Editor, file: File) => {
 export const uploadAudio = (editor: Editor, file: File) => {
   const { state } = editor;
   return state.schema.nodes[ExtensionAudio.name].create({
-    file: file,
+    file,
   });
 };
 
@@ -121,7 +123,7 @@ export interface UploadFetchResponse {
 export const uploadFile = async (
   file: File,
   upload: (file: File, options?: UploadRequestConfig) => Promise<Attachment>,
-  uploadResponse: UploadFetchResponse
+  uploadResponse: UploadFetchResponse,
 ) => {
   const { signal } = uploadResponse.controller;
 
@@ -129,7 +131,7 @@ export const uploadFile = async (
     signal,
     onUploadProgress(progressEvent) {
       const progress = Math.round(
-        (progressEvent.loaded * 100) / (progressEvent.total || 0)
+        (progressEvent.loaded * 100) / (progressEvent.total || 0),
       );
       uploadResponse.onUploadProgress(progress);
     },
@@ -162,19 +164,19 @@ export function fileToBase64(file: File): Promise<string> {
 }
 
 export function containsFileClipboardIdentifier(types: readonly string[]) {
-  const fileTypes = ["files", "application/x-moz-file", "public.file-url"];
-  return types.some((type) => fileTypes.includes(type.toLowerCase()));
+  const fileTypes = new Set(['application/x-moz-file', 'files', 'public.file-url']);
+  return types.some((type) => fileTypes.has(type.toLowerCase()));
 }
 
 export async function batchUploadExternalLink(
   editor: Editor,
-  nodes: { node: PMNode; pos: number; index: number; parent: PMNode | null }[]
+  nodes: { index: number; node: PMNode; parent: null | PMNode; pos: number; }[],
 ) {
   const chunks = chunk(nodes, 5);
 
   for (const chunkNodes of chunks) {
     await Promise.all(
-      chunkNodes.map((node) => uploadExternalLink(editor, node))
+      chunkNodes.map((node) => uploadExternalLink(editor, node)),
     );
   }
 }
@@ -182,11 +184,11 @@ export async function batchUploadExternalLink(
 export async function uploadExternalLink(
   editor: Editor,
   nodeWithPos: {
-    node: PMNode;
-    pos: number;
     index: number;
-    parent: PMNode | null;
-  }
+    node: PMNode;
+    parent: null | PMNode;
+    pos: number;
+  },
 ) {
   const { node, pos } = nodeWithPos;
   const { src } = node.attrs;
@@ -195,20 +197,22 @@ export async function uploadExternalLink(
     return;
   }
 
-    // TODO: 外部链接上传功能需通过外部配置注入 API。现已脱离 Halo 后端，去除默认调用。
-    console.warn("External asset upload is not implemented. Uploading external links is skipped.");
-    const data: any = null;
-    if (!data) return;
+  // TODO: 外部链接上传功能需通过外部配置注入 API。现已脱离 Halo 后端，去除默认调用。
+  console.warn(
+    'External asset upload is not implemented. Uploading external links is skipped.',
+  );
+  const data: any = null;
+  if (!data) return;
 
-    const url = data?.status?.permalink;
-    const name = data?.spec?.displayName;
-    const tr = editor.view.state.tr;
-    tr.setNodeMarkup(pos, node.type, {
-      ...node.attrs,
-      src: url,
-      name,
-    });
-    editor.view.dispatch(tr);
+  const url = data?.status?.permalink;
+  const name = data?.spec?.displayName;
+  const tr = editor.view.state.tr;
+  tr.setNodeMarkup(pos, node.type, {
+    ...node.attrs,
+    src: url,
+    name,
+  });
+  editor.view.dispatch(tr);
 }
 
 export function isExternalAsset(src: string) {
@@ -216,11 +220,11 @@ export function isExternalAsset(src: string) {
     return false;
   }
 
-  if (src.startsWith("/")) {
+  if (src.startsWith('/')) {
     return false;
   }
 
-  const localProtocols = ["data:", "blob:", "file:"];
+  const localProtocols = ['data:', 'blob:', 'file:'];
   if (localProtocols.some((protocol) => src.startsWith(protocol))) {
     return false;
   }
@@ -230,5 +234,5 @@ export function isExternalAsset(src: string) {
     return false;
   }
 
-  return src.startsWith("http://") || src.startsWith("https://");
+  return src.startsWith('http://') || src.startsWith('https://');
 }

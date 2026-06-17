@@ -1,9 +1,12 @@
 <script lang="ts" setup>
-import { computed } from "vue";
-import Input from "@HaloEditor/components/base/Input.vue";
-import { i18n } from "@HaloEditor/locales";
-import type { BubbleItemComponentProps } from "@HaloEditor/types";
-import { ExtensionAudio } from "./index";
+import type { BubbleItemComponentProps } from '@HaloEditor/types';
+
+import { computed } from 'vue';
+
+import Input from '@HaloEditor/components/base/Input.vue';
+import { i18n } from '@HaloEditor/locales';
+
+import { ExtensionAudio } from './index';
 
 const props = defineProps<BubbleItemComponentProps>();
 
@@ -14,7 +17,7 @@ const src = computed({
   set: (src: string) => {
     props.editor
       .chain()
-      .updateAttributes(ExtensionAudio.name, { src: src })
+      .updateAttributes(ExtensionAudio.name, { src })
       .setNodeSelection(props.editor.state.selection.from)
       .focus()
       .run();

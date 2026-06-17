@@ -73,7 +73,15 @@ export const MaterialSymbolsArticleOutline = createIconifyIcon(
   'material-symbols:article-outline',
 );
 
-export const AntDesignMoreOutlined = createIconifyIcon('ant-design:more-outlined');
-export const AntDesignEyeOutlined = createIconifyIcon('ant-design:eye-outlined');
-export const AntDesignReloadOutlined = createIconifyIcon('ant-design:reload-outlined');
-export const AntDesignExclamationCircleOutlined = createIconifyIcon('ant-design:exclamation-circle-outlined');
+export const AntDesignMoreOutlined = createIconifyIcon(
+  'ant-design:more-outlined',
+);
+export const AntDesignEyeOutlined = createIconifyIcon(
+  'ant-design:eye-outlined',
+);
+export const AntDesignReloadOutlined = createIconifyIcon(
+  'ant-design:reload-outlined',
+);
+export const AntDesignExclamationCircleOutlined = createIconifyIcon(
+  'ant-design:exclamation-circle-outlined',
+);

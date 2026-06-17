@@ -1,5 +1,6 @@
-import type { AnyExtension } from "@tiptap/core";
-import type { PluginModule } from "./types";
+import type { AnyExtension } from '@tiptap/core';
+
+import type { PluginModule } from './types';
 
 /**
  * 从已加载的插件模块中收集编辑器扩展
@@ -14,17 +15,16 @@ export async function collectEditorExtensions(
 
   for (const module of pluginModules) {
     try {
-      const fn =
-        module?.extensionPoints?.["default:editor:extension:create"];
+      const fn = module?.extensionPoints?.['default:editor:extension:create'];
 
-      if (typeof fn !== "function") {
+      if (typeof fn !== 'function') {
         continue;
       }
 
       const exts = await fn();
       extensions.push(...exts);
-    } catch (e) {
-      console.error("[Plugin] Failed to collect extensions:", e);
+    } catch (error) {
+      console.error('[Plugin] Failed to collect extensions:', error);
     }
   }
 

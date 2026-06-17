@@ -1,7 +1,9 @@
 <script lang="ts" setup>
-import { vTooltip } from "#/stubs/halo-components";
-import MingcuteDownSmallFill from "~icons/mingcute/down-small-fill";
-import type { ToolbarItemComponentProps } from "@HaloEditor/types";
+import type { ToolbarItemComponentProps } from '@HaloEditor/types';
+
+import MingcuteDownSmallFill from '~icons/mingcute/down-small-fill';
+
+import { vTooltip } from '#/stubs/halo-components';
 
 defineProps<ToolbarItemComponentProps>();
 </script>

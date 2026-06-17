@@ -45,12 +45,12 @@ export const querySchema: VbenFormSchema[] = [
     componentProps: {
       allowClear: true,
       options: [
-        { label: 'actcode (激活码)', value: 'actcode' },
-        { label: 'purchase (支付)', value: 'purchase' },
-        { label: 'gift (赠送)', value: 'gift' },
-        { label: 'reward (奖励)', value: 'reward' },
-        { label: 'migration (迁移)', value: 'migration' },
-        { label: 'manual (手动)', value: 'manual' },
+        { label: '订单支付 (order)', value: 'order' },
+        { label: '激活码 (actcode)', value: 'actcode' },
+        { label: '任务奖励 (quest)', value: 'quest' },
+        { label: '赠送 (gift)', value: 'gift' },
+        { label: '管理员手动发放 (admin)', value: 'admin' },
+        { label: '迁移 (migration)', value: 'migration' },
       ],
       placeholder: '来源',
     },
@@ -73,6 +73,15 @@ const STATUS_LABEL: Record<string, string> = {
   paused: '已暂停',
 };
 
+const SOURCE_LABEL: Record<string, string> = {
+  order: '订单支付',
+  actcode: '激活码',
+  quest: '任务奖励',
+  gift: '赠送',
+  admin: '管理员发放',
+  migration: '迁移',
+};
+
 export function useColumns(
   onActionClick: (params: any) => void,
 ): VxeGridPropTypes.Columns {
@@ -81,6 +90,7 @@ export function useColumns(
     { field: 'id', title: 'ID', width: 80 },
     { field: 'user_id', title: '用户 ID', width: 100 },
     { field: 'username', title: '用户名', minWidth: 140 },
+    { field: 'nickname', title: '用户昵称', minWidth: 140 },
     { field: 'template_code', title: '模板编码', minWidth: 220 },
     { field: 'template_name', title: '模板名称', minWidth: 160 },
     {
@@ -115,7 +125,12 @@ export function useColumns(
       title: '来源',
       width: 110,
       slots: {
-        default: ({ row }: any) => h(Tag, { color: 'blue' }, () => row.source),
+        default: ({ row }: any) =>
+          h(
+            Tag,
+            { color: 'blue' },
+            () => SOURCE_LABEL[row.source] || row.source,
+          ),
       },
     },
     {
@@ -123,6 +138,19 @@ export function useColumns(
       title: '来源引用',
       minWidth: 180,
       showOverflow: 'tooltip',
+      formatter: ({ row }: any) => {
+        if (!row.source_ref) return '-';
+        const prefixMap: Record<string, string> = {
+          order: '订单号',
+          actcode: '激活码',
+          admin: '操作说明',
+          gift: '赠送原因',
+          migration: '迁移源',
+          quest: '任务/活动',
+        };
+        const prefix = prefixMap[row.source];
+        return prefix ? `${prefix}: ${row.source_ref}` : row.source_ref;
+      },
     },
     {
       title: '操作',

@@ -1,12 +1,15 @@
 <script lang="ts" setup>
-import { nodeViewProps, NodeViewWrapper } from "#/components/HaloEditor";
-import { vTooltip } from "#/stubs/halo-components";
-import { computed, nextTick, onMounted, ref, watch } from "vue";
-import { compress } from "./plantuml/encoder";
-import { useDebounceFn } from "@vueuse/core";
-import IcOutlineTipsAndUpdates from "~icons/ic/outline-tips-and-updates";
-import IcOutlineFullscreen from "~icons/ic/outline-fullscreen";
-import IcOutlineFullscreenExit from "~icons/ic/outline-fullscreen-exit";
+import { computed, nextTick, onMounted, ref, watch } from 'vue';
+
+import { useDebounceFn } from '@vueuse/core';
+import IcOutlineFullscreen from '~icons/ic/outline-fullscreen';
+import IcOutlineFullscreenExit from '~icons/ic/outline-fullscreen-exit';
+import IcOutlineTipsAndUpdates from '~icons/ic/outline-tips-and-updates';
+
+import { nodeViewProps, NodeViewWrapper } from '#/components/HaloEditor';
+import { vTooltip } from '#/stubs/halo-components';
+
+import { compress } from './plantuml/encoder';
 
 const props = defineProps(nodeViewProps);
 const previewRef = ref<HTMLElement>();
@@ -14,14 +17,14 @@ const fullscreen = ref(false);
 
 const languages = [
   {
-    value: "mermaid",
-    label: "Mermaid",
-    document: "https://mermaid.js.org/",
+    value: 'mermaid',
+    label: 'Mermaid',
+    document: 'https://mermaid.js.org/',
   },
   {
-    value: "plantuml",
-    label: "PlantUML",
-    document: "https://plantuml.com/zh/",
+    value: 'plantuml',
+    label: 'PlantUML',
+    document: 'https://plantuml.com/zh/',
   },
 ];
 
@@ -44,15 +47,15 @@ const doRenderPreview = async function () {
   if (!element) return;
   const graphDefinition = props.node.attrs.content;
   switch (languageValue.value) {
-    case "mermaid": {
+    case 'mermaid': {
       // random element id
       const id = `mermaid-${Date.now()}`;
       try {
-        const mermaid = await import("mermaid");
+        const mermaid = await import('mermaid');
         const { svg } = await mermaid.default.render(
           id,
           graphDefinition,
-          element
+          element,
         );
         element.innerHTML = svg;
       } catch (error) {
@@ -60,7 +63,7 @@ const doRenderPreview = async function () {
       }
       break;
     }
-    case "plantuml": {
+    case 'plantuml': {
       const url = compress(graphDefinition);
       if (props.node.attrs.src !== url) {
         props.updateAttributes({ src: url });
@@ -68,8 +71,9 @@ const doRenderPreview = async function () {
       element.innerHTML = `<img src="${url}" alt="plantuml"/>`;
       break;
     }
-    default:
+    default: {
       break;
+    }
   }
 };
 
@@ -82,7 +86,7 @@ onMounted(async () => {
       nextTick(() => {
         renderPreview();
       });
-    }
+    },
   );
   watch(
     () => props.node.attrs.type,
@@ -90,7 +94,7 @@ onMounted(async () => {
       nextTick(() => {
         renderPreview();
       });
-    }
+    },
   );
   renderPreview();
 });
@@ -102,7 +106,7 @@ function onEditorChange(event: Event) {
 }
 </script>
 <template>
-  <node-view-wrapper
+  <NodeViewWrapper
     class="text-diagram-container"
     :class="{ 'text-diagram-fullscreen': fullscreen }"
   >
@@ -157,28 +161,28 @@ function onEditorChange(event: Event) {
         contenteditable="false"
       ></div>
     </div>
-  </node-view-wrapper>
+  </NodeViewWrapper>
 </template>
 <style>
 .text-diagram-container {
+  margin-top: 0.75em;
+  overflow: hidden;
   border: 1px #e7e7e7 solid;
   border-radius: 4px;
-  overflow: hidden;
-  margin-top: 0.75em;
 }
 
 .text-diagram-nav {
-  border-bottom: 1px #e7e7e7 solid;
   display: flex;
-  padding: 5px 10px;
   align-items: center;
+  padding: 5px 10px;
+  border-bottom: 1px #e7e7e7 solid;
 }
 
 .text-diagram-nav-start {
-  flex: 1;
   display: flex;
-  align-items: center;
+  flex: 1;
   gap: 10px;
+  align-items: center;
   font-size: 14px;
 }
 
@@ -203,8 +207,8 @@ function onEditorChange(event: Event) {
 }
 
 .text-diagram-preview {
-  padding: 5px;
   height: 100%;
+  padding: 5px;
 }
 
 .text-diagram-preview svg {
@@ -217,15 +221,12 @@ function onEditorChange(event: Event) {
 
 .text-diagram-fullscreen {
   position: fixed;
-  top: 0;
-  left: 0;
-  bottom: 0;
-  right: 0;
+  inset: 0;
   z-index: 9999;
   width: 100%;
   height: 100%;
-  background: #fff;
   margin-top: 0;
+  background: #fff;
 }
 
 .text-diagram-fullscreen-icon {

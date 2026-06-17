@@ -37,7 +37,7 @@ import { querySchema, schema, useColumns } from './data';
 const formOptions: VbenFormProps = {
   collapsed: true,
   showCollapseButton: true,
-  submitButtonOptions: { content: $t('common.search') },
+  submitButtonOptions: { content: $t('common.form.query') },
   schema: querySchema,
 };
 
@@ -210,7 +210,10 @@ function setPackItems(items?: AccessPackItemResult[]) {
   packItems.value = (items || []).map((item) => ({
     entitlement_code: item.entitlement_code,
     value_int: item.value_int,
-    cycle_type: item.value_meta?.cycle_type,
+    cycle_type:
+      typeof item.value_meta?.cycle_type === 'string'
+        ? item.value_meta.cycle_type
+        : undefined,
   }));
 }
 

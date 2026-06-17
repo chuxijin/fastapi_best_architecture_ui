@@ -13,6 +13,7 @@ export interface PageData<T> {
 export interface QuestResult {
   id: number;
   code: string;
+  quest_type: string;
   name: string;
   brief: string;
   info?: string;
@@ -37,6 +38,7 @@ export interface QuestResult {
 
 export interface CreateQuestParams {
   code: string;
+  quest_type?: string;
   name: string;
   brief: string;
   info?: string;
@@ -57,6 +59,7 @@ export interface CreateQuestParams {
 
 export interface UpdateQuestParams {
   name?: string;
+  quest_type?: string;
   brief?: string;
   info?: string;
   detail?: string;
@@ -76,6 +79,7 @@ export interface UpdateQuestParams {
 
 export interface QuestListParams {
   status?: number;
+  quest_type?: string;
   keyword?: string;
   page?: number;
   size?: number;

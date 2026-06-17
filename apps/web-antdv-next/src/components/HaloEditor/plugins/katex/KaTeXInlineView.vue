@@ -1,18 +1,20 @@
 <script setup lang="ts">
-import { computed, onMounted, ref } from "vue";
-import { nodeViewProps, NodeViewWrapper } from "#/components/HaloEditor";
-import { VDropdown } from "#/stubs/halo-components";
-import { renderKatex } from "./render-katex";
+import { computed, onMounted, ref } from 'vue';
+
+import { nodeViewProps, NodeViewWrapper } from '#/components/HaloEditor';
+import { VDropdown } from '#/stubs/halo-components';
+
+import { renderKatex } from './render-katex';
 
 const props = defineProps(nodeViewProps);
 
 const content = computed(() => {
-  return props.node.attrs.content || "";
+  return props.node.attrs.content || '';
 });
 
 const renderedKatex = computed(() => {
   if (!content.value) {
-    return "";
+    return '';
   }
   return renderKatex(content.value, true);
 });
@@ -29,12 +31,14 @@ function onEditorChange(e: Event) {
 }
 </script>
 <template>
-  <node-view-wrapper
+  <NodeViewWrapper
     class="katex-inline-container"
     as="span"
     contenteditable="false"
     :class="{ 'katex-node-view-selected': props.selected }"
-    :style="!props.editor.isEditable ? 'padding: 0; background: transparent;' : ''"
+    :style="
+      !props.editor.isEditable ? 'padding: 0; background: transparent;' : ''
+    "
   >
     <!-- 如果不可编辑，直接渲染纯净 HTML，丢弃掉外层 VDropdown 的交互包袱 -->
     <span v-if="!props.editor.isEditable" v-html="renderedKatex"></span>
@@ -66,14 +70,14 @@ function onEditorChange(e: Event) {
         </div>
       </template>
     </VDropdown>
-  </node-view-wrapper>
+  </NodeViewWrapper>
 </template>
 <style>
 .katex-inline-container {
-  cursor: pointer;
-  padding: 0 0.25rem;
-  transition: background 0.2s;
   display: inline-block;
+  padding: 0 0.25rem;
+  cursor: pointer;
+  transition: background 0.2s;
 }
 
 .katex-node-view-selected .katex-node-view-content-wrapper {
@@ -81,10 +85,11 @@ function onEditorChange(e: Event) {
 }
 
 .katex-node-view-content-wrapper {
-  background: #f6f5f5;
   display: inline-block;
   padding: 3px;
+  background: #f6f5f5;
   border-radius: 3px;
+
   &:hover {
     background: #f2f2f2;
   }

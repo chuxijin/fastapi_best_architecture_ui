@@ -1,14 +1,12 @@
 // The code comes from https://github.com/timomeh/tiptap-extension-code-block-shiki/blob/main/lib/highlighter.ts
 
-import { findChildren, type PMNode } from "#/components/HaloEditor";
-import {
-  type BundledLanguage,
-  type BundledTheme,
-  bundledLanguages,
-  bundledThemes,
-  createHighlighter,
-  type Highlighter,
-} from "shiki";
+import type { BundledLanguage, BundledTheme, Highlighter } from 'shiki';
+
+import type { PMNode } from '#/components/HaloEditor';
+
+import { bundledLanguages, bundledThemes, createHighlighter } from 'shiki';
+
+import { findChildren } from '#/components/HaloEditor';
 
 let highlighter: Highlighter | undefined;
 let highlighterPromise: Promise<void> | undefined;
@@ -16,8 +14,8 @@ const loadingLanguages = new Set<BundledLanguage>();
 const loadingThemes = new Set<BundledTheme>();
 
 type HighlighterOptions = {
-  themes: (BundledTheme | null | undefined)[];
   languages: (BundledLanguage | null | undefined)[];
+  themes: (BundledTheme | null | undefined)[];
 };
 
 export function resetHighlighter() {
@@ -103,10 +101,10 @@ export async function initHighlighter({
   defaultTheme,
   defaultLanguage,
 }: {
-  doc: PMNode;
-  name: string;
   defaultLanguage: BundledLanguage | null | undefined;
   defaultTheme: BundledTheme;
+  doc: PMNode;
+  name: string;
 }) {
   const codeBlocks = findChildren(doc, (node) => node.type.name === name);
 
@@ -119,13 +117,13 @@ export async function initHighlighter({
     defaultLanguage,
   ];
 
-  if (!highlighter) {
-    const loader = loadHighlighter({ languages, themes });
-    await loader;
-  } else {
+  if (highlighter) {
     await Promise.all([
       ...themes.flatMap((theme) => loadTheme(theme)),
       ...languages.flatMap((language) => !!language && loadLanguage(language)),
     ]);
+  } else {
+    const loader = loadHighlighter({ languages, themes });
+    await loader;
   }
 }

@@ -88,7 +88,8 @@ async function loadDayjsLocale(lang: SupportedLanguagesType) {
  */
 async function loadAntdLocale(lang: SupportedLanguagesType) {
   if (!antdLocalesCache) {
-    const localesModule = await import('antdv-next/dist/antd-with-locales.esm.js');
+    const localesModule =
+      await import('antdv-next/dist/antd-with-locales.esm.js');
     antdLocalesCache = localesModule.locales;
   }
 

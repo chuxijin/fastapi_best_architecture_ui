@@ -1,23 +1,23 @@
 <script lang="ts" setup>
 import type { JSONContent } from '@tiptap/core';
 
-import { computed, onBeforeUnmount, watch, shallowRef } from 'vue';
+import { computed, onBeforeUnmount, shallowRef, watch } from 'vue';
 
 // 引入全套 HaloEditor 核心能力
 import {
+  ExtensionsKit,
   RichTextEditor as HaloEditor,
   VueEditor,
-  ExtensionsKit,
 } from '#/components/HaloEditor';
 
 const props = withDefaults(
   defineProps<{
+    editable?: boolean;
     height?: number | string;
     jsonValue?: JSONContent | null;
     modelValue?: string;
     placeholder?: string;
     value?: string;
-    editable?: boolean;
   }>(),
   {
     jsonValue: undefined,
@@ -145,16 +145,18 @@ const contentHeight = computed(() =>
 
 <style scoped>
 .legacy-halo-bridge {
+  display: flex;
+  flex-direction: column;
   background-color: #fff;
-  display: flex;
-  flex-direction: column;
 }
+
 .legacy-halo-bridge :deep(.halo-rich-text-editor) {
-  flex: 1;
-  min-height: 0;
   display: flex;
+  flex: 1;
   flex-direction: column;
+  min-height: 0;
 }
+
 .legacy-halo-bridge :deep(.halo-rich-text-editor .ProseMirror) {
   flex: 1;
   min-height: 0;

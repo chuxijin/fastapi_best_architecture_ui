@@ -139,7 +139,7 @@ function getFastestGrowthPeriod() {
     }
   });
 
-  const dailyPoints = [...dailyEarliestPoints.values()].sort(
+  const dailyPoints = [...dailyEarliestPoints.values()].toSorted(
     (a, b) =>
       new Date(a.record_time).getTime() - new Date(b.record_time).getTime(),
   );

@@ -1,4 +1,4 @@
-import type { PluginConfig, PluginModule } from "./types";
+import type { PluginConfig, PluginModule } from './types';
 
 /**
  * 加载远程 JS 脚本
@@ -8,11 +8,13 @@ import type { PluginConfig, PluginModule } from "./types";
  */
 function loadScript(url: string): Promise<void> {
   return new Promise((resolve, reject) => {
-    const script = document.createElement("script");
+    const script = document.createElement('script');
     script.src = url;
-    script.onload = () => resolve();
-    script.onerror = () => reject(new Error(`Failed to load script: ${url}`));
-    document.head.appendChild(script);
+    script.addEventListener('load', () => resolve());
+    script.addEventListener('error', () =>
+      reject(new Error(`Failed to load script: ${url}`)),
+    );
+    document.head.append(script);
   });
 }
 
@@ -23,10 +25,10 @@ function loadScript(url: string): Promise<void> {
  * :return:
  */
 function loadStylesheet(url: string): void {
-  const link = document.createElement("link");
-  link.rel = "stylesheet";
+  const link = document.createElement('link');
+  link.rel = 'stylesheet';
   link.href = url;
-  document.head.appendChild(link);
+  document.head.append(link);
 }
 
 /**
@@ -69,10 +71,9 @@ export async function loadPlugins(
       const module = await loadPlugin(config);
       if (module) {
         modules.push(module);
-        console.log(`[Plugin] Loaded: ${config.name}`);
       }
-    } catch (e) {
-      console.error(`[Plugin] Failed to load: ${config.name}`, e);
+    } catch (error) {
+      console.error(`[Plugin] Failed to load: ${config.name}`, error);
     }
   }
 

@@ -403,7 +403,7 @@ function openPublishModal(account: SocialAccountDetail) {
         </a-form-item>
         <a-form-item label="文案内容">
           <a-textarea
-            rows="5"
+            :rows="5"
             :value="(publishModalApi.getData() as any)?.copywriting?.content"
             @update:value="
               (v: string) =>

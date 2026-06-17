@@ -1,16 +1,20 @@
 <script setup lang="ts">
-import { VDropdown } from "#/stubs/halo-components";
-import { computed } from "vue";
-import MdiBackupRestore from "~icons/mdi/backup-restore";
-import MdiImageSizeSelectActual from "~icons/mdi/image-size-select-actual";
-import MdiImageSizeSelectLarge from "~icons/mdi/image-size-select-large";
-import MdiImageSizeSelectSmall from "~icons/mdi/image-size-select-small";
-import Input from "@HaloEditor/components/base/Input.vue";
-import BubbleButton from "@HaloEditor/components/bubble/BubbleButton.vue";
-import { i18n } from "@HaloEditor/locales";
-import { findChildren } from "@HaloEditor/tiptap";
-import type { BubbleItemComponentProps } from "@HaloEditor/types";
-import { ExtensionImage } from "./index";
+import type { BubbleItemComponentProps } from '@HaloEditor/types';
+
+import { computed } from 'vue';
+
+import Input from '@HaloEditor/components/base/Input.vue';
+import BubbleButton from '@HaloEditor/components/bubble/BubbleButton.vue';
+import { i18n } from '@HaloEditor/locales';
+import { findChildren } from '@HaloEditor/tiptap';
+import MdiBackupRestore from '~icons/mdi/backup-restore';
+import MdiImageSizeSelectActual from '~icons/mdi/image-size-select-actual';
+import MdiImageSizeSelectLarge from '~icons/mdi/image-size-select-large';
+import MdiImageSizeSelectSmall from '~icons/mdi/image-size-select-small';
+
+import { VDropdown } from '#/stubs/halo-components';
+
+import { ExtensionImage } from './index';
 
 const props = defineProps<BubbleItemComponentProps>();
 
@@ -32,14 +36,14 @@ const height = computed({
   },
 });
 
-function handleSetSize(size: { width?: string; height?: string }) {
+function handleSetSize(size: { height?: string; width?: string }) {
   let figureWidth = size.width;
   if (!size.width) {
     const { state } = props.editor;
     const { selection } = state;
     const imageNodePosList = findChildren(
       selection.$from.node(),
-      (node) => node.type.name === ExtensionImage.name
+      (node) => node.type.name === ExtensionImage.name,
     );
     if (imageNodePosList.length === 0) {
       return;
@@ -48,7 +52,7 @@ function handleSetSize(size: { width?: string; height?: string }) {
     if (imageNodePos && imageNodePos.node.type.name === ExtensionImage.name) {
       const pos = selection.$from.pos + imageNodePos.pos;
       const nodeDOM = props.editor.view.nodeDOM(pos) as HTMLElement;
-      const imageNodeDOM = nodeDOM.querySelector("img");
+      const imageNodeDOM = nodeDOM.querySelector('img');
       if (imageNodeDOM && imageNodeDOM.naturalWidth) {
         figureWidth = `${imageNodeDOM.naturalWidth}px`;
       }
@@ -65,28 +69,28 @@ function handleSetSize(size: { width?: string; height?: string }) {
 
 const presetSizes = [
   {
-    width: "25%",
-    height: "auto",
+    width: '25%',
+    height: 'auto',
     icon: MdiImageSizeSelectSmall,
-    title: i18n.global.t("editor.extensions.image.small_size"),
+    title: i18n.global.t('editor.extensions.image.small_size'),
   },
   {
-    width: "50%",
-    height: "auto",
+    width: '50%',
+    height: 'auto',
     icon: MdiImageSizeSelectLarge,
-    title: i18n.global.t("editor.extensions.image.medium_size"),
+    title: i18n.global.t('editor.extensions.image.medium_size'),
   },
   {
-    width: "100%",
-    height: "auto",
+    width: '100%',
+    height: 'auto',
     icon: MdiImageSizeSelectActual,
-    title: i18n.global.t("editor.extensions.image.large_size"),
+    title: i18n.global.t('editor.extensions.image.large_size'),
   },
   {
     width: undefined,
     height: undefined,
     icon: MdiBackupRestore,
-    title: i18n.global.t("editor.extensions.image.restore_size"),
+    title: i18n.global.t('editor.extensions.image.restore_size'),
   },
 ];
 </script>

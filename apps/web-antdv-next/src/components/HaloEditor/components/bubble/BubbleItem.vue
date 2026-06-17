@@ -1,9 +1,14 @@
 <script lang="ts" setup>
-import { VDropdown } from "#/stubs/halo-components";
-import { ref, type Component } from "vue";
-import type { Editor } from "@HaloEditor/tiptap";
-import type { BubbleItemComponentProps } from "@HaloEditor/types";
-import BubbleButton from "./BubbleButton.vue";
+import type { Editor } from '@HaloEditor/tiptap';
+import type { BubbleItemComponentProps } from '@HaloEditor/types';
+
+import type { Component } from 'vue';
+
+import { ref } from 'vue';
+
+import { VDropdown } from '#/stubs/halo-components';
+
+import BubbleButton from './BubbleButton.vue';
 
 const props = withDefaults(defineProps<BubbleItemComponentProps>(), {
   isActive: () => false,
@@ -16,7 +21,7 @@ const handleBubbleItemClick = (editor: Editor) => {
     return;
   }
   const callback = props.action?.({ editor });
-  if (typeof callback === "object") {
+  if (typeof callback === 'object') {
     componentRef.value = callback;
   }
 };
@@ -43,7 +48,7 @@ const handleBubbleItemClick = (editor: Editor) => {
     </BubbleButton>
     <template #popper>
       <KeepAlive>
-        <component :is="componentRef" v-bind="props"></component>
+        <component :is="componentRef" v-bind="props" />
       </KeepAlive>
     </template>
   </VDropdown>

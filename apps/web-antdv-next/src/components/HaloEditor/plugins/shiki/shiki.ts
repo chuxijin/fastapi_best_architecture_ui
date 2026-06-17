@@ -1,13 +1,13 @@
-import { bundledLanguagesInfo, bundledThemesInfo } from "shiki";
+import { bundledLanguagesInfo, bundledThemesInfo } from 'shiki';
 
 export const fixedLanguages = [
   {
-    label: "None",
-    value: "",
+    label: 'None',
+    value: '',
   },
   {
-    label: "Plain Text",
-    value: "plaintext",
+    label: 'Plain Text',
+    value: 'plaintext',
   },
 ];
 

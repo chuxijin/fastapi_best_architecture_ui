@@ -1,6 +1,7 @@
 <script lang="ts" setup>
-import type { ToolbarItemComponentProps } from "@HaloEditor/types";
-import DropdownItem from "../base/DropdownItem.vue";
+import type { ToolbarItemComponentProps } from '@HaloEditor/types';
+
+import DropdownItem from '../base/DropdownItem.vue';
 
 const props = defineProps<ToolbarItemComponentProps>();
 

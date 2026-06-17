@@ -74,6 +74,16 @@ const routes: RouteRecordRaw[] = [
         },
       },
       {
+        name: 'GongkaoQuestionGeneration',
+        path: '/gongkao/question-generation',
+        component: () =>
+          import('#/views/gongkao/question-generation/index.vue'),
+        meta: {
+          title: 'AI 出题管理',
+          icon: 'mdi:creation-outline',
+        },
+      },
+      {
         name: 'GongkaoCategory',
         path: '/gongkao/category',
         component: () => import('#/views/gongkao/category/index.vue'),

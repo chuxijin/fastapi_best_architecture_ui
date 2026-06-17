@@ -4,7 +4,7 @@ import {
   Extension,
   Plugin,
   PluginKey,
-} from "@HaloEditor/tiptap";
+} from '@HaloEditor/tiptap';
 
 export interface ExtensionNodeSelectedOptions {
   className: string;
@@ -12,18 +12,18 @@ export interface ExtensionNodeSelectedOptions {
 
 export const ExtensionNodeSelected =
   Extension.create<ExtensionNodeSelectedOptions>({
-    name: "nodeSelected",
+    name: 'nodeSelected',
 
     addOptions() {
       return {
-        className: "has-node-selected",
+        className: 'has-node-selected',
       };
     },
 
     addProseMirrorPlugins() {
       return [
         new Plugin({
-          key: new PluginKey("nodeSelectedByAttr"),
+          key: new PluginKey('nodeSelectedByAttr'),
           props: {
             decorations: ({ doc }) => {
               const { isEditable, isFocused } = this.editor;
@@ -46,7 +46,7 @@ export const ExtensionNodeSelected =
                 decorations.push(
                   Decoration.node(pos, pos + node.nodeSize, {
                     class: this.options.className,
-                  })
+                  }),
                 );
               });
 

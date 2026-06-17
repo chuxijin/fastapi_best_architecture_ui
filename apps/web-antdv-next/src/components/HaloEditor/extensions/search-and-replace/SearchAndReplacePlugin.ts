@@ -1,5 +1,5 @@
-import scrollIntoView from "scroll-into-view-if-needed";
-import type { PMNode } from "@HaloEditor/tiptap";
+import type { PMNode } from '@HaloEditor/tiptap';
+
 import {
   Decoration,
   DecorationSet,
@@ -8,8 +8,9 @@ import {
   PluginKey,
   Selection,
   Transaction,
-} from "@HaloEditor/tiptap/pm";
-import { Editor } from "@HaloEditor/tiptap/vue-3";
+} from '@HaloEditor/tiptap/pm';
+import { Editor } from '@HaloEditor/tiptap/vue-3';
+import scrollIntoView from 'scroll-into-view-if-needed';
 export interface SearchAndReplacePluginProps {
   editor: Editor;
   element: HTMLElement;
@@ -18,20 +19,20 @@ export interface SearchAndReplacePluginProps {
 }
 
 export const searchAndReplacePluginKey =
-  new PluginKey<SearchAndReplacePluginState>("searchAndReplace");
+  new PluginKey<SearchAndReplacePluginState>('searchAndReplace');
 
 export type SearchAndReplacePluginViewProps = SearchAndReplacePluginProps & {
   view: EditorView;
 };
 
 export class SearchAndReplacePluginView {
-  public editor: Editor;
-
-  public view: EditorView;
-
   public containerElement: HTMLElement;
 
+  public editor: Editor;
+
   public init: boolean;
+
+  public view: EditorView;
 
   constructor({ view, editor, element }: SearchAndReplacePluginViewProps) {
     this.editor = editor;
@@ -40,19 +41,19 @@ export class SearchAndReplacePluginView {
     this.init = false;
   }
 
+  destroy() {
+    return false;
+  }
+
   update() {
     const headerParentElement = this.findEditorEntryElement();
     if (!this.init && headerParentElement) {
       headerParentElement.insertAdjacentElement(
-        "afterbegin",
-        this.containerElement
+        'afterbegin',
+        this.containerElement,
       );
       this.init = true;
     }
-    return false;
-  }
-
-  destroy() {
     return false;
   }
 
@@ -60,7 +61,7 @@ export class SearchAndReplacePluginView {
     const editorElement = this.editor.options.element as HTMLElement;
     let currentElement = editorElement;
     while (currentElement) {
-      if (currentElement.classList.contains("editor-main")) {
+      if (currentElement.classList.contains('editor-main')) {
         return currentElement;
       }
 
@@ -87,20 +88,28 @@ export interface SearchResultWithPosition {
 }
 
 export class SearchAndReplacePluginState {
-  private _findIndex: number;
+  public caseSensitive: boolean;
   public editor: Editor;
   public enable: boolean;
+  public findCount: number;
+  public findIndexDecoration: Decoration | undefined;
   // Whether it is necessary to reset the findIndex based on the cursor position.
   public findIndexFlag: boolean;
-  public findCount: number;
-  public searchTerm: string;
-  public replaceTerm: string;
   public regex: boolean;
-  public caseSensitive: boolean;
-  public wholeWord: boolean;
+  public replaceTerm: string;
   public results: SearchResultWithPosition[] = [];
   public searchResultDecorations: Decoration[] = [];
-  public findIndexDecoration: Decoration | undefined;
+  public searchTerm: string;
+  public wholeWord: boolean;
+  get findIndex() {
+    return this._findIndex;
+  }
+
+  set findIndex(newValue) {
+    this._findIndex = this.verifySetIndex(newValue);
+  }
+
+  private _findIndex: number;
 
   constructor({
     editor,
@@ -109,16 +118,16 @@ export class SearchAndReplacePluginState {
     caseSensitive,
     wholeWord,
   }: {
+    caseSensitive?: boolean;
     editor: Editor;
     enable?: boolean;
     regex?: boolean;
-    caseSensitive?: boolean;
     wholeWord?: boolean;
   }) {
     this.editor = editor;
     this.enable = enable || false;
-    this.searchTerm = "";
-    this.replaceTerm = "";
+    this.searchTerm = '';
+    this.replaceTerm = '';
     this.regex = regex || false;
     this.caseSensitive = caseSensitive || false;
     this.wholeWord = wholeWord || false;
@@ -130,18 +139,10 @@ export class SearchAndReplacePluginState {
     this.findIndexFlag = true;
   }
 
-  get findIndex() {
-    return this._findIndex;
-  }
-
-  set findIndex(newValue) {
-    this._findIndex = this.verifySetIndex(newValue);
-  }
-
   apply(tr: Transaction): SearchAndReplacePluginState {
     const action = tr.getMeta(searchAndReplacePluginKey);
 
-    if (action && "setEnable" in action) {
+    if (action && 'setEnable' in action) {
       if (action.setEnable && !this.enable) {
         action.setSearchTerm = this.searchTerm;
       }
@@ -158,42 +159,44 @@ export class SearchAndReplacePluginState {
       this.processSearches(tr);
     }
 
-    if (action && "setReplaceTerm" in action) {
+    if (action && 'setReplaceTerm' in action) {
       this.replaceTerm = action.setReplaceTerm;
     }
 
-    if (action && "setFindIndex" in action) {
+    if (action && 'setFindIndex' in action) {
       const { setFindIndex } = action;
       this.findIndex = setFindIndex;
       this.processFindIndexDecoration();
     }
 
-    if (action && "setScrollView") {
+    if (action && 'setScrollView') {
       this.scrollIntoFindIndexView();
     }
 
-    if (action && "setRegex" in action) {
-      if (this.regex !== action.setRegex) {
-        this.regex = action.setRegex;
-        action.setSearchTerm = this.searchTerm;
-      }
+    if (action && 'setRegex' in action && this.regex !== action.setRegex) {
+      this.regex = action.setRegex;
+      action.setSearchTerm = this.searchTerm;
     }
 
-    if (action && "setWholeWord" in action) {
-      if (this.wholeWord !== action.setWholeWord) {
-        this.wholeWord = action.setWholeWord;
-        action.setSearchTerm = this.searchTerm;
-      }
+    if (
+      action &&
+      'setWholeWord' in action &&
+      this.wholeWord !== action.setWholeWord
+    ) {
+      this.wholeWord = action.setWholeWord;
+      action.setSearchTerm = this.searchTerm;
     }
 
-    if (action && "setCaseSensitive" in action) {
-      if (this.caseSensitive !== action.setCaseSensitive) {
-        this.caseSensitive = action.setCaseSensitive;
-        action.setSearchTerm = this.searchTerm;
-      }
+    if (
+      action &&
+      'setCaseSensitive' in action &&
+      this.caseSensitive !== action.setCaseSensitive
+    ) {
+      this.caseSensitive = action.setCaseSensitive;
+      action.setSearchTerm = this.searchTerm;
     }
 
-    if (action && "setSearchTerm" in action) {
+    if (action && 'setSearchTerm' in action) {
       this.searchTerm = action.setSearchTerm;
       this.findIndexFlag = true;
       // If the searchTerm is modified or replaced, perform a new
@@ -205,11 +208,139 @@ export class SearchAndReplacePluginState {
 
     if (tr.docChanged) {
       return this.processSearches(tr);
-    } else if (tr.getMeta("pointer")) {
+    } else if (tr.getMeta('pointer')) {
       this.getNearestResultBySelection(tr.selection);
       this.processFindIndexDecoration();
     }
 
+    return this;
+  }
+
+  /**
+   * Convert the entire text into flattened text with positions.
+   *
+   * @param doc The entire document
+   * @returns Flattened text with positions
+   */
+  getFullText(doc: PMNode): TextNodesWithPosition[] {
+    const textNodesWithPosition: TextNodesWithPosition[] = [];
+    doc.descendants((node, pos, _parent, index) => {
+      if (node.isText) {
+        textNodesWithPosition.push({
+          text: `${node.text}`,
+          pos,
+          index,
+        });
+      }
+    });
+    return textNodesWithPosition;
+  }
+
+  /**
+   * Reset findIndex based on the current cursor position.
+   *
+   * @param selection Current cursor position.
+   */
+  getNearestResultBySelection(selection: Selection) {
+    const { results } = this;
+    for (const [i, result] of results.entries()) {
+      if (selection && selection.to <= result.from) {
+        this.findIndex = i;
+        break;
+      }
+    }
+  }
+
+  /**
+   * Get the regular expression object based on the current search term.
+   *
+   * @returns Regular expression object
+   */
+  getRegex = (): RegExp => {
+    const { searchTerm, regex, caseSensitive, wholeWord } = this;
+    let pattern = regex
+      ? searchTerm
+      : searchTerm.replaceAll(/[.*+?^${}()|[\]\\]/g, String.raw`\$&`);
+    if (wholeWord) {
+      pattern = String.raw`\b${pattern}\b`;
+    }
+    return new RegExp(pattern, caseSensitive ? 'gu' : 'gui');
+  };
+
+  /**
+   * Highlight the current result based on findIndex.
+   *
+   * @memberof SearchAndReplacePluginState
+   */
+  processFindIndexDecoration() {
+    const { results, findIndex } = this;
+    const result = results[findIndex];
+    if (result) {
+      this.findIndexDecoration = Decoration.inline(result.from, result.to, {
+        class: 'search-result-current',
+      });
+    }
+  }
+
+  /**
+   * Generate highlighted results based on the 'results'.
+   *
+   * @memberof SearchAndReplacePluginState
+   */
+  processResultDecorations() {
+    const { results } = this;
+    this.findCount = results.length;
+    this.searchResultDecorations.length = 0;
+    for (const result of results) {
+      this.searchResultDecorations.push(
+        Decoration.inline(result.from, result.to, {
+          class: 'search-result',
+        }),
+      );
+    }
+  }
+
+  /**
+   * Execute full-text search functionality.
+   *
+   * @param Transaction
+   * @returns
+   * @memberof SearchAndReplacePluginState
+   */
+  processSearches({
+    doc,
+    selection,
+  }: Transaction): SearchAndReplacePluginState {
+    const textNodesWithPosition = this.getFullText(doc);
+    const searchTerm = this.getRegex();
+    this.results.length = 0;
+    for (const { text, pos, index } of textNodesWithPosition) {
+      const matches = [...text.matchAll(searchTerm)].filter(([matchText]) =>
+        matchText.trim(),
+      );
+
+      for (const m of matches) {
+        if (m[0] === '') {
+          break;
+        }
+
+        if (m.index !== undefined) {
+          this.results.push({
+            pos,
+            index,
+            from: pos + m.index,
+            to: pos + m.index + m[0].length,
+          });
+        }
+      }
+    }
+
+    this.processResultDecorations();
+    if (this.findIndexFlag) {
+      this.getNearestResultBySelection(selection);
+      this.findIndexFlag = false;
+    }
+    this.processFindIndexDecoration();
     return this;
   }
 
@@ -226,8 +357,8 @@ export class SearchAndReplacePluginState {
         }
         if (node instanceof HTMLElement) {
           scrollIntoView(node, {
-            behavior: "smooth",
-            scrollMode: "if-needed",
+            behavior: 'smooth',
+            scrollMode: 'if-needed',
           });
         }
       }
@@ -255,144 +386,10 @@ export class SearchAndReplacePluginState {
       return index;
     }
   }
-
-  /**
-   * Execute full-text search functionality.
-   *
-   * @param Transaction
-   * @returns
-   * @memberof SearchAndReplacePluginState
-   */
-  processSearches({
-    doc,
-    selection,
-  }: Transaction): SearchAndReplacePluginState {
-    const textNodesWithPosition = this.getFullText(doc);
-    const searchTerm = this.getRegex();
-    this.results.length = 0;
-    for (let i = 0; i < textNodesWithPosition.length; i += 1) {
-      const { text, pos, index } = textNodesWithPosition[i];
-
-      const matches = Array.from(text.matchAll(searchTerm)).filter(
-        ([matchText]) => matchText.trim()
-      );
-
-      for (let j = 0; j < matches.length; j += 1) {
-        const m = matches[j];
-
-        if (m[0] === "") {
-          break;
-        }
-
-        if (m.index !== undefined) {
-          this.results.push({
-            pos: pos,
-            index: index,
-            from: pos + m.index,
-            to: pos + m.index + m[0].length,
-          });
-        }
-      }
-    }
-
-    this.processResultDecorations();
-    if (this.findIndexFlag) {
-      this.getNearestResultBySelection(selection);
-      this.findIndexFlag = false;
-    }
-    this.processFindIndexDecoration();
-    return this;
-  }
-
-  /**
-   * Highlight the current result based on findIndex.
-   *
-   * @memberof SearchAndReplacePluginState
-   */
-  processFindIndexDecoration() {
-    const { results, findIndex } = this;
-    const result = results[findIndex];
-    if (result) {
-      this.findIndexDecoration = Decoration.inline(result.from, result.to, {
-        class: "search-result-current",
-      });
-    }
-  }
-
-  /**
-   * Generate highlighted results based on the 'results'.
-   *
-   * @memberof SearchAndReplacePluginState
-   */
-  processResultDecorations() {
-    const { results } = this;
-    this.findCount = results.length;
-    this.searchResultDecorations.length = 0;
-    for (let i = 0; i < results.length; i += 1) {
-      const result = results[i];
-      this.searchResultDecorations.push(
-        Decoration.inline(result.from, result.to, {
-          class: "search-result",
-        })
-      );
-    }
-  }
-
-  /**
-   * Reset findIndex based on the current cursor position.
-   *
-   * @param selection Current cursor position.
-   */
-  getNearestResultBySelection(selection: Selection) {
-    const { results } = this;
-    for (let i = 0; i < results.length; i += 1) {
-      const result = results[i];
-      if (selection && selection.to <= result.from) {
-        this.findIndex = i;
-        break;
-      }
-    }
-  }
-
-  /**
-   * Convert the entire text into flattened text with positions.
-   *
-   * @param doc The entire document
-   * @returns Flattened text with positions
-   */
-  getFullText(doc: PMNode): TextNodesWithPosition[] {
-    const textNodesWithPosition: TextNodesWithPosition[] = [];
-    doc.descendants((node, pos, _parent, index) => {
-      if (node.isText) {
-        textNodesWithPosition.push({
-          text: `${node.text}`,
-          pos,
-          index,
-        });
-      }
-    });
-    return textNodesWithPosition;
-  }
-
-  /**
-   * Get the regular expression object based on the current search term.
-   *
-   * @returns Regular expression object
-   */
-  getRegex = (): RegExp => {
-    const { searchTerm, regex, caseSensitive, wholeWord } = this;
-    let pattern = regex
-      ? searchTerm
-      : searchTerm.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-    if (wholeWord) {
-      pattern = `\\b${pattern}\\b`;
-    }
-    return new RegExp(pattern, caseSensitive ? "gu" : "gui");
-  };
 }
 
 export const SearchAndReplacePlugin = (
-  options: SearchAndReplacePluginProps
+  options: SearchAndReplacePluginProps,
 ) => {
   return new Plugin({
     key: searchAndReplacePluginKey,

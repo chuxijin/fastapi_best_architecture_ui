@@ -1,6 +1,8 @@
 <script lang="ts" setup>
 import type { RouteLocationNormalized } from 'vue-router';
 
+import type { TabDefinition } from '@vben/types';
+
 import { computed, ref } from 'vue';
 import { useRoute } from 'vue-router';
 
@@ -30,11 +32,13 @@ const tabNames = computed(
 
 const showIframe = computed(() => iframeRoutes.value.length > 0);
 
-function routeShow(tabItem: RouteLocationNormalized) {
+type IframeRoute = RouteLocationNormalized | TabDefinition;
+
+function routeShow(tabItem: IframeRoute) {
   return tabItem.name === route.name;
 }
 
-function canRender(tabItem: RouteLocationNormalized) {
+function canRender(tabItem: IframeRoute) {
   const { meta, name } = tabItem;
 
   if (!name || !tabbarStore.renderRouteView) {

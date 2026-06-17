@@ -106,6 +106,14 @@ interface RouteMeta {
    */
   menuVisibleWithForbidden?: boolean;
   /**
+   * 面包屑备用名称
+   */
+  name?: string;
+  /**
+   * 标签页动态标题
+   */
+  newTabTitle?: any;
+  /**
    * 不使用基础布局（仅在顶级生效）
    */
   noBasicLayout?: boolean;
@@ -125,6 +133,11 @@ interface RouteMeta {
    * 标题名称
    */
   title: string;
+  /**
+   * 标签页是否可关闭
+   * @default true
+   */
+  tabClosable?: boolean;
 }
 
 // 定义递归类型以将 RouteRecordRaw 的 component 属性更改为 string

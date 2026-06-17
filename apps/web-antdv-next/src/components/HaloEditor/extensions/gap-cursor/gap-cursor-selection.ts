@@ -1,85 +1,23 @@
-import type { PMNode } from "@HaloEditor/tiptap";
+import type { PMNode } from '@HaloEditor/tiptap';
+import type { Mappable } from '@HaloEditor/tiptap/pm';
+
 import {
   NodeSelection,
   ResolvedPos,
   Selection,
   Slice,
-  type Mappable,
-} from "@HaloEditor/tiptap/pm";
+} from '@HaloEditor/tiptap/pm';
 
 class GapCursorSelection extends Selection {
+  get isStart() {
+    return this.start;
+  }
+
   private start: boolean | null = false;
 
   constructor($pos: ResolvedPos) {
     super($pos, $pos);
     this.start = isNodeStart($pos);
-  }
-
-  map(doc: PMNode, mapping: Mappable): Selection {
-    const $pos = doc.resolve(mapping.map(this.head));
-    return GapCursorSelection.valid($pos)
-      ? new GapCursorSelection($pos)
-      : Selection.near($pos);
-  }
-
-  content() {
-    return Slice.empty;
-  }
-
-  eq(other: Selection): boolean {
-    return other instanceof GapCursorSelection && other.head == this.head;
-  }
-
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  toJSON(): any {
-    return { type: "node-gap-cursor", pos: this.head };
-  }
-
-  get isStart() {
-    return this.start;
-  }
-
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  static fromJSON(doc: PMNode, json: any): GapCursorSelection {
-    if (typeof json.pos != "number") {
-      throw new RangeError("Invalid input for GapCursorSelection.fromJSON");
-    }
-    return new GapCursorSelection(doc.resolve(json.pos));
-  }
-
-  getBookmark() {
-    return new GapBookmark(this.anchor);
-  }
-
-  /**
-   * Validates if a GapCursor can be placed at the given position
-   *
-   * This function checks whether a GapCursor can be placed at the specified position in the document.
-   * It ensures that the position is not within a text block, and that the node at the position allows a GapCursor.
-   *
-   * @param {ResolvedPos} $pos - The resolved position in the document to validate.
-   * @returns {boolean} - Returns true if a GapCursor can be placed at the given position, false otherwise.
-   */
-  static valid($pos: ResolvedPos) {
-    if ($pos.depth < 1) {
-      return false;
-    }
-    // Get the node at the current position
-    const nodeOffset = $pos.doc.childBefore($pos.pos);
-    const root = nodeOffset.node;
-    if (!root) {
-      return false;
-    }
-    const parent = $pos.parent;
-    if (parent.isTextblock || (!closedBefore($pos) && !closedAfter($pos))) {
-      return false;
-    }
-    // Check if the node allows a GapCursor
-    const override = root.type.spec.allowGapCursor;
-    if (!override) {
-      return false;
-    }
-    return !root.type.inlineContent;
   }
 
   static findGapCursorFrom($pos: ResolvedPos, dir: number, mustMove = false) {
@@ -89,7 +27,7 @@ class GapCursorSelection extends Selection {
         return $pos;
       }
       let pos = $pos.pos;
-      let next: PMNode | null = null;
+      let next: null | PMNode = null;
 
       // Scan up from this position
       for (let d = $pos.depth; d >= 0; d--) {
@@ -101,7 +39,7 @@ class GapCursorSelection extends Selection {
           break;
         }
 
-        if (d == 0) {
+        if (d === 0) {
           return null;
         }
 
@@ -143,18 +81,81 @@ class GapCursorSelection extends Selection {
 
     return null;
   }
+
+  static fromJSON(doc: PMNode, json: any): GapCursorSelection {
+    if (typeof json.pos !== 'number') {
+      throw new RangeError('Invalid input for GapCursorSelection.fromJSON');
+    }
+    return new GapCursorSelection(doc.resolve(json.pos));
+  }
+
+  /**
+   * Validates if a GapCursor can be placed at the given position
+   *
+   * This function checks whether a GapCursor can be placed at the specified position in the document.
+   * It ensures that the position is not within a text block, and that the node at the position allows a GapCursor.
+   *
+   * @param {ResolvedPos} $pos - The resolved position in the document to validate.
+   * @returns {boolean} - Returns true if a GapCursor can be placed at the given position, false otherwise.
+   */
+  static valid($pos: ResolvedPos) {
+    if ($pos.depth < 1) {
+      return false;
+    }
+    // Get the node at the current position
+    const nodeOffset = $pos.doc.childBefore($pos.pos);
+    const root = nodeOffset.node;
+    if (!root) {
+      return false;
+    }
+    const parent = $pos.parent;
+    if (parent.isTextblock || (!closedBefore($pos) && !closedAfter($pos))) {
+      return false;
+    }
+    // Check if the node allows a GapCursor
+    const override = root.type.spec.allowGapCursor;
+    if (!override) {
+      return false;
+    }
+    return !root.type.inlineContent;
+  }
+
+  content() {
+    return Slice.empty;
+  }
+
+  eq(other: Selection): boolean {
+    return other instanceof GapCursorSelection && other.head === this.head;
+  }
+
+  getBookmark() {
+    return new GapBookmark(this.anchor);
+  }
+
+  map(doc: PMNode, mapping: Mappable): Selection {
+    // eslint-disable-next-line unicorn/no-array-callback-reference
+    const $pos = doc.resolve(mapping.map(this.head));
+    return GapCursorSelection.valid($pos)
+      ? new GapCursorSelection($pos)
+      : Selection.near($pos);
+  }
+
+  toJSON(): any {
+    return { type: 'node-gap-cursor', pos: this.head };
+  }
 }
 
 GapCursorSelection.prototype.visible = false;
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
+
 (GapCursorSelection as any).findFrom = GapCursorSelection.findGapCursorFrom;
 
-Selection.jsonID("node-gap-cursor", GapCursorSelection);
+Selection.jsonID('node-gap-cursor', GapCursorSelection);
 
 class GapBookmark {
   constructor(readonly pos: number) {}
 
   map(mapping: Mappable) {
+    // eslint-disable-next-line unicorn/no-array-callback-reference
     return new GapBookmark(mapping.map(this.pos));
   }
 

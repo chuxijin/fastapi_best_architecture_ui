@@ -1,13 +1,17 @@
 <script lang="ts" setup>
-import { VDropdown, vTooltip } from "#/stubs/halo-components";
-import { TextSelection } from "@tiptap/pm/state";
-import { test } from "linkifyjs";
-import { computed } from "vue";
-import MingcuteLinkLine from "~icons/mingcute/link-line";
-import Input from "@HaloEditor/components/base/Input.vue";
-import { i18n } from "@HaloEditor/locales";
-import type { BubbleItemComponentProps } from "@HaloEditor/types";
-import { ExtensionLink } from ".";
+import type { BubbleItemComponentProps } from '@HaloEditor/types';
+
+import { computed } from 'vue';
+
+import Input from '@HaloEditor/components/base/Input.vue';
+import { i18n } from '@HaloEditor/locales';
+import { TextSelection } from '@tiptap/pm/state';
+import { test } from 'linkifyjs';
+import MingcuteLinkLine from '~icons/mingcute/link-line';
+
+import { VDropdown, vTooltip } from '#/stubs/halo-components';
+
+import { ExtensionLink } from '.';
 
 const props = defineProps<BubbleItemComponentProps>();
 
@@ -19,8 +23,8 @@ const href = computed({
   set(value) {
     props.editor.commands.setLink({
       href: value,
-      target: target.value ? "_blank" : "_self",
-      rel: rel.value ? "nofollow" : "",
+      target: target.value ? '_blank' : '_self',
+      rel: rel.value ? 'nofollow' : '',
     });
   },
 });
@@ -28,13 +32,13 @@ const href = computed({
 const target = computed({
   get() {
     const attrs = props.editor.getAttributes(ExtensionLink.name);
-    return attrs?.target === "_blank";
+    return attrs?.target === '_blank';
   },
   set(value) {
     props.editor.commands.setLink({
       href: href.value,
-      target: value ? "_blank" : "_self",
-      rel: rel.value ? "nofollow" : "",
+      target: value ? '_blank' : '_self',
+      rel: rel.value ? 'nofollow' : '',
     });
   },
 });
@@ -42,13 +46,13 @@ const target = computed({
 const rel = computed({
   get() {
     const attrs = props.editor.getAttributes(ExtensionLink.name);
-    return attrs?.rel === "nofollow";
+    return attrs?.rel === 'nofollow';
   },
   set(value) {
     props.editor.commands.setLink({
       href: href.value,
-      target: target.value ? "_blank" : "_self",
-      rel: value ? "nofollow" : "",
+      target: target.value ? '_blank' : '_self',
+      rel: value ? 'nofollow' : '',
     });
   },
 });
@@ -73,11 +77,11 @@ const handleLinkBubbleButton = () => {
       return false;
     }
     const text = content.firstChild?.textContent;
-    if (text && test(text, "url")) {
+    if (text && test(text, 'url')) {
       props.editor.commands.setLink({
         href: text,
-        target: "_self",
-        rel: "",
+        target: '_self',
+        rel: '',
       });
     }
   }
@@ -113,14 +117,14 @@ const handleLinkBubbleButton = () => {
         <label class="mr-2 mt-2 inline-flex items-center">
           <input v-model="target" type="checkbox" />
           <span class="ml-2 text-sm text-gray-500">
-            {{ i18n.global.t("editor.extensions.link.open_in_new_window") }}
+            {{ i18n.global.t('editor.extensions.link.open_in_new_window') }}
           </span>
         </label>
         <label class="mt-2 inline-flex items-center">
           <!-- nofollow -->
           <input v-model="rel" type="checkbox" />
           <span class="ml-2 text-sm text-gray-500">
-            {{ i18n.global.t("editor.extensions.link.nofollow") }}
+            {{ i18n.global.t('editor.extensions.link.nofollow') }}
           </span>
         </label>
       </div>

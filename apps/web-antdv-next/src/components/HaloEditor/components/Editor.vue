@@ -1,11 +1,17 @@
 <script lang="ts" setup>
-import { provide, watch, type CSSProperties, type PropType } from "vue";
-import { editorConfigKey, type EditorConfig } from "@HaloEditor/config";
-import { i18n } from "@HaloEditor/locales";
-import { EditorContent, VueEditor } from "@HaloEditor/tiptap";
-import EditorBubbleMenu from "./bubble/EditorBubbleMenu.vue";
-import EditorDragHandle from "./drag/EditorDragHandle.vue";
-import EditorHeader from "./EditorHeader.vue";
+import type { EditorConfig } from '@HaloEditor/config';
+
+import type { CSSProperties, PropType } from 'vue';
+
+import { provide, watch } from 'vue';
+
+import { editorConfigKey } from '@HaloEditor/config';
+import { i18n } from '@HaloEditor/locales';
+import { EditorContent, VueEditor } from '@HaloEditor/tiptap';
+
+import EditorBubbleMenu from './bubble/EditorBubbleMenu.vue';
+import EditorDragHandle from './drag/EditorDragHandle.vue';
+import EditorHeader from './EditorHeader.vue';
 
 const props = defineProps({
   editor: {
@@ -18,9 +24,9 @@ const props = defineProps({
     default: () => ({}),
   },
   locale: {
-    type: String as PropType<"zh-CN" | "en" | "zh" | "en-US">,
+    type: String as PropType<'en' | 'en-US' | 'zh' | 'zh-CN'>,
     required: false,
-    default: "zh-CN",
+    default: 'zh-CN',
   },
   config: {
     type: Object as PropType<EditorConfig>,
@@ -38,21 +44,21 @@ watch(
   },
   {
     immediate: true,
-  }
+  },
 );
 </script>
 <template>
   <div v-if="editor" class="halo-rich-text-editor">
-    <editor-bubble-menu :editor="editor" />
-    <editor-drag-handle :editor="editor" />
-    <editor-header :editor="editor" />
+    <EditorBubbleMenu :editor="editor" />
+    <EditorDragHandle :editor="editor" />
+    <EditorHeader :editor="editor" />
     <div class="editor-entry">
       <div class="editor-main">
         <div v-if="$slots.content" class="editor-main-extra">
-          <slot name="content" />
+          <slot name="content"></slot>
         </div>
 
-        <editor-content
+        <EditorContent
           :editor="editor"
           :style="contentStyles"
           class="editor-main-content markdown-body"

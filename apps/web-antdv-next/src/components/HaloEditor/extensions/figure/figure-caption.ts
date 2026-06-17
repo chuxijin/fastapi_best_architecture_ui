@@ -1,4 +1,4 @@
-import { i18n } from "@HaloEditor/locales";
+import { i18n } from '@HaloEditor/locales';
 import {
   isActive,
   mergeAttributes,
@@ -7,26 +7,27 @@ import {
   PluginKey,
   TextSelection,
   VueNodeViewRenderer,
-} from "@HaloEditor/tiptap";
-import FigureCaptionView from "./FigureCaptionView.vue";
+} from '@HaloEditor/tiptap';
+
+import FigureCaptionView from './FigureCaptionView.vue';
 
 export const ExtensionFigureCaption = Node.create({
-  name: "figureCaption",
-  content: "text*",
+  name: 'figureCaption',
+  content: 'text*',
   inline: false,
-  group: "block",
+  group: 'block',
 
   addAttributes() {
     return {
-      "data-placeholder": {
+      'data-placeholder': {
         default: null,
-        parseHTML: (element) => element.getAttribute("data-placeholder"),
+        parseHTML: (element) => element.dataset.placeholder,
         renderHTML: (attributes) => {
           return {
-            "data-placeholder":
+            'data-placeholder':
               attributes.dataPlaceholder ||
               i18n.global.t(
-                "editor.extensions.figure_caption.empty_placeholder"
+                'editor.extensions.figure_caption.empty_placeholder',
               ),
           };
         },
@@ -34,7 +35,7 @@ export const ExtensionFigureCaption = Node.create({
       width: {
         default: null,
         parseHTML: (element) => {
-          const style = element.getAttribute("style");
+          const style = element.getAttribute('style');
           if (style) {
             const match = style.match(/width:\s*([^;]+)/);
             if (match) {
@@ -55,7 +56,7 @@ export const ExtensionFigureCaption = Node.create({
 
   addKeyboardShortcuts() {
     return {
-      "Mod-a": ({ editor }) => {
+      'Mod-a': ({ editor }) => {
         const { state } = editor;
         const { selection } = state;
         const { $from } = selection;
@@ -97,7 +98,7 @@ export const ExtensionFigureCaption = Node.create({
             const paragraph = tr.doc.type.schema.nodes.paragraph.create();
             tr.insert(afterFigurePos, paragraph);
             tr.setSelection(
-              TextSelection.near(tr.doc.resolve(afterFigurePos + 1))
+              TextSelection.near(tr.doc.resolve(afterFigurePos + 1)),
             );
             return true;
           })
@@ -109,8 +110,8 @@ export const ExtensionFigureCaption = Node.create({
   },
 
   addProseMirrorPlugins() {
-    const pluginKey = new PluginKey<{ previousCaptionPos: number | null }>(
-      "figureCaptionAutoDelete"
+    const pluginKey = new PluginKey<{ previousCaptionPos: null | number }>(
+      'figureCaptionAutoDelete',
     );
 
     return [
@@ -118,12 +119,12 @@ export const ExtensionFigureCaption = Node.create({
         key: pluginKey,
         state: {
           init() {
-            return { previousCaptionPos: null as number | null };
+            return { previousCaptionPos: null as null | number };
           },
           apply(tr) {
             const { selection } = tr;
             const { $from } = selection;
-            let currentCaptionPos: number | null = null;
+            let currentCaptionPos: null | number = null;
             for (let depth = $from.depth; depth > 0; depth--) {
               const node = $from.node(depth);
               if (node.type.name === ExtensionFigureCaption.name) {
@@ -176,7 +177,7 @@ export const ExtensionFigureCaption = Node.create({
                 const tr = newState.tr;
                 tr.delete(
                   previousCaptionPos,
-                  previousCaptionPos + captionNode.nodeSize
+                  previousCaptionPos + captionNode.nodeSize,
                 );
                 return tr;
               }
@@ -192,14 +193,14 @@ export const ExtensionFigureCaption = Node.create({
   parseHTML() {
     return [
       {
-        tag: "figcaption",
+        tag: 'figcaption',
       },
     ];
   },
 
   renderHTML({ HTMLAttributes }) {
     return [
-      "figcaption",
+      'figcaption',
       mergeAttributes(this.options.HTMLAttributes, HTMLAttributes),
       0,
     ];

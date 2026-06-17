@@ -1,15 +1,19 @@
 <script lang="ts" setup>
-import { VDropdown } from "#/stubs/halo-components";
-import { computed } from "vue";
-import MingcuteAlignCenterLine from "~icons/mingcute/align-center-line";
-import MingcuteAlignJustifyLine from "~icons/mingcute/align-justify-line";
-import MingcuteAlignLeftLine from "~icons/mingcute/align-left-line";
-import MingcuteAlignRightLine from "~icons/mingcute/align-right-line";
-import DropdownItem from "@HaloEditor/components/base/DropdownItem.vue";
-import BubbleButton from "@HaloEditor/components/bubble/BubbleButton.vue";
-import { i18n } from "@HaloEditor/locales";
-import type { BubbleItemComponentProps } from "@HaloEditor/types";
-import { ExtensionParagraph } from "..";
+import type { BubbleItemComponentProps } from '@HaloEditor/types';
+
+import { computed } from 'vue';
+
+import DropdownItem from '@HaloEditor/components/base/DropdownItem.vue';
+import BubbleButton from '@HaloEditor/components/bubble/BubbleButton.vue';
+import { i18n } from '@HaloEditor/locales';
+import MingcuteAlignCenterLine from '~icons/mingcute/align-center-line';
+import MingcuteAlignJustifyLine from '~icons/mingcute/align-justify-line';
+import MingcuteAlignLeftLine from '~icons/mingcute/align-left-line';
+import MingcuteAlignRightLine from '~icons/mingcute/align-right-line';
+
+import { VDropdown } from '#/stubs/halo-components';
+
+import { ExtensionParagraph } from '..';
 
 const props = withDefaults(defineProps<BubbleItemComponentProps>(), {
   visible: () => true,
@@ -17,34 +21,34 @@ const props = withDefaults(defineProps<BubbleItemComponentProps>(), {
 
 const alignOptions = [
   {
-    text: i18n.global.t("editor.common.align_left"),
-    value: "left",
+    text: i18n.global.t('editor.common.align_left'),
+    value: 'left',
     icon: MingcuteAlignLeftLine,
   },
   {
-    text: i18n.global.t("editor.common.align_center"),
-    value: "center",
+    text: i18n.global.t('editor.common.align_center'),
+    value: 'center',
     icon: MingcuteAlignCenterLine,
   },
   {
-    text: i18n.global.t("editor.common.align_right"),
-    value: "right",
+    text: i18n.global.t('editor.common.align_right'),
+    value: 'right',
     icon: MingcuteAlignRightLine,
   },
   {
-    text: i18n.global.t("editor.common.align_justify"),
-    value: "justify",
+    text: i18n.global.t('editor.common.align_justify'),
+    value: 'justify',
     icon: MingcuteAlignJustifyLine,
   },
 ];
 
 const currentAlign = computed(() => {
   const textAlignAttribute = props.editor.getAttributes(
-    ExtensionParagraph.name
+    ExtensionParagraph.name,
   ).textAlign;
 
   const alignOption = alignOptions.find(
-    (option) => option.value === textAlignAttribute
+    (option) => option.value === textAlignAttribute,
   );
 
   if (!alignOption) {

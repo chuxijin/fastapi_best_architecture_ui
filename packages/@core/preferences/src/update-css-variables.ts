@@ -16,7 +16,7 @@ function updateCSSVariables(preferences: Preferences) {
     return;
   }
 
-  const theme = preferences?.theme ?? {};
+  const theme = preferences.theme;
 
   const { builtinType, mode, radius } = theme;
 

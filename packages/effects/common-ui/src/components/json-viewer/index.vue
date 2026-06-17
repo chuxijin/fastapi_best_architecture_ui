@@ -11,7 +11,6 @@ import type {
 } from './types';
 
 import { computed, useAttrs } from 'vue';
-// @ts-expect-error - vue-json-viewer does not expose compatible typings for this import path
 import VueJsonViewerImport from 'vue-json-viewer';
 
 import { $t } from '@vben/locales';

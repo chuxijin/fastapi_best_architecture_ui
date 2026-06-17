@@ -1,12 +1,12 @@
 <script lang="ts" setup>
-import { vTooltip } from "#/stubs/halo-components";
+import { vTooltip } from '#/stubs/halo-components';
 
 withDefaults(
   defineProps<{
-    tooltip?: string;
-    selected?: boolean;
     disabled?: boolean;
     isActive?: boolean;
+    selected?: boolean;
+    tooltip?: string;
     visible?: boolean;
   }>(),
   {
@@ -15,7 +15,7 @@ withDefaults(
     disabled: false,
     isActive: false,
     visible: true,
-  }
+  },
 );
 </script>
 
@@ -31,7 +31,7 @@ withDefaults(
     }"
     :disabled="disabled"
   >
-    <slot name="icon" />
+    <slot name="icon"></slot>
   </button>
 </template>
 

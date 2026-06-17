@@ -1,12 +1,13 @@
-import TiptapUnderline, {
-  type UnderlineOptions,
-} from "@tiptap/extension-underline";
-import { markRaw } from "vue";
-import MingcuteUnderlineLine from "~icons/mingcute/underline-line";
-import ToolbarItem from "@HaloEditor/components/toolbar/ToolbarItem.vue";
-import { i18n } from "@HaloEditor/locales";
-import type { Editor } from "@HaloEditor/tiptap";
-import type { ExtensionOptions } from "@HaloEditor/types";
+import type { Editor } from '@HaloEditor/tiptap';
+import type { ExtensionOptions } from '@HaloEditor/types';
+import type { UnderlineOptions } from '@tiptap/extension-underline';
+
+import { markRaw } from 'vue';
+
+import ToolbarItem from '@HaloEditor/components/toolbar/ToolbarItem.vue';
+import { i18n } from '@HaloEditor/locales';
+import TiptapUnderline from '@tiptap/extension-underline';
+import MingcuteUnderlineLine from '~icons/mingcute/underline-line';
 
 export type ExtensionUnderlineOptions = ExtensionOptions &
   Partial<UnderlineOptions>;
@@ -24,7 +25,7 @@ export const ExtensionUnderline =
               editor,
               isActive: editor.isActive(TiptapUnderline.name),
               icon: markRaw(MingcuteUnderlineLine),
-              title: i18n.global.t("editor.common.underline"),
+              title: i18n.global.t('editor.common.underline'),
               action: () => editor.chain().focus().toggleUnderline().run(),
             },
           };

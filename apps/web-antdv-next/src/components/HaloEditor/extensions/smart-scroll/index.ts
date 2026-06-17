@@ -1,15 +1,16 @@
-import { Plugin, PluginKey } from "@tiptap/pm/state";
-import { EditorView, Extension } from "@HaloEditor/tiptap";
-import { getCursorCoords } from "@HaloEditor/utils/get-cursor-coords";
+/* eslint-disable no-useless-assignment */
+import { EditorView, Extension } from '@HaloEditor/tiptap';
+import { getCursorCoords } from '@HaloEditor/utils/get-cursor-coords';
+import { Plugin, PluginKey } from '@tiptap/pm/state';
 
 export interface SmartScrollOptions {
   /**
    * The container to scroll
    */
   scrollContainer?:
-    | string
+    | ((editor: EditorView) => HTMLElement)
     | HTMLElement
-    | ((editor: EditorView) => HTMLElement);
+    | string;
   /**
    * Top threshold (pixels), when the cursor is less than this value from the top of the viewport, trigger scrolling
    * @default 150
@@ -35,7 +36,7 @@ export interface SmartScrollOptions {
  * When the cursor is close to the top or bottom of the viewport, trigger scrolling to keep the cursor in the center of the viewport
  */
 export const ExtensionSmartScroll = Extension.create<SmartScrollOptions>({
-  name: "smartScroll",
+  name: 'smartScroll',
 
   addOptions() {
     return {
@@ -52,7 +53,7 @@ export const ExtensionSmartScroll = Extension.create<SmartScrollOptions>({
 
     return [
       new Plugin({
-        key: new PluginKey("smartScroll"),
+        key: new PluginKey('smartScroll'),
         view() {
           return {
             update(view, prevState) {
@@ -94,22 +95,22 @@ export const ExtensionSmartScroll = Extension.create<SmartScrollOptions>({
 
 const getScrollContainer = (
   view: EditorView,
-  options: SmartScrollOptions
+  options: SmartScrollOptions,
 ): HTMLElement | null => {
   let scrollContainer: HTMLElement | null = null;
-  if (!options.scrollContainer) {
-    const editorElement = view.dom as HTMLElement;
-    scrollContainer = findScrollContainer(editorElement);
-  } else {
-    if (typeof options.scrollContainer === "function") {
+  if (options.scrollContainer) {
+    if (typeof options.scrollContainer === 'function') {
       scrollContainer = options.scrollContainer(view);
-    } else if (typeof options.scrollContainer === "string") {
+    } else if (typeof options.scrollContainer === 'string') {
       scrollContainer = document.querySelector(
-        options.scrollContainer
+        options.scrollContainer,
       ) as HTMLElement;
     } else {
       scrollContainer = options.scrollContainer;
     }
+  } else {
+    const editorElement = view.dom as HTMLElement;
+    scrollContainer = findScrollContainer(editorElement);
   }
 
   return scrollContainer;
@@ -159,14 +160,14 @@ const smartScroll = (view: EditorView, options: SmartScrollOptions): void => {
       if (scrollContainer.scrollTo) {
         scrollContainer.scrollTo({
           top: targetScrollTop,
-          behavior: options.smooth ? "smooth" : "instant",
+          behavior: options.smooth ? 'smooth' : 'instant',
         });
       } else {
         scrollContainer.scrollTop = targetScrollTop;
       }
     }
   } catch (error) {
-    console.debug("Smart scroll error:", error);
+    console.error('Smart scroll error:', error);
   }
 };
 
@@ -181,7 +182,7 @@ const findScrollContainer = (element: HTMLElement): HTMLElement | null => {
     const overflowY = style.overflowY;
 
     if (
-      (overflowY === "auto" || overflowY === "scroll") &&
+      (overflowY === 'auto' || overflowY === 'scroll') &&
       current.scrollHeight > current.clientHeight
     ) {
       return current;

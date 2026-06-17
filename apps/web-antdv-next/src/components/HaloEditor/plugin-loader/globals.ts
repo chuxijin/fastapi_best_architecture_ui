@@ -1,5 +1,6 @@
-import * as Vue from "vue";
-import type { PluginModule } from "./types";
+import type { PluginModule } from './types';
+
+import * as Vue from 'vue';
 
 /**
  * 注入插件运行时所需的全局变量

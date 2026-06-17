@@ -1,4 +1,4 @@
-import katex from "katex";
+import katex from 'katex';
 
 export function renderKatex(content: string, isInline: boolean) {
   return katex.renderToString(content, {
@@ -6,6 +6,6 @@ export function renderKatex(content: string, isInline: boolean) {
     strict: false,
     displayMode: !isInline,
     maxSize: 300,
-    output: "mathml",
+    output: 'mathml',
   });
 }

@@ -91,7 +91,7 @@ export const useAccessStore = defineStore('core-access', {
       this.accessMenus = menus;
     },
     setAccessRoutes(routes: RouteRecordRaw[]) {
-      this.accessRoutes = routes;
+      this.accessRoutes = routes as AccessState['accessRoutes'];
     },
     setAccessSessionUuid(uuid: AccessToken) {
       this.accessSessionUuid = uuid;

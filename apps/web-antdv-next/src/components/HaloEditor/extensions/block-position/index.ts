@@ -1,4 +1,4 @@
-import { Extension } from "@tiptap/core";
+import { Extension } from '@tiptap/core';
 
 export interface ExtensionBlockPositionOptions {
   /**
@@ -20,10 +20,10 @@ export interface ExtensionBlockPositionOptions {
    * @default null
    * @example 'start'
    */
-  defaultPosition: string | null;
+  defaultPosition: null | string;
 }
 
-declare module "@tiptap/core" {
+declare module '@tiptap/core' {
   interface Commands<ReturnType> {
     blockPosition: {
       /**
@@ -33,16 +33,16 @@ declare module "@tiptap/core" {
        */
       setBlockPosition: (position: string) => ReturnType;
       /**
-       * Unset the block position attribute
-       * @example editor.commands.unsetBlockPosition()
-       */
-      unsetBlockPosition: () => ReturnType;
-      /**
        * Toggle the block position attribute
        * @param alignment The alignment
        * @example editor.commands.toggleBlockPosition('end')
        */
       toggleBlockPosition: (position: string) => ReturnType;
+      /**
+       * Unset the block position attribute
+       * @example editor.commands.unsetBlockPosition()
+       */
+      unsetBlockPosition: () => ReturnType;
     };
   }
 }
@@ -52,12 +52,12 @@ declare module "@tiptap/core" {
  */
 export const ExtensionBlockPosition =
   Extension.create<ExtensionBlockPositionOptions>({
-    name: "blockPosition",
+    name: 'blockPosition',
 
     addOptions() {
       return {
         types: [],
-        positions: ["start", "center", "end"],
+        positions: ['start', 'center', 'end'],
         defaultPosition: null,
       };
     },
@@ -100,17 +100,17 @@ export const ExtensionBlockPosition =
 
             return this.options.types
               .map((type) =>
-                commands.updateAttributes(type, { alignItems: position })
+                commands.updateAttributes(type, { alignItems: position }),
               )
-              .some((response) => response);
+              .some(Boolean);
           },
 
         unsetBlockPosition:
           () =>
           ({ commands }) => {
             return this.options.types
-              .map((type) => commands.resetAttributes(type, "alignItems"))
-              .some((response) => response);
+              .map((type) => commands.resetAttributes(type, 'alignItems'))
+              .some(Boolean);
           },
 
         toggleBlockPosition:
@@ -130,12 +130,12 @@ export const ExtensionBlockPosition =
 
     addKeyboardShortcuts() {
       return {
-        "Mod-Shift-l": () => this.editor.commands.setBlockPosition("left"),
-        "Mod-Shift-e": () => this.editor.commands.setBlockPosition("center"),
-        "Mod-Shift-r": () => this.editor.commands.setBlockPosition("right"),
+        'Mod-Shift-l': () => this.editor.commands.setBlockPosition('left'),
+        'Mod-Shift-e': () => this.editor.commands.setBlockPosition('center'),
+        'Mod-Shift-r': () => this.editor.commands.setBlockPosition('right'),
       };
     },
   }).configure({
-    types: ["figure"],
-    positions: ["start", "center", "end"],
+    types: ['figure'],
+    positions: ['start', 'center', 'end'],
   });

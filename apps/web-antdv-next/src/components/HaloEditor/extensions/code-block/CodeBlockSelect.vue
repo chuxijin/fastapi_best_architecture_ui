@@ -1,31 +1,31 @@
 <script lang="ts" setup>
-import { Dropdown as VDropdown } from "floating-vue";
-import { computed, ref, watch } from "vue";
-import MingcuteDownLine from "~icons/mingcute/down-line";
+import { computed, ref, watch } from 'vue';
+
+import { Dropdown as VDropdown } from 'floating-vue';
+import MingcuteDownLine from '~icons/mingcute/down-line';
 
 export interface Option {
   label: string;
   value: string;
 }
 const props = defineProps<{
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  container?: any;
+  container?: unknown;
   containerClass?: string;
-  options: Option[];
   filterSort?: (options: Option[], query: string) => number;
+  options: Option[];
+}>();
+
+const emit = defineEmits<{
+  (event: 'select'): void;
 }>();
 
 const value = defineModel<string>({
-  default: "",
+  default: '',
 });
 
-const emit = defineEmits<{
-  (event: "select"): void;
-}>();
-
 const isFocus = ref(false);
-const inputValue = ref<string>("");
-const selectedOption = ref<Option | null>(null);
+const inputValue = ref<string>('');
+const selectedOption = ref<null | Option>(null);
 const inputRef = ref<HTMLInputElement | null>(null);
 
 const displayLabel = computed(() => {
@@ -42,7 +42,7 @@ const filterOptions = computed(() => {
   return props.options.filter((option) =>
     option.value
       .toLocaleLowerCase()
-      .includes(inputValue.value.toLocaleLowerCase())
+      .includes(inputValue.value.toLocaleLowerCase()),
   );
 });
 
@@ -57,36 +57,36 @@ const handleInputBlur = () => {
   isFocus.value = false;
   if (inputValue.value) {
     value.value = inputValue.value;
-    inputValue.value = "";
+    inputValue.value = '';
   }
 };
 
 const handleSelectOption = (option: Option) => {
   selectedOption.value = option;
   value.value = option.value;
-  inputValue.value = "";
+  inputValue.value = '';
   inputRef.value?.blur();
-  emit("select");
+  emit('select');
 };
 
 const selectedIndex = ref(-1);
 
 const handleOptionKeydown = (event: KeyboardEvent) => {
   const key = event.key;
-  if (key === "ArrowUp") {
+  if (key === 'ArrowUp') {
     selectedIndex.value =
       (selectedIndex.value - 1 + filterOptions.value.length) %
       filterOptions.value.length;
     return true;
   }
 
-  if (key === "ArrowDown") {
+  if (key === 'ArrowDown') {
     selectedIndex.value =
       (selectedIndex.value + 1) % filterOptions.value.length;
     return true;
   }
 
-  if (key === "Enter") {
+  if (key === 'Enter') {
     if (selectedIndex.value === -1) {
       return true;
     }
@@ -102,13 +102,13 @@ watch(
       selectedOption.value =
         props.options.find((option) => option.value === newValue) || null;
       selectedIndex.value = props.options.findIndex(
-        (option) => option.value === newValue
+        (option) => option.value === newValue,
       );
     }
   },
   {
     immediate: true,
-  }
+  },
 );
 
 watch(
@@ -120,7 +120,7 @@ watch(
   },
   {
     immediate: true,
-  }
+  },
 );
 
 const handleScrollIntoView = () => {
@@ -128,13 +128,13 @@ const handleScrollIntoView = () => {
     return;
   }
   const optionElement = document.querySelector(
-    `.select > div:nth-child(${selectedIndex.value + 1})`
+    `.select > div:nth-child(${selectedIndex.value + 1})`,
   );
   if (optionElement) {
     optionElement.scrollIntoView({
-      behavior: "instant",
-      block: "nearest",
-      inline: "nearest",
+      behavior: 'instant',
+      block: 'nearest',
+      inline: 'nearest',
     });
   }
 };

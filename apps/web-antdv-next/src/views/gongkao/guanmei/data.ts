@@ -1,4 +1,4 @@
-﻿import type { VbenFormSchema } from '#/adapter/form';
+import type { VbenFormSchema } from '#/adapter/form';
 import type { OnActionClickFn, VxeGridProps } from '#/adapter/vxe-table';
 import type { GkGuanmeiResult } from '#/api';
 
@@ -102,4 +102,3 @@ export const schema: VbenFormSchema[] = [
     },
   },
 ];
-

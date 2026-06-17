@@ -10,11 +10,12 @@ import type {
 
 import { computed, ref } from 'vue';
 
+import dayjs from 'dayjs';
 import { Page, useVbenDrawer, VbenButton } from '@vben/common-ui';
 import { MaterialSymbolsAdd } from '@vben/icons';
 import { $t } from '@vben/locales';
 
-import { Button as AButton, message, Modal } from 'ant-design-vue';
+import { Button as AButton, Input as AInput, message, Modal } from 'ant-design-vue';
 
 import { useVbenForm } from '#/adapter/form';
 import { useVbenVxeGrid } from '#/adapter/vxe-table';
@@ -25,6 +26,7 @@ import {
   updateCmsSlotApi,
 } from '#/api';
 import HaloEditorWrapper from '#/components/HaloEditor/HaloEditorWrapper.vue';
+import ImageUploader from '#/components/ImageUploader.vue';
 
 import { querySchema, schema, useColumns } from './data';
 import StatsModal from './StatsModal.vue';
@@ -38,11 +40,14 @@ interface FormSlotData extends Partial<CreateCmsSlotParams> {
 
 const formData = ref<FormSlotData>({});
 const detailHtml = ref('');
+const coverImage = ref('');
 const statsModalRef = ref<InstanceType<typeof StatsModal>>();
 
 const formOptions: VbenFormProps = {
-  collapsed: true,
-  showCollapseButton: true,
+  collapsed: false,
+  showCollapseButton: false,
+  wrapperClass: 'grid-cols-4',
+  actionWrapperClass: 'col-start-4',
   submitButtonOptions: { content: $t('common.form.query') },
   schema: querySchema,
 };
@@ -100,6 +105,7 @@ function handleDelete(row: CmsSlotResult) {
 const [Form, formApi] = useVbenForm({
   layout: 'vertical',
   showDefaultActions: false,
+  wrapperClass: 'grid-cols-2',
   schema,
 });
 
@@ -148,7 +154,7 @@ const [Drawer, drawerApi] = useVbenDrawer({
         scene: values.scene as string,
         title: values.title,
         subtitle: values.subtitle,
-        image_url: values.image_url,
+        image_url: coverImage.value || undefined,
         detail: detailHtml.value || undefined,
         jump_type: values.jump_type,
         jump_target: values.jump_target,
@@ -187,8 +193,15 @@ const [Drawer, drawerApi] = useVbenDrawer({
     formApi.resetForm();
     if (data) {
       formData.value = { ...data };
+      const formatted: Record<string, any> = { ...data };
+      if (data.start_time) {
+        formatted.start_time = dayjs(data.start_time).format('YYYY-MM-DD HH:mm:ss');
+      }
+      if (data.end_time) {
+        formatted.end_time = dayjs(data.end_time).format('YYYY-MM-DD HH:mm:ss');
+      }
       formApi.setValues({
-        ...data,
+        ...formatted,
         jump_extra_text: data.jump_extra
           ? JSON.stringify(data.jump_extra, null, 2)
           : '',
@@ -198,9 +211,11 @@ const [Drawer, drawerApi] = useVbenDrawer({
         extra_text: data.extra ? JSON.stringify(data.extra, null, 2) : '',
       });
       detailHtml.value = data.detail || '';
+      coverImage.value = data.image_url || '';
     } else {
       formData.value = {};
       detailHtml.value = '';
+      coverImage.value = '';
     }
   },
 });
@@ -227,6 +242,17 @@ const [Drawer, drawerApi] = useVbenDrawer({
     </Grid>
     <Drawer :title="drawerTitle">
       <Form />
+      <div class="mt-4">
+        <div class="mb-2 font-medium">主图</div>
+        <ImageUploader v-model="coverImage" folder="cms/slot" />
+        <AInput
+          v-model:value="coverImage"
+          class="mt-2"
+          allow-clear
+          placeholder="或直接粘贴图片 URL"
+          :maxlength="500"
+        />
+      </div>
       <div class="mt-4">
         <div class="mb-2 font-medium">详情(富文本)</div>
         <HaloEditorWrapper

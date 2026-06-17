@@ -1,9 +1,7 @@
-import { Editor } from "@tiptap/core";
-import {
-  listHelpers,
-  ListKeymap,
-  type ListKeymapOptions,
-} from "@tiptap/extension-list";
+import type { ListKeymapOptions } from '@tiptap/extension-list';
+
+import { Editor } from '@tiptap/core';
+import { listHelpers, ListKeymap } from '@tiptap/extension-list';
 
 export type ExtensionListKeymapOptions = Partial<ListKeymapOptions>;
 
@@ -32,7 +30,7 @@ export const ExtensionListKeymap =
             if (listHelpers.handleBackspace(editor, itemName, wrapperNames)) {
               handled = true;
             }
-          }
+          },
         );
 
         return handled;
@@ -41,7 +39,7 @@ export const ExtensionListKeymap =
       return {
         Backspace: ({ editor }: { editor: Editor }) => backspaceHandle(editor),
 
-        "Mod-Backspace": ({ editor }: { editor: Editor }) =>
+        'Mod-Backspace': ({ editor }: { editor: Editor }) =>
           backspaceHandle(editor),
       };
     },

@@ -330,11 +330,9 @@ const handleTestPush = async (row: WebhookEndpoint) => {
         <div class="flex gap-1">
           <VbenButton size="sm" @click="editEndpoint(row)">编辑</VbenButton>
           <VbenButton size="sm" @click="handleTestPush(row)">测试</VbenButton>
-          <VbenButton size="sm" @click="handleRotateSecret(row)"
-            >
-轮换密钥
-</VbenButton
-          >
+          <VbenButton size="sm" @click="handleRotateSecret(row)">
+            轮换密钥
+          </VbenButton>
           <VbenButton
             size="sm"
             variant="destructive"

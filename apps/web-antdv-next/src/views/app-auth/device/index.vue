@@ -41,7 +41,7 @@ const formOptions: VbenFormProps = {
   collapsed: true,
   showCollapseButton: true,
   submitButtonOptions: {
-    content: $t('common.search'),
+    content: $t('common.form.query'),
   },
   schema: querySchema,
 };

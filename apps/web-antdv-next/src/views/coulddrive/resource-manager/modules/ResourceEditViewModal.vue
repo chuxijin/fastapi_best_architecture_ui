@@ -133,7 +133,7 @@ function onUploadSuccess(result: any) {
           </label>
           <a-select
             v-model:value="formData.resource_type"
-            :options="RESOURCE_TYPE_OPTIONS"
+            :options="[...RESOURCE_TYPE_OPTIONS]"
             placeholder="请选择资源类型"
             class="w-full"
             allow-clear
@@ -159,7 +159,7 @@ function onUploadSuccess(result: any) {
           </label>
           <a-select
             v-model:value="formData.user_id"
-            :options="accountOptions"
+            :options="[...(accountOptions || [])]"
             placeholder="请选择关联账号"
             class="w-full"
             show-search

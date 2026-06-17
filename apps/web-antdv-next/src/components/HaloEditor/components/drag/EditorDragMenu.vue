@@ -1,9 +1,14 @@
 <script lang="ts" setup>
-import { onMounted, onUnmounted, type PropType, ref } from "vue";
-import type { PMNode, VueEditor } from "@HaloEditor/tiptap";
-import type { DragButtonType } from "@HaloEditor/types";
-import { matchShortcut } from "@HaloEditor/utils/keyboard";
-import EditorDragButtonItem from "./EditorDragButtonItem.vue";
+import type { PMNode, VueEditor } from '@HaloEditor/tiptap';
+import type { DragButtonType } from '@HaloEditor/types';
+
+import type { PropType } from 'vue';
+
+import { onMounted, onUnmounted, ref } from 'vue';
+
+import { matchShortcut } from '@HaloEditor/utils/keyboard';
+
+import EditorDragButtonItem from './EditorDragButtonItem.vue';
 
 const props = defineProps({
   editor: {
@@ -11,7 +16,7 @@ const props = defineProps({
     required: true,
   },
   node: {
-    type: Object as PropType<PMNode | null>,
+    type: Object as PropType<null | PMNode>,
     required: true,
   },
   pos: {
@@ -25,11 +30,11 @@ const props = defineProps({
 });
 
 const emit = defineEmits<{
-  (e: "close"): void;
+  (e: 'close'): void;
 }>();
 
 const itemRefs = ref<Map<string, InstanceType<typeof EditorDragButtonItem>>>(
-  new Map()
+  new Map(),
 );
 
 const handleKeyDown = (event: KeyboardEvent) => {
@@ -38,7 +43,7 @@ const handleKeyDown = (event: KeyboardEvent) => {
       event.preventDefault();
       event.stopPropagation();
 
-      const key = item.key || "";
+      const key = item.key || '';
       const itemRef = itemRefs.value.get(key);
       if (itemRef) {
         itemRef.triggerClick();
@@ -49,15 +54,15 @@ const handleKeyDown = (event: KeyboardEvent) => {
 };
 
 onMounted(() => {
-  window.addEventListener("keydown", handleKeyDown);
+  window.addEventListener('keydown', handleKeyDown);
 });
 
 onUnmounted(() => {
-  window.removeEventListener("keydown", handleKeyDown);
+  window.removeEventListener('keydown', handleKeyDown);
 });
 
 const setItemRef = (key: string, ref: unknown) => {
-  if (ref && typeof ref === "object" && "triggerClick" in ref) {
+  if (ref && typeof ref === 'object' && 'triggerClick' in ref) {
     itemRefs.value.set(key, ref as InstanceType<typeof EditorDragButtonItem>);
   }
   if (!ref) {

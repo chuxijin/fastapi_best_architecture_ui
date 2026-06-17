@@ -1,55 +1,76 @@
-import { h } from "vue";
-import { Dropdown as VDropdown, Tooltip as VTooltipComponent, vTooltip } from "floating-vue";
+ 
+import { h } from 'vue';
 
 const VButton = {
-  name: "VButton",
+  name: 'VButton',
   setup(props: any, { slots }: any) {
-    return () => h("button", { class: "halo-stub-btn", style: "padding:4px 8px;border:1px solid #ddd;border-radius:4px;background:#fff;cursor:pointer" }, slots.default?.());
-  }
+    return () =>
+      h(
+        'button',
+        {
+          class: 'halo-stub-btn',
+          style:
+            'padding:4px 8px;border:1px solid #ddd;border-radius:4px;background:#fff;cursor:pointer',
+        },
+        slots.default?.(),
+      );
+  },
 };
 
 const VSpace = {
-  name: "VSpace",
+  name: 'VSpace',
   setup(props: any, { slots }: any) {
-    return () => h("div", { class: "halo-stub-space", style: "display:flex;gap:8px;align-items:center" }, slots.default?.());
-  }
+    return () =>
+      h(
+        'div',
+        {
+          class: 'halo-stub-space',
+          style: 'display:flex;gap:8px;align-items:center',
+        },
+        slots.default?.(),
+      );
+  },
 };
 
 const VDropdownItem = {
-  name: "VDropdownItem",
+  name: 'VDropdownItem',
   setup(props: any, { slots }: any) {
-    return () => h("div", { class: "halo-stub-dropdown-item", style: "padding:4px 8px;cursor:pointer" }, slots.default?.());
-  }
+    return () =>
+      h(
+        'div',
+        {
+          class: 'halo-stub-dropdown-item',
+          style: 'padding:4px 8px;cursor:pointer',
+        },
+        slots.default?.(),
+      );
+  },
 };
 
 const Toast = {
-  success: (msg: string) => console.log("[Toast Success]", msg),
-  error: (msg: string) => console.error("[Toast Error]", msg),
-  info: (msg: string) => console.info("[Toast Info]", msg),
-  warning: (msg: string) => console.warn("[Toast Warning]", msg)
+  success: (msg: string) => console.log('[Toast Success]', msg),
+  error: (msg: string) => console.error('[Toast Error]', msg),
+  info: (msg: string) => console.info('[Toast Info]', msg),
+  warning: (msg: string) => console.warn('[Toast Warning]', msg),
 };
 
 const Dialog = {
   info: (options: any) => {
     if (window.confirm(options.description)) options.onConfirm?.();
-  }
+  },
 };
 
 const IconImageAddLine = {
-  name: "IconImageAddLine",
+  name: 'IconImageAddLine',
   setup() {
-    return () => h("span", { style: "display:inline-block;padding:2px" }, "+");
-  }
+    return () => h('span', { style: 'display:inline-block;padding:2px' }, '+');
+  },
 };
 
+export { Dialog, IconImageAddLine, Toast, VButton, VDropdownItem, VSpace };
+
 export {
-  VDropdown,
-  VTooltipComponent,
+  Dropdown as VDropdown,
   vTooltip,
-  VButton,
-  VSpace,
-  VDropdownItem,
-  Toast,
-  Dialog,
-  IconImageAddLine
-};
+  Tooltip as VTooltipComponent,
+} from 'floating-vue';

@@ -1,80 +1,86 @@
-import HyperlinkBubbleButton from "../components/HyperlinkBubbleButton.vue";
-import HyperlinkPropsBubbleButton from "../components/HyperlinkPropsBubbleButton.vue";
-import HyperlinkView from "../components/HyperlinkView.vue";
-import LinkViewBubbleMenuItem from "../components/LinkViewBubbleMenuItem.vue";
+ 
+import type {
+  Editor,
+  ExtensionOptions,
+  NodeBubbleMenuType,
+  Range,
+} from '../../..';
+
+import { markRaw } from 'vue';
+
+import MingcuteDelete2Line from '~icons/mingcute/delete-2-line?color=#dc2626';
+import MingcuteLinkLine from '~icons/mingcute/link-line';
+import MingcuteShare3Line from '~icons/mingcute/share-3-line';
+
 import {
   deleteNode,
-  type Editor,
   EditorState,
-  type ExtensionOptions,
   getNodeAttributes,
   isActive,
   mergeAttributes,
   Node,
-  type NodeBubbleMenuType,
+  ToolboxItem,
   VueNodeViewRenderer,
-  type Range,
-  ToolboxItem
-} from "../../..";
-import MingcuteLinkLine from "~icons/mingcute/link-line";
-import { markRaw } from "vue";
-import MingcuteDelete2Line from "~icons/mingcute/delete-2-line?color=#dc2626";
-import MingcuteShare3Line from "~icons/mingcute/share-3-line";
-import linkViewTypes from "./link-view-type";
+} from '../../..';
+import HyperlinkBubbleButton from '../components/HyperlinkBubbleButton.vue';
+import HyperlinkPropsBubbleButton from '../components/HyperlinkPropsBubbleButton.vue';
+import HyperlinkView from '../components/HyperlinkView.vue';
+import LinkViewBubbleMenuItem from '../components/LinkViewBubbleMenuItem.vue';
+import linkViewTypes from './link-view-type';
 
 const HyperlinkCardExtension = Node.create<ExtensionOptions>({
-  name: "hyperlinkCard",
+  name: 'hyperlinkCard',
 
   atom: true,
 
-  group: "block",
+  group: 'block',
 
   addAttributes() {
     return {
       target: {
-        default: "_blank",
+        default: '_blank',
         parseHTML: (element: HTMLElement) => {
-          return element.getAttribute("target");
+          return element.getAttribute('target');
         },
       },
       href: {
         default: null,
         parseHTML: (element: HTMLElement) => {
-          return element.getAttribute("href");
+          return element.getAttribute('href');
         },
       },
       theme: {
-        default: "regular",
+        default: 'regular',
         parseHTML: (element: HTMLElement) => {
-          const theme = element.getAttribute("theme");
+          const theme = element.getAttribute('theme');
           // block 卡片的 Web Component 只支持 regular/grid/small
           // inline theme 应由 hyperlink-inline-card 处理
-          if (theme === "inline" || !theme) return "regular";
+          if (theme === 'inline' || !theme) return 'regular';
           return theme;
         },
       },
       style: {
-        default: "margin-top: 0.75em; margin-bottom: 0;",
+        default: 'margin-top: 0.75em; margin-bottom: 0;',
         parseHTML: (element: HTMLElement) => {
-          return element.getAttribute("style");
+          return element.getAttribute('style');
         },
       },
-      "custom-title": {
+      'custom-title': {
         default: null,
         parseHTML: (element: HTMLElement) => {
-          return element.getAttribute("custom-title");
+          return element.getAttribute('custom-title');
         },
       },
-      "custom-description": {
+      'custom-description': {
         default: null,
         parseHTML: (element: HTMLElement) => {
-          return element.getAttribute("custom-description");
+          return element.getAttribute('custom-description');
         },
       },
-      "custom-image": {
+      'custom-image': {
         default: null,
         parseHTML: (element: HTMLElement) => {
-          return element.getAttribute("custom-image");
+          return element.getAttribute('custom-image');
         },
       },
     };
@@ -85,7 +91,7 @@ const HyperlinkCardExtension = Node.create<ExtensionOptions>({
       ...this.parent?.(),
       getBubbleMenu(): NodeBubbleMenuType {
         return {
-          pluginKey: "linkViewBubbleMenu",
+          pluginKey: 'linkViewBubbleMenu',
           shouldShow: ({ state }: { state: EditorState }) => {
             return isActive(state, HyperlinkCardExtension.name);
           },
@@ -95,8 +101,14 @@ const HyperlinkCardExtension = Node.create<ExtensionOptions>({
               component: markRaw(LinkViewBubbleMenuItem),
               props: {
                 type: ({ editor }: { editor: Editor }) => {
-                  const attr = getNodeAttributes(editor.state, HyperlinkCardExtension.name);
-                  return linkViewTypes.find((type) => type.key == attr.theme) || linkViewTypes[1];
+                  const attr = getNodeAttributes(
+                    editor.state,
+                    HyperlinkCardExtension.name,
+                  );
+                  return (
+                    linkViewTypes.find((type) => type.key == attr.theme) ||
+                    linkViewTypes[1]
+                  );
                 },
               },
             },
@@ -119,11 +131,14 @@ const HyperlinkCardExtension = Node.create<ExtensionOptions>({
               props: {
                 isActive: () => false,
                 icon: markRaw(MingcuteShare3Line),
-                title: "打开链接",
+                title: '打开链接',
                 action: ({ editor }: { editor: Editor }) => {
-                  const attr = getNodeAttributes(editor.state, HyperlinkCardExtension.name);
+                  const attr = getNodeAttributes(
+                    editor.state,
+                    HyperlinkCardExtension.name,
+                  );
                   if (attr?.href) {
-                    window.open(attr?.href, "_blank");
+                    window.open(attr?.href, '_blank');
                   }
                 },
               },
@@ -132,7 +147,7 @@ const HyperlinkCardExtension = Node.create<ExtensionOptions>({
               priority: 40,
               props: {
                 icon: markRaw(MingcuteDelete2Line),
-                title: "删除",
+                title: '删除',
                 action: ({ editor }) => {
                   deleteNode(HyperlinkCardExtension.name, editor);
                 },
@@ -150,14 +165,16 @@ const HyperlinkCardExtension = Node.create<ExtensionOptions>({
         return {
           priority: 85,
           icon: markRaw(MingcuteLinkLine),
-          title: "超链接卡片",
-          keywords: ["link", "card", "chaolianjie"],
+          title: '超链接卡片',
+          keywords: ['link', 'card', 'chaolianjie'],
           command: ({ editor, range }: { editor: Editor; range: Range }) => {
             editor
               .chain()
               .focus()
               .deleteRange(range)
-              .insertContent([{ type: HyperlinkCardExtension.name, attrs: { href: "" } }])
+              .insertContent([
+                { type: HyperlinkCardExtension.name, attrs: { href: '' } },
+              ])
               .run();
           },
         };
@@ -170,12 +187,14 @@ const HyperlinkCardExtension = Node.create<ExtensionOptions>({
             props: {
               editor,
               icon: markRaw(MingcuteLinkLine),
-              title: "超链接卡片",
+              title: '超链接卡片',
               action: () => {
                 editor
                   .chain()
                   .focus()
-                  .insertContent([{ type: HyperlinkCardExtension.name, attrs: { href: "" } }])
+                  .insertContent([
+                    { type: HyperlinkCardExtension.name, attrs: { href: '' } },
+                  ])
                   .run();
               },
             },
@@ -186,14 +205,18 @@ const HyperlinkCardExtension = Node.create<ExtensionOptions>({
   },
 
   parseHTML() {
-    return [{ tag: "hyperlink-card" }];
+    return [{ tag: 'hyperlink-card' }];
   },
 
   renderHTML({ HTMLAttributes }) {
     return [
-      "hyperlink-card",
+      'hyperlink-card',
       mergeAttributes(HTMLAttributes),
-      ["a", { href: HTMLAttributes.href, target: HTMLAttributes.target }, HTMLAttributes.href],
+      [
+        'a',
+        { href: HTMLAttributes.href, target: HTMLAttributes.target },
+        HTMLAttributes.href,
+      ],
     ];
   },
 

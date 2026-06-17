@@ -36,8 +36,7 @@ const coreRoutes: RouteRecordRaw[] = [
       {
         name: 'GongkaoContentEditor',
         path: 'gongkao/content/editor/:id(.*)?',
-        component: () =>
-          import('#/views/gongkao/content/editor.vue'),
+        component: () => import('#/views/gongkao/content/editor.vue'),
         meta: {
           title: '内容创作工作台',
           hideInMenu: true,

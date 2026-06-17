@@ -1,10 +1,10 @@
 .halo-rich-text-editor {
-  $editorRangeFakeSelection: rgba(27, 162, 227, 0.2);
+  $editorRangeFakeSelection: rgb(27 162 227 / 20%);
 
   .no-selection {
     *::selection {
-      background-color: transparent;
       color: inherit;
+      background-color: transparent;
     }
   }
 
@@ -12,16 +12,13 @@
     position: relative;
 
     &::after {
-      content: " ";
       position: absolute;
-      top: 0;
-      left: 0;
-      right: 0;
-      bottom: 0;
-      background-color: $editorRangeFakeSelection;
-      pointer-events: none;
+      inset: 0;
       z-index: 99;
+      pointer-events: none;
       caret-color: transparent;
+      content: ' ';
+      background-color: $editorRangeFakeSelection;
     }
 
     &.column {

@@ -41,7 +41,8 @@ function toBankParams(
     bank_type: Number(values.bank_type ?? base?.bank_type ?? 1),
     scene_mask: Number(values.scene_mask ?? base?.scene_mask ?? 1),
     parent_id: values.parent_id ?? base?.parent_id ?? null,
-    chapter_source_bank_id: values.chapter_source_bank_id ?? base?.chapter_source_bank_id ?? null,
+    chapter_source_bank_id:
+      values.chapter_source_bank_id ?? base?.chapter_source_bank_id ?? null,
     status: Number(values.status ?? base?.status ?? 1),
     scope: Number(values.scope ?? base?.scope ?? 1),
   };
@@ -82,7 +83,7 @@ async function handleSaveBasic() {
   }
 
   if (!props.bankInfo) {
-    message.warning('题库信息尚未加载完成');
+    message.warning('内容信息尚未加载完成');
     return;
   }
 
@@ -90,7 +91,7 @@ async function handleSaveBasic() {
   const payload = toBankParams(values, props.bankInfo);
 
   if (payload.parent_id === props.bankId) {
-    message.warning('父题库不能选择自己，已自动清空');
+    message.warning('父合集不能选择自己，已自动清空');
     payload.parent_id = null;
   }
 

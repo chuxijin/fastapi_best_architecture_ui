@@ -1,15 +1,19 @@
 <script lang="ts" setup>
-import { VDropdown } from "#/stubs/halo-components";
-import { computed } from "vue";
-import MingcuteAlignCenterLine from "~icons/mingcute/align-center-line";
-import MingcuteAlignLeftLine from "~icons/mingcute/align-left-line";
-import MingcuteAlignRightLine from "~icons/mingcute/align-right-line";
-import DropdownItem from "@HaloEditor/components/base/DropdownItem.vue";
-import BubbleButton from "@HaloEditor/components/bubble/BubbleButton.vue";
-import { i18n } from "@HaloEditor/locales";
-import { isActive } from "@HaloEditor/tiptap/core";
-import type { BubbleItemComponentProps } from "@HaloEditor/types";
-import { ExtensionFigure } from "..";
+import type { BubbleItemComponentProps } from '@HaloEditor/types';
+
+import { computed } from 'vue';
+
+import DropdownItem from '@HaloEditor/components/base/DropdownItem.vue';
+import BubbleButton from '@HaloEditor/components/bubble/BubbleButton.vue';
+import { i18n } from '@HaloEditor/locales';
+import { isActive } from '@HaloEditor/tiptap/core';
+import MingcuteAlignCenterLine from '~icons/mingcute/align-center-line';
+import MingcuteAlignLeftLine from '~icons/mingcute/align-left-line';
+import MingcuteAlignRightLine from '~icons/mingcute/align-right-line';
+
+import { VDropdown } from '#/stubs/halo-components';
+
+import { ExtensionFigure } from '..';
 
 const props = withDefaults(defineProps<BubbleItemComponentProps>(), {
   visible: () => true,
@@ -17,29 +21,29 @@ const props = withDefaults(defineProps<BubbleItemComponentProps>(), {
 
 const positionOptions = [
   {
-    text: i18n.global.t("editor.common.align_left"),
-    value: "start",
+    text: i18n.global.t('editor.common.align_left'),
+    value: 'start',
     icon: MingcuteAlignLeftLine,
   },
   {
-    text: i18n.global.t("editor.common.align_center"),
-    value: "center",
+    text: i18n.global.t('editor.common.align_center'),
+    value: 'center',
     icon: MingcuteAlignCenterLine,
   },
   {
-    text: i18n.global.t("editor.common.align_right"),
-    value: "end",
+    text: i18n.global.t('editor.common.align_right'),
+    value: 'end',
     icon: MingcuteAlignRightLine,
   },
 ];
 
 const currentPosition = computed(() => {
   const positionAttribute = props.editor.getAttributes(
-    ExtensionFigure.name
+    ExtensionFigure.name,
   ).alignItems;
 
   const positionOption = positionOptions.find(
-    (option) => option.value === positionAttribute
+    (option) => option.value === positionAttribute,
   );
 
   if (!positionOption) {

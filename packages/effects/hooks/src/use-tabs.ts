@@ -1,16 +1,20 @@
 import type { ComputedRef } from 'vue';
 import type { RouteLocationNormalized } from 'vue-router';
 
+import type { TabDefinition } from '@vben/types';
+
 import { useRoute, useRouter } from 'vue-router';
 
 import { useTabbarStore } from '@vben/stores';
+
+type TabLike = RouteLocationNormalized | TabDefinition;
 
 export function useTabs() {
   const router = useRouter();
   const route = useRoute();
   const tabbarStore = useTabbarStore();
 
-  async function closeLeftTabs(tab?: RouteLocationNormalized) {
+  async function closeLeftTabs(tab?: TabLike) {
     await tabbarStore.closeLeftTabs(tab || route);
   }
 
@@ -18,27 +22,27 @@ export function useTabs() {
     await tabbarStore.closeAllTabs(router);
   }
 
-  async function closeRightTabs(tab?: RouteLocationNormalized) {
+  async function closeRightTabs(tab?: TabLike) {
     await tabbarStore.closeRightTabs(tab || route);
   }
 
-  async function closeOtherTabs(tab?: RouteLocationNormalized) {
+  async function closeOtherTabs(tab?: TabLike) {
     await tabbarStore.closeOtherTabs(tab || route);
   }
 
-  async function closeCurrentTab(tab?: RouteLocationNormalized) {
+  async function closeCurrentTab(tab?: TabLike) {
     await tabbarStore.closeTab(tab || route, router);
   }
 
-  async function pinTab(tab?: RouteLocationNormalized) {
+  async function pinTab(tab?: TabLike) {
     await tabbarStore.pinTab(tab || route);
   }
 
-  async function unpinTab(tab?: RouteLocationNormalized) {
+  async function unpinTab(tab?: TabLike) {
     await tabbarStore.unpinTab(tab || route);
   }
 
-  async function toggleTabPin(tab?: RouteLocationNormalized) {
+  async function toggleTabPin(tab?: TabLike) {
     await tabbarStore.toggleTabPin(tab || route);
   }
 
@@ -46,7 +50,7 @@ export function useTabs() {
     await tabbarStore.refresh(name || router);
   }
 
-  async function openTabInNewWindow(tab?: RouteLocationNormalized) {
+  async function openTabInNewWindow(tab?: TabLike) {
     await tabbarStore.openTabInNewWindow(tab || route);
   }
 
@@ -85,7 +89,7 @@ export function useTabs() {
    * 获取操作是否禁用
    * @param tab
    */
-  function getTabDisableState(tab: RouteLocationNormalized = route) {
+  function getTabDisableState(tab: TabLike = route) {
     const tabs = tabbarStore.getTabs;
     const affixTabs = tabbarStore.affixTabs;
     const index = tabs.findIndex((item) => item.path === tab.path);

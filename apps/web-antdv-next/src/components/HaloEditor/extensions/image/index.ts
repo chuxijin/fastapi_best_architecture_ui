@@ -1,20 +1,14 @@
-import type { Attachment, UploadRequestConfig } from "@HaloEditor/utils/upload";
-import type { ImageOptions } from "@tiptap/extension-image";
-import TiptapImage from "@tiptap/extension-image";
+import type { Editor, EditorState, Range } from '@HaloEditor/tiptap';
+import type { ExtensionOptions, NodeBubbleMenuType } from '@HaloEditor/types';
+import type { Attachment, UploadRequestConfig } from '@HaloEditor/utils/upload';
+import type { ImageOptions } from '@tiptap/extension-image';
 
-import { isEmpty } from "es-toolkit/compat";
-import { markRaw } from "vue";
-import MingcuteBookmarkEditLine from "~icons/mingcute/bookmark-edit-line";
-import MingcuteCopy3Fill from "~icons/mingcute/copy-3-fill";
-import MingcuteEdit4Line from "~icons/mingcute/edit-4-line";
-import MingcuteLink2Line from "~icons/mingcute/link-2-line";
-import MingcuteLinkLine from "~icons/mingcute/link-line";
-import MingcutePicLine from "~icons/mingcute/pic-line";
-import MingcuteShare3Line from "~icons/mingcute/share-3-line";
-import { BlockActionSeparator } from "@HaloEditor/components";
-import MingcuteDelete2Line from "@HaloEditor/components/icon/MingcuteDelete2Line.vue";
-import ToolboxItem from "@HaloEditor/components/toolbox/ToolboxItem.vue";
-import { i18n } from "@HaloEditor/locales";
+import { markRaw } from 'vue';
+
+import { BlockActionSeparator } from '@HaloEditor/components';
+import MingcuteDelete2Line from '@HaloEditor/components/icon/MingcuteDelete2Line.vue';
+import ToolboxItem from '@HaloEditor/components/toolbox/ToolboxItem.vue';
+import { i18n } from '@HaloEditor/locales';
 import {
   findChildren,
   findParentNode,
@@ -26,29 +20,35 @@ import {
   PMNode,
   TextSelection,
   VueNodeViewRenderer,
-  type Editor,
-  type EditorState,
-  type Range,
-} from "@HaloEditor/tiptap";
-import type { ExtensionOptions, NodeBubbleMenuType } from "@HaloEditor/types";
-import { deleteNode } from "@HaloEditor/utils";
-import { ExtensionFigure } from "../figure";
-import { ExtensionFigureCaption } from "../figure/figure-caption";
-import { ExtensionParagraph } from "../paragraph";
-import BubbleItemImageAlt from "./BubbleItemImageAlt.vue";
-import BubbleItemImageHref from "./BubbleItemImageHref.vue";
-import BubbleItemImageLink from "./BubbleItemImageLink.vue";
-import BubbleItemImagePosition from "./BubbleItemImagePosition.vue";
-import BubbleItemImageSize from "./BubbleItemImageSize.vue";
-import ImageView from "./ImageView.vue";
+} from '@HaloEditor/tiptap';
+import { deleteNode } from '@HaloEditor/utils';
+import TiptapImage from '@tiptap/extension-image';
+import { isEmpty } from 'es-toolkit/compat';
+import MingcuteBookmarkEditLine from '~icons/mingcute/bookmark-edit-line';
+import MingcuteCopy3Fill from '~icons/mingcute/copy-3-fill';
+import MingcuteEdit4Line from '~icons/mingcute/edit-4-line';
+import MingcuteLink2Line from '~icons/mingcute/link-2-line';
+import MingcuteLinkLine from '~icons/mingcute/link-line';
+import MingcutePicLine from '~icons/mingcute/pic-line';
+import MingcuteShare3Line from '~icons/mingcute/share-3-line';
 
-export const IMAGE_BUBBLE_MENU_KEY = new PluginKey("imageBubbleMenu");
+import { ExtensionFigure } from '../figure';
+import { ExtensionFigureCaption } from '../figure/figure-caption';
+import { ExtensionParagraph } from '../paragraph';
+import BubbleItemImageAlt from './BubbleItemImageAlt.vue';
+import BubbleItemImageHref from './BubbleItemImageHref.vue';
+import BubbleItemImageLink from './BubbleItemImageLink.vue';
+import BubbleItemImagePosition from './BubbleItemImagePosition.vue';
+import BubbleItemImageSize from './BubbleItemImageSize.vue';
+import ImageView from './ImageView.vue';
+
+export const IMAGE_BUBBLE_MENU_KEY = new PluginKey('imageBubbleMenu');
 
 export type ExtensionImageOptions = ExtensionOptions &
   Partial<ImageOptions> & {
     uploadImage?: (
       file: File,
-      options?: UploadRequestConfig
+      options?: UploadRequestConfig,
     ) => Promise<Attachment>;
   };
 
@@ -57,7 +57,7 @@ export const ExtensionImage = TiptapImage.extend<ExtensionImageOptions>({
 
   inline: false,
 
-  group: "block",
+  group: 'block',
 
   defining: false,
 
@@ -67,14 +67,14 @@ export const ExtensionImage = TiptapImage.extend<ExtensionImageOptions>({
       src: {
         default: null,
         parseHTML: (element) => {
-          return element.getAttribute("src");
+          return element.getAttribute('src');
         },
       },
       width: {
         default: undefined,
         parseHTML: (element) => {
           const width =
-            element.getAttribute("width") || element.style.width || null;
+            element.getAttribute('width') || element.style.width || null;
           return width;
         },
         renderHTML: (attributes) => {
@@ -87,7 +87,7 @@ export const ExtensionImage = TiptapImage.extend<ExtensionImageOptions>({
         default: undefined,
         parseHTML: (element) => {
           const height =
-            element.getAttribute("height") || element.style.height || null;
+            element.getAttribute('height') || element.style.height || null;
           return height;
         },
         renderHTML: (attributes) => {
@@ -99,7 +99,7 @@ export const ExtensionImage = TiptapImage.extend<ExtensionImageOptions>({
       href: {
         default: null,
         parseHTML: (element) => {
-          const href = element.getAttribute("href") || null;
+          const href = element.getAttribute('href') || null;
           return href;
         },
         renderHTML: (attributes) => {
@@ -127,7 +127,7 @@ export const ExtensionImage = TiptapImage.extend<ExtensionImageOptions>({
   parseHTML() {
     return [
       {
-        tag: this.options.allowBase64 ? "img" : 'img:not([src^="data:"])',
+        tag: this.options.allowBase64 ? 'img' : 'img:not([src^="data:"])',
       },
     ];
   },
@@ -135,7 +135,7 @@ export const ExtensionImage = TiptapImage.extend<ExtensionImageOptions>({
   addProseMirrorPlugins() {
     return [
       new Plugin({
-        key: new PluginKey("imageLegacyFormat"),
+        key: new PluginKey('imageLegacyFormat'),
         appendTransaction: (transactions, _oldState, newState) => {
           const docChanged = transactions.some((tr) => tr.docChanged);
           if (!docChanged) {
@@ -145,10 +145,10 @@ export const ExtensionImage = TiptapImage.extend<ExtensionImageOptions>({
           const tr = newState.tr;
 
           const modifications: Array<{
-            pos: number;
-            node: PMNode;
-            figureNode: PMNode;
             deletePreviousNode: boolean;
+            figureNode: PMNode;
+            node: PMNode;
+            pos: number;
             previousNodePos: number;
             previousNodeSize: number;
           }> = [];
@@ -163,7 +163,7 @@ export const ExtensionImage = TiptapImage.extend<ExtensionImageOptions>({
               return;
             }
 
-            let blockPosition = "start";
+            let blockPosition = 'start';
             let deletePreviousNode = false;
             let previousNodePos = -1;
             let previousNodeSize = 0;
@@ -175,14 +175,14 @@ export const ExtensionImage = TiptapImage.extend<ExtensionImageOptions>({
             ) {
               if (previousNode.attrs.textAlign) {
                 const textAlignToBlockPositionMap: Record<string, string> = {
-                  left: "start",
-                  center: "center",
-                  right: "end",
-                  justify: "center",
+                  left: 'start',
+                  center: 'center',
+                  right: 'end',
+                  justify: 'center',
                 };
                 blockPosition =
                   textAlignToBlockPositionMap[previousNode.attrs.textAlign] ??
-                  "start";
+                  'start';
               }
               if (previousNode.textContent?.trim().length === 0) {
                 deletePreviousNode = true;
@@ -193,10 +193,10 @@ export const ExtensionImage = TiptapImage.extend<ExtensionImageOptions>({
 
             const figureNode = newState.schema.nodes.figure.create(
               {
-                contentType: "image",
+                contentType: 'image',
                 alignItems: blockPosition,
               },
-              [node]
+              [node],
             );
 
             modifications.push({
@@ -209,22 +209,22 @@ export const ExtensionImage = TiptapImage.extend<ExtensionImageOptions>({
             });
           });
 
-          modifications.reverse().forEach((mod) => {
+          modifications.toReversed().forEach((mod) => {
             if (mod.deletePreviousNode) {
               tr.delete(
                 mod.previousNodePos,
-                mod.previousNodePos + mod.previousNodeSize
+                mod.previousNodePos + mod.previousNodeSize,
               );
               tr.replaceRangeWith(
                 mod.pos - mod.previousNodeSize,
                 mod.pos - mod.previousNodeSize + mod.node.nodeSize,
-                mod.figureNode
+                mod.figureNode,
               );
             } else {
               tr.replaceRangeWith(
                 mod.pos,
                 mod.pos + mod.node.nodeSize,
-                mod.figureNode
+                mod.figureNode,
               );
             }
           });
@@ -247,16 +247,16 @@ export const ExtensionImage = TiptapImage.extend<ExtensionImageOptions>({
             props: {
               editor,
               icon: markRaw(MingcutePicLine),
-              title: i18n.global.t("editor.common.image"),
+              title: i18n.global.t('editor.common.image'),
               action: () => {
                 editor
                   .chain()
                   .focus()
                   .insertContent([
                     {
-                      type: "figure",
-                      attrs: { contentType: "image" },
-                      content: [{ type: "image" }],
+                      type: 'figure',
+                      attrs: { contentType: 'image' },
+                      content: [{ type: 'image' }],
                     },
                   ])
                   .run();
@@ -269,8 +269,8 @@ export const ExtensionImage = TiptapImage.extend<ExtensionImageOptions>({
         return {
           priority: 95,
           icon: markRaw(MingcutePicLine),
-          title: "editor.extensions.commands_menu.image",
-          keywords: ["image", "tupian"],
+          title: 'editor.extensions.commands_menu.image',
+          keywords: ['image', 'tupian'],
           command: ({ editor, range }: { editor: Editor; range: Range }) => {
             editor
               .chain()
@@ -278,9 +278,9 @@ export const ExtensionImage = TiptapImage.extend<ExtensionImageOptions>({
               .deleteRange(range)
               .insertContent([
                 {
-                  type: "figure",
-                  attrs: { contentType: "image" },
-                  content: [{ type: "image" }],
+                  type: 'figure',
+                  attrs: { contentType: 'image' },
+                  content: [{ type: 'image' }],
                 },
               ])
               .run();
@@ -294,7 +294,7 @@ export const ExtensionImage = TiptapImage.extend<ExtensionImageOptions>({
             return isActive(state, ExtensionImage.name);
           },
           options: {
-            placement: "top-start",
+            placement: 'top-start',
           },
           items: [
             {
@@ -303,7 +303,7 @@ export const ExtensionImage = TiptapImage.extend<ExtensionImageOptions>({
               props: {
                 visible({ editor }) {
                   return !isEmpty(
-                    editor.getAttributes(ExtensionImage.name).src
+                    editor.getAttributes(ExtensionImage.name).src,
                   );
                 },
               },
@@ -314,7 +314,7 @@ export const ExtensionImage = TiptapImage.extend<ExtensionImageOptions>({
               props: {
                 visible({ editor }) {
                   return !isEmpty(
-                    editor.getAttributes(ExtensionImage.name).src
+                    editor.getAttributes(ExtensionImage.name).src,
                   );
                 },
               },
@@ -323,43 +323,43 @@ export const ExtensionImage = TiptapImage.extend<ExtensionImageOptions>({
               priority: 25,
               props: {
                 icon: markRaw(MingcuteCopy3Fill),
-                title: i18n.global.t("editor.extensions.image.copy_width"),
+                title: i18n.global.t('editor.extensions.image.copy_width'),
                 action: () => {
                   const width = editor.getAttributes(ExtensionImage.name).width;
 
                   const tr = editor.state.tr;
                   editor.state.doc.descendants((node, pos, parent) => {
                     if (node.type.name === ExtensionImage.name) {
-                      tr.setNodeAttribute(pos, "width", width);
+                      tr.setNodeAttribute(pos, 'width', width);
 
                       if (parent?.type.name === ExtensionFigure.name) {
                         const $pos = editor.state.doc.resolve(pos);
                         const figurePos = findParentNodeClosestToPos(
                           $pos,
-                          (node) => node.type.name === ExtensionFigure.name
+                          (node) => node.type.name === ExtensionFigure.name,
                         );
                         if (figurePos) {
                           // TODO: image should not update figureCaption's width every time, it should be optimized in figure
                           const figureCaptionPos = findChildren(
                             figurePos.node,
                             (node) =>
-                              node.type.name === ExtensionFigureCaption.name
+                              node.type.name === ExtensionFigureCaption.name,
                           )[0];
                           if (figureCaptionPos) {
                             const imageHTMLElement = editor.view.nodeDOM(
-                              $pos.pos
+                              $pos.pos,
                             ) as HTMLElement;
                             const imageNode =
-                              imageHTMLElement.querySelector("img");
-                            const imageNaturalWidth = width
-                              ? width
-                              : imageNode?.naturalWidth
+                              imageHTMLElement.querySelector('img');
+                            const imageNaturalWidth =
+                              width ||
+                              (imageNode?.naturalWidth
                                 ? `${imageNode.naturalWidth}px`
-                                : undefined;
+                                : undefined);
                             tr.setNodeAttribute(
                               figurePos.pos + figureCaptionPos.pos + 1,
-                              "width",
-                              imageNaturalWidth
+                              'width',
+                              imageNaturalWidth,
                             );
                           }
                         }
@@ -377,7 +377,7 @@ export const ExtensionImage = TiptapImage.extend<ExtensionImageOptions>({
               props: {
                 visible({ editor }) {
                   return !isEmpty(
-                    editor.getAttributes(ExtensionImage.name).src
+                    editor.getAttributes(ExtensionImage.name).src,
                   );
                 },
               },
@@ -386,7 +386,7 @@ export const ExtensionImage = TiptapImage.extend<ExtensionImageOptions>({
               priority: 40,
               props: {
                 icon: markRaw(MingcuteLinkLine),
-                title: i18n.global.t("editor.common.button.edit_link"),
+                title: i18n.global.t('editor.common.button.edit_link'),
                 action: () => {
                   return markRaw(BubbleItemImageLink);
                 },
@@ -397,15 +397,15 @@ export const ExtensionImage = TiptapImage.extend<ExtensionImageOptions>({
               props: {
                 visible({ editor }) {
                   return !isEmpty(
-                    editor.getAttributes(ExtensionImage.name).src
+                    editor.getAttributes(ExtensionImage.name).src,
                   );
                 },
                 icon: markRaw(MingcuteShare3Line),
-                title: i18n.global.t("editor.common.tooltip.open_link"),
+                title: i18n.global.t('editor.common.tooltip.open_link'),
                 action: () => {
                   window.open(
                     editor.getAttributes(ExtensionImage.name).src,
-                    "_blank"
+                    '_blank',
                   );
                 },
               },
@@ -415,11 +415,11 @@ export const ExtensionImage = TiptapImage.extend<ExtensionImageOptions>({
               props: {
                 visible({ editor }) {
                   return !isEmpty(
-                    editor.getAttributes(ExtensionImage.name).src
+                    editor.getAttributes(ExtensionImage.name).src,
                   );
                 },
                 icon: markRaw(MingcuteEdit4Line),
-                title: i18n.global.t("editor.extensions.image.edit_alt"),
+                title: i18n.global.t('editor.extensions.image.edit_alt'),
                 action: () => {
                   return markRaw(BubbleItemImageAlt);
                 },
@@ -430,11 +430,11 @@ export const ExtensionImage = TiptapImage.extend<ExtensionImageOptions>({
               props: {
                 visible({ editor }) {
                   return !isEmpty(
-                    editor.getAttributes(ExtensionImage.name).src
+                    editor.getAttributes(ExtensionImage.name).src,
                   );
                 },
                 icon: markRaw(MingcuteLink2Line),
-                title: i18n.global.t("editor.extensions.image.edit_href"),
+                title: i18n.global.t('editor.extensions.image.edit_href'),
                 action: () => {
                   return markRaw(BubbleItemImageHref);
                 },
@@ -445,14 +445,14 @@ export const ExtensionImage = TiptapImage.extend<ExtensionImageOptions>({
               props: {
                 visible({ editor }) {
                   return !isEmpty(
-                    editor.getAttributes(ExtensionImage.name).src
+                    editor.getAttributes(ExtensionImage.name).src,
                   );
                 },
                 icon: markRaw(MingcuteBookmarkEditLine),
-                title: i18n.global.t("editor.extensions.image.edit_caption"),
+                title: i18n.global.t('editor.extensions.image.edit_caption'),
                 action: ({ editor }) => {
                   const figureParent = findParentNode(
-                    (node) => node.type.name === ExtensionFigure.name
+                    (node) => node.type.name === ExtensionFigure.name,
                   )(editor.state.selection);
 
                   if (!figureParent) {
@@ -472,7 +472,7 @@ export const ExtensionImage = TiptapImage.extend<ExtensionImageOptions>({
                   }
                   const imageNodePos = findChildren(
                     editor.state.selection.$from.node(),
-                    (node) => node.type.name === ExtensionImage.name
+                    (node) => node.type.name === ExtensionImage.name,
                   )[0];
                   const figureCaptionNode =
                     editor.schema.nodes.figureCaption.create({
@@ -485,7 +485,7 @@ export const ExtensionImage = TiptapImage.extend<ExtensionImageOptions>({
                       const insertPos = pos + node.nodeSize - 1;
                       tr.insert(insertPos, figureCaptionNode);
                       tr.setSelection(
-                        TextSelection.near(tr.doc.resolve(insertPos + 1))
+                        TextSelection.near(tr.doc.resolve(insertPos + 1)),
                       );
                       return true;
                     })
@@ -501,15 +501,15 @@ export const ExtensionImage = TiptapImage.extend<ExtensionImageOptions>({
               priority: 100,
               props: {
                 icon: markRaw(MingcuteDelete2Line),
-                title: i18n.global.t("editor.common.button.delete"),
+                title: i18n.global.t('editor.common.button.delete'),
                 action: ({ editor }) => {
                   const figureParent = findParentNode(
-                    (node) => node.type.name === ExtensionFigure.name
+                    (node) => node.type.name === ExtensionFigure.name,
                   )(editor.state.selection);
 
                   deleteNode(
                     figureParent ? ExtensionFigure.name : ExtensionImage.name,
-                    editor
+                    editor,
                   );
                 },
               },
@@ -522,17 +522,17 @@ export const ExtensionImage = TiptapImage.extend<ExtensionImageOptions>({
   renderHTML({ HTMLAttributes }) {
     if (HTMLAttributes.href) {
       return [
-        "a",
+        'a',
         { href: HTMLAttributes.href },
-        ["img", mergeAttributes(HTMLAttributes)],
+        ['img', mergeAttributes(HTMLAttributes)],
       ];
     }
-    return ["img", mergeAttributes(HTMLAttributes)];
+    return ['img', mergeAttributes(HTMLAttributes)];
   },
 }).configure({
   inline: true,
   allowBase64: false,
   HTMLAttributes: {
-    loading: "lazy",
+    loading: 'lazy',
   },
 });

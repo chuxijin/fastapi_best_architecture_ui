@@ -3,7 +3,7 @@ import type { EchartsUIType } from '@vben/plugins/echarts';
 
 import type { SocialWorkTrendPoint } from '#/api';
 
-import { computed, defineExpose, defineProps, nextTick, ref, watch } from 'vue';
+import { computed, nextTick, ref, watch } from 'vue';
 
 import { EchartsUI, useEcharts } from '@vben/plugins/echarts';
 
@@ -96,7 +96,7 @@ function getFastestGrowthPeriod() {
     if (!ex || new Date(p.record_time) < new Date(ex.record_time))
       dailyEarliest.set(key, p);
   });
-  const dailyPoints = [...dailyEarliest.values()].sort(
+  const dailyPoints = [...dailyEarliest.values()].toSorted(
     (a, b) =>
       new Date(a.record_time).getTime() - new Date(b.record_time).getTime(),
   );

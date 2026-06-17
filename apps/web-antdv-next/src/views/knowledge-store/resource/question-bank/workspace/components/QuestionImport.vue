@@ -606,10 +606,14 @@ async function handleJsonImport() {
       题型: q.type || q.题型,
       分数: q.score || q.分数 || 1,
       难度: q.difficulty || q.难度 || '中等',
-      选项A: q.options_data?.A?.content || q.选项A,
-      选项B: q.options_data?.B?.content || q.选项B,
-      选项C: q.options_data?.C?.content || q.选项C,
-      选项D: q.options_data?.D?.content || q.选项D,
+      选项A:
+        q.options?.find((o: any) => o.option_code === 'A')?.content || q.选项A,
+      选项B:
+        q.options?.find((o: any) => o.option_code === 'B')?.content || q.选项B,
+      选项C:
+        q.options?.find((o: any) => o.option_code === 'C')?.content || q.选项C,
+      选项D:
+        q.options?.find((o: any) => o.option_code === 'D')?.content || q.选项D,
       答案: q.answer_data?.correct || q.答案,
       解析: q.analysis_content || q.解析 || '',
       一级目录: q.chapter_level1_name || q.一级目录 || q.chapter_name,

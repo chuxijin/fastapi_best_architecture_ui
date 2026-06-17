@@ -1,5 +1,5 @@
 import { requestClient } from '#/api/request';
-import type { PageData } from '#/api/job';
+import type { PageData } from '#/api/quest';
 
 export type RenderVariant =
   | 'questions_only'
@@ -189,29 +189,47 @@ export interface RenderTemplatePresetUpdatePayload {
 }
 
 export async function getRenderTemplatesApi() {
-  return requestClient.get<RenderTemplateSummary[]>('/api/v1/render-books/templates');
+  return requestClient.get<RenderTemplateSummary[]>(
+    '/api/v1/render-books/templates',
+  );
 }
 
-export async function previewRenderTemplateApi(data: RenderTemplatePreviewPayload) {
-  return requestClient.post<RenderTemplatePreviewResult>('/api/v1/render-books/templates/preview', data);
+export async function previewRenderTemplateApi(
+  data: RenderTemplatePreviewPayload,
+) {
+  return requestClient.post<RenderTemplatePreviewResult>(
+    '/api/v1/render-books/templates/preview',
+    data,
+  );
 }
 
 export async function getRenderTemplatePresetsApi(params?: {
   template_key?: string;
   is_active?: boolean;
 }) {
-  return requestClient.get<RenderTemplatePresetResult[]>('/api/v1/render-books/presets', { params });
+  return requestClient.get<RenderTemplatePresetResult[]>(
+    '/api/v1/render-books/presets',
+    { params },
+  );
 }
 
-export async function createRenderTemplatePresetApi(data: RenderTemplatePresetCreatePayload) {
-  return requestClient.post<RenderTemplatePresetResult>('/api/v1/render-books/presets', data);
+export async function createRenderTemplatePresetApi(
+  data: RenderTemplatePresetCreatePayload,
+) {
+  return requestClient.post<RenderTemplatePresetResult>(
+    '/api/v1/render-books/presets',
+    data,
+  );
 }
 
 export async function updateRenderTemplatePresetApi(
   presetId: number,
   data: RenderTemplatePresetUpdatePayload,
 ) {
-  return requestClient.put<RenderTemplatePresetResult>(`/api/v1/render-books/presets/${presetId}`, data);
+  return requestClient.put<RenderTemplatePresetResult>(
+    `/api/v1/render-books/presets/${presetId}`,
+    data,
+  );
 }
 
 export async function deleteRenderTemplatePresetApi(presetId: number) {
@@ -247,16 +265,24 @@ export async function dispatchRenderJobApi(jobId: string, uploadToOss = true) {
 }
 
 export async function getRenderJobApi(jobId: string) {
-  return requestClient.get<RenderJobResult>(`/api/v1/render-books/jobs/${jobId}`);
+  return requestClient.get<RenderJobResult>(
+    `/api/v1/render-books/jobs/${jobId}`,
+  );
 }
 
 export async function getRenderJobListApi(params?: RenderJobListParams) {
-  return requestClient.get<PageData<RenderJobResult>>('/api/v1/render-books/jobs', {
-    params,
-  });
+  return requestClient.get<PageData<RenderJobResult>>(
+    '/api/v1/render-books/jobs',
+    {
+      params,
+    },
+  );
 }
 
-export function buildRenderPreviewPdfUrl(jobId: string, renderVariant?: RenderVariant) {
+export function buildRenderPreviewPdfUrl(
+  jobId: string,
+  renderVariant?: RenderVariant,
+) {
   const search = new URLSearchParams();
   if (renderVariant) {
     search.set('render_variant', renderVariant);

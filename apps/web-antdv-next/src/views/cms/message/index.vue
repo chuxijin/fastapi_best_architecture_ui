@@ -28,8 +28,10 @@ const formData = ref<Partial<UserMessageResult>>({});
 const contentHtml = ref('');
 
 const formOptions: VbenFormProps = {
-  collapsed: true,
-  showCollapseButton: true,
+  collapsed: false,
+  showCollapseButton: false,
+  wrapperClass: 'grid-cols-3',
+  actionWrapperClass: 'col-start-3',
   submitButtonOptions: { content: $t('common.form.query') },
   schema: querySchema,
 };

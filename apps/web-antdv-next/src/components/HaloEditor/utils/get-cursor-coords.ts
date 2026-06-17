@@ -1,10 +1,10 @@
-import type { EditorView } from "@HaloEditor/tiptap";
+import type { EditorView } from '@HaloEditor/tiptap';
 
 export type Coords = {
-  top: number;
   bottom: number;
   left: number;
   right: number;
+  top: number;
 };
 
 const toCoords = (r: DOMRect): Coords => ({
@@ -88,7 +88,7 @@ export const getCursorCoords = (view: EditorView): Coords | null => {
     if (nodeType === Node.ELEMENT_NODE) {
       const el = range.startContainer as Element;
       const child = el.childNodes[range.startOffset] as Element | undefined;
-      if (child && typeof child.getBoundingClientRect === "function") {
+      if (child && typeof child.getBoundingClientRect === 'function') {
         const r = child.getBoundingClientRect();
         if (r.height > 0) {
           return toCoords(r);

@@ -1,13 +1,17 @@
 <script setup lang="ts">
-import { VDropdown } from "#/stubs/halo-components";
-import { computed, ref } from "vue";
-import MingcuteDotGridLine from "~icons/mingcute/dot-grid-line";
-import { BlockActionSeparator } from "@HaloEditor/components";
-import DropdownItem from "@HaloEditor/components/base/DropdownItem.vue";
-import BubbleButton from "@HaloEditor/components/bubble/BubbleButton.vue";
-import { i18n } from "@HaloEditor/locales";
-import type { BubbleItemComponentProps } from "@HaloEditor/types";
-import { ExtensionGallery } from "./index";
+import type { BubbleItemComponentProps } from '@HaloEditor/types';
+
+import { computed, ref } from 'vue';
+
+import { BlockActionSeparator } from '@HaloEditor/components';
+import DropdownItem from '@HaloEditor/components/base/DropdownItem.vue';
+import BubbleButton from '@HaloEditor/components/bubble/BubbleButton.vue';
+import { i18n } from '@HaloEditor/locales';
+import MingcuteDotGridLine from '~icons/mingcute/dot-grid-line';
+
+import { VDropdown } from '#/stubs/halo-components';
+
+import { ExtensionGallery } from './index';
 
 const props = defineProps<BubbleItemComponentProps>();
 

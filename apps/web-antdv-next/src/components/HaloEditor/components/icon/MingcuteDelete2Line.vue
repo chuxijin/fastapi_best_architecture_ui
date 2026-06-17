@@ -1,5 +1,5 @@
 <script lang="ts" setup>
-import MingcuteDelete2Line from "~icons/mingcute/delete-2-line";
+import MingcuteDelete2Line from '~icons/mingcute/delete-2-line';
 </script>
 
 <template>

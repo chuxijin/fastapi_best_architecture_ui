@@ -1,5 +1,6 @@
-import type { Component, InjectionKey } from "vue";
-import type { Attachment, UploadRequestConfig } from "@HaloEditor/utils/upload";
+import type { Attachment, UploadRequestConfig } from '@HaloEditor/utils/upload';
+
+import type { Component, InjectionKey } from 'vue';
 
 export interface EditorConfig {
   /**
@@ -30,6 +31,10 @@ export interface EditorConfig {
   permissionCheck?: (...args: any[]) => boolean;
 }
 
-export const editorConfigKey: InjectionKey<EditorConfig> = Symbol("editorConfig");
+export const editorConfigKey: InjectionKey<EditorConfig> =
+  Symbol('editorConfig');
 
-export { type Attachment, type UploadRequestConfig } from "@HaloEditor/utils/upload";
+export {
+  type Attachment,
+  type UploadRequestConfig,
+} from '@HaloEditor/utils/upload';

@@ -40,7 +40,7 @@ const router = useRouter();
 const formOptions: VbenFormProps = {
   collapsed: true,
   showCollapseButton: true,
-  submitButtonOptions: { content: $t('common.search') },
+  submitButtonOptions: { content: $t('common.form.query') },
   schema: querySchema,
 };
 
@@ -64,24 +64,7 @@ const gridOptions: VxeTableGridOptions<SubscriptionTemplateResult> = {
           size: page.pageSize,
           ...formValues,
         });
-
-        // 补齐 packs 等详细信息以供列表显示
-        const items = await Promise.all(
-          data.items.map(async (item) => {
-            try {
-              const detail = await getSubscriptionTemplateDetailApi(item.id);
-              // 如果后端将 domain_codes 存在 metadata 中，提取出来方便显示
-              const domain_codes =
-                (detail as any).metadata?.domain_codes ||
-                (detail as any).domain_codes ||
-                [];
-              return { ...item, ...detail, domain_codes };
-            } catch {
-              return item;
-            }
-          }),
-        );
-        return { ...data, items };
+        return data;
       },
     },
   },
@@ -223,7 +206,7 @@ const [Modal, modalApi] = useVbenModal({
       const rawValues = await formApi.getValues();
       const domainCodes = (rawValues as any).domain_codes || [];
       const metadata = {
-        ...((values as any).metadata || {}),
+        ...(values as any).metadata,
         domain_codes: domainCodes,
       };
       (values as any).metadata = metadata;

@@ -53,32 +53,31 @@ function onEscapeKeyDown() {
 const getIconRender = computed(() => {
   let iconRender: Component | null = null;
   if (props.icon) {
-    if (typeof props.icon === 'string') {
+    if (typeof props.icon !== 'string') {
+      iconRender = props.icon;
+    } else {
       switch (props.icon) {
         case 'error': {
-          iconRender = h(CircleX, {
-            style: { color: 'hsl(var(--destructive))' },
-          });
+          iconRender = () =>
+            h(CircleX, { style: { color: 'hsl(var(--destructive))' } });
           break;
         }
         case 'info': {
-          iconRender = h(Info, { style: { color: 'hsl(var(--info))' } });
+          iconRender = () => h(Info, { style: { color: 'hsl(var(--info))' } });
           break;
         }
         case 'question': {
-          iconRender = CircleHelp;
+          iconRender = () => h(CircleHelp);
           break;
         }
         case 'success': {
-          iconRender = h(CircleCheckBig, {
-            style: { color: 'hsl(var(--success))' },
-          });
+          iconRender = () =>
+            h(CircleCheckBig, { style: { color: 'hsl(var(--success))' } });
           break;
         }
         case 'warning': {
-          iconRender = h(CircleAlert, {
-            style: { color: 'hsl(var(--warning))' },
-          });
+          iconRender = () =>
+            h(CircleAlert, { style: { color: 'hsl(var(--warning))' } });
           break;
         }
         default: {
@@ -87,8 +86,6 @@ const getIconRender = computed(() => {
         }
       }
     }
-  } else {
-    iconRender = props.icon ?? null;
   }
   return iconRender;
 });

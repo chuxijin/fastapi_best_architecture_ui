@@ -54,7 +54,7 @@ const formOptions: VbenFormProps = {
   schema: querySchema,
 };
 
-const columns = [
+const columns: VxeTableGridOptions<MaterialPackage>['columns'] = [
   { type: 'checkbox', width: 50 },
   { type: 'seq', width: 60, title: '序号' },
   { field: 'title', title: '资料包名称', minWidth: 200 },
@@ -190,10 +190,10 @@ const gridOptions: VxeTableGridOptions<MaterialPackage> = {
 const [Grid, gridApi] = useVbenVxeGrid({ gridOptions });
 const [QueryForm] = useVbenForm(formOptions);
 
-const onActionClick = async (params: OnActionClickParams) => {
-  const { action, row } = params;
+const onActionClick = async (params: OnActionClickParams<MaterialPackage>) => {
+  const { code, row } = params;
 
-  switch (action) {
+  switch (code) {
     case 'delete': {
       message.info(`删除资料包: ${row.title}`);
 
@@ -245,24 +245,24 @@ const handleQuery = async (values: Record<string, any>) => {
 
       <template #action="{ row }">
         <VbenButton
-          size="small"
+          size="sm"
           variant="link"
-          @click="onActionClick({ action: 'view', row })"
+          @click="onActionClick({ code: 'view', row })"
         >
           查看
         </VbenButton>
         <VbenButton
-          size="small"
+          size="sm"
           variant="link"
-          @click="onActionClick({ action: 'edit', row })"
+          @click="onActionClick({ code: 'edit', row })"
         >
           编辑
         </VbenButton>
         <VbenButton
-          size="small"
+          size="sm"
           variant="link"
           class="text-red-600"
-          @click="onActionClick({ action: 'delete', row })"
+          @click="onActionClick({ code: 'delete', row })"
         >
           删除
         </VbenButton>

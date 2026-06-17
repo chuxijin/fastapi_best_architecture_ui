@@ -1,20 +1,27 @@
 <script setup lang="ts" name="BubbleMenu">
-import { vTooltip } from "#/stubs/halo-components";
-import { computed, nextTick, ref, watch, type PropType } from "vue";
-import LucideReplace from "~icons/lucide/replace";
-import LucideReplaceAll from "~icons/lucide/replace-all";
-import MdiFormatLetterCase from "~icons/mdi/format-letter-case";
-import MdiFormatLetterMatches from "~icons/mdi/format-letter-matches";
-import MdiRegex from "~icons/mdi/regex";
-import MingcuteArrowDownLine from "~icons/mingcute/arrow-down-line";
-import MingcuteArrowUpLine from "~icons/mingcute/arrow-up-line";
-import MingcuteCloseLine from "~icons/mingcute/close-line";
-import { i18n } from "@HaloEditor/locales";
-import type { Editor } from "@HaloEditor/tiptap";
-import { PluginKey } from "@HaloEditor/tiptap/pm";
-import IconButton from "./IconButton.vue";
-import MatchToggleButton from "./MatchToggleButton.vue";
-import type { SearchAndReplacePluginState } from "./SearchAndReplacePlugin";
+import type { Editor } from '@HaloEditor/tiptap';
+
+import type { PropType } from 'vue';
+
+import type { SearchAndReplacePluginState } from './SearchAndReplacePlugin';
+
+import { computed, nextTick, ref, watch } from 'vue';
+
+import { i18n } from '@HaloEditor/locales';
+import { PluginKey } from '@HaloEditor/tiptap/pm';
+import LucideReplace from '~icons/lucide/replace';
+import LucideReplaceAll from '~icons/lucide/replace-all';
+import MdiFormatLetterCase from '~icons/mdi/format-letter-case';
+import MdiFormatLetterMatches from '~icons/mdi/format-letter-matches';
+import MdiRegex from '~icons/mdi/regex';
+import MingcuteArrowDownLine from '~icons/mingcute/arrow-down-line';
+import MingcuteArrowUpLine from '~icons/mingcute/arrow-up-line';
+import MingcuteCloseLine from '~icons/mingcute/close-line';
+
+import { vTooltip } from '#/stubs/halo-components';
+
+import IconButton from './IconButton.vue';
+import MatchToggleButton from './MatchToggleButton.vue';
 
 const props = defineProps({
   editor: {
@@ -31,8 +38,8 @@ const props = defineProps({
   },
 });
 
-const searchTerm = ref<string>("");
-const replaceTerm = ref<string>("");
+const searchTerm = ref<string>('');
+const replaceTerm = ref<string>('');
 const regex = ref<boolean>(false);
 const caseSensitive = ref<boolean>(false);
 const matchWord = ref<boolean>(false);
@@ -62,8 +69,7 @@ const findPreviousSearchResult = () => {
   props.editor.commands.findPrevious();
 };
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const updateSearchReplace = (value: any) => {
+const updateSearchReplace = (value: unknown) => {
   const { editor, pluginKey } = props;
   if (!editor || !pluginKey) {
     return;
@@ -96,7 +102,7 @@ watch(
         setSearchTerm: val,
       });
     }
-  }
+  },
 );
 
 watch(
@@ -107,7 +113,7 @@ watch(
         setReplaceTerm: val,
       });
     }
-  }
+  },
 );
 
 watch(
@@ -118,7 +124,7 @@ watch(
         setRegex: val,
       });
     }
-  }
+  },
 );
 
 watch(
@@ -129,7 +135,7 @@ watch(
         setCaseSensitive: val,
       });
     }
-  }
+  },
 );
 
 watch(
@@ -140,7 +146,7 @@ watch(
         setMatchWord: val,
       });
     }
-  }
+  },
 );
 
 const searchInput = ref<HTMLInputElement | null>(null);
@@ -153,7 +159,7 @@ watch(
         searchInput.value?.focus();
       });
     }
-  }
+  },
 );
 </script>
 <template>
@@ -172,7 +178,7 @@ watch(
               class="block size-full h-9 rounded-md bg-white px-3 text-sm text-gray-900 ring-1 ring-gray-100 transition-all placeholder:text-gray-400 focus:!ring-1 focus:!ring-primary"
               :placeholder="
                 i18n.global.t(
-                  'editor.extensions.search_and_replace.search_placeholder'
+                  'editor.extensions.search_and_replace.search_placeholder',
                 )
               "
               tabindex="2"
@@ -182,7 +188,7 @@ watch(
               <MatchToggleButton
                 v-tooltip="
                   i18n.global.t(
-                    'editor.extensions.search_and_replace.case_sensitive'
+                    'editor.extensions.search_and_replace.case_sensitive',
                   )
                 "
                 :is-active="caseSensitive"
@@ -193,7 +199,7 @@ watch(
               <MatchToggleButton
                 v-tooltip="
                   i18n.global.t(
-                    'editor.extensions.search_and_replace.match_word'
+                    'editor.extensions.search_and_replace.match_word',
                   )
                 "
                 :is-active="matchWord"
@@ -204,7 +210,7 @@ watch(
               <MatchToggleButton
                 v-tooltip="
                   i18n.global.t(
-                    'editor.extensions.search_and_replace.use_regex'
+                    'editor.extensions.search_and_replace.use_regex',
                   )
                 "
                 :is-active="regex"
@@ -220,17 +226,17 @@ watch(
               :class="{ 'text-red-600': searchTerm.length > 0 }"
             >
               {{
-                i18n.global.t("editor.extensions.search_and_replace.not_found")
+                i18n.global.t('editor.extensions.search_and_replace.not_found')
               }}
             </span>
             <span v-else>
               {{
                 i18n.global.t(
-                  "editor.extensions.search_and_replace.occurrence_found",
+                  'editor.extensions.search_and_replace.occurrence_found',
                   {
                     index: findState.findIndex + 1,
                     total: findState.findCount,
-                  }
+                  },
                 )
               }}
             </span>
@@ -239,7 +245,7 @@ watch(
             <IconButton
               v-tooltip="
                 i18n.global.t(
-                  'editor.extensions.search_and_replace.find_previous'
+                  'editor.extensions.search_and_replace.find_previous',
                 )
               "
               :disabled="findState.findCount === 0"
@@ -275,7 +281,7 @@ watch(
               class="block size-full h-9 rounded-md bg-white px-3 text-sm text-gray-900 ring-1 ring-gray-100 transition-all placeholder:text-gray-400 focus:!ring-1 focus:!ring-primary"
               :placeholder="
                 i18n.global.t(
-                  'editor.extensions.search_and_replace.replace_placeholder'
+                  'editor.extensions.search_and_replace.replace_placeholder',
                 )
               "
               tabindex="2"
@@ -296,7 +302,7 @@ watch(
             <IconButton
               v-tooltip="
                 i18n.global.t(
-                  'editor.extensions.search_and_replace.replace_all'
+                  'editor.extensions.search_and_replace.replace_all',
                 )
               "
               :disabled="findState.findCount === 0"

@@ -17,7 +17,8 @@ import {
   VueEditor,
 } from '#/components/HaloEditor';
 
-const DEFAULT_CONTENT = '<p>Hello! 这是一个基础版 HaloEditor，可先直接输入和编辑内容。</p>';
+const DEFAULT_CONTENT =
+  '<p>Hello! 这是一个基础版 HaloEditor，可先直接输入和编辑内容。</p>';
 
 interface StatItem {
   icon: any;
@@ -183,12 +184,13 @@ async function openEditor() {
               { label: 'Swift', value: 'swift' },
               { label: 'TypeScript', value: 'typescript' },
               { label: 'YAML', value: 'yaml' },
-            ]
-          }
-        })
+            ],
+          },
+        }),
       ],
     });
-    editorStatus.value = '最新 HaloEditor 已就绪，已加载全部内置原生丰富插件功能';
+    editorStatus.value =
+      '最新 HaloEditor 已就绪，已加载全部内置原生丰富插件功能';
   } catch (e) {
     editorStatus.value = `JiaEditor 加载失败: ${e}`;
     console.error('[JiaEditor] Init failed:', e);
@@ -207,11 +209,11 @@ onBeforeUnmount(() => {
     <div class="mb-4 flex items-center justify-between">
       <div>
         <h2 class="text-2xl font-semibold">知识店铺首页</h2>
-        <p class="mt-1 text-muted-foreground">实时统计看板与最新 JiaEditor 联调页</p>
+        <p class="mt-1 text-muted-foreground">
+          实时统计看板与最新 JiaEditor 联调页
+        </p>
       </div>
-      <Button type="primary" @click="openEditor">
-        打开 JiaEditor
-      </Button>
+      <Button type="primary" @click="openEditor"> 打开 JiaEditor </Button>
     </div>
 
     <Modal
@@ -234,7 +236,9 @@ onBeforeUnmount(() => {
       >
         <HaloEditor :editor="editor" locale="zh-CN" />
       </div>
-      <div v-else class="py-20 text-center text-red-500">HaloEditor 加载失败</div>
+      <div v-else class="py-20 text-center text-red-500">
+        HaloEditor 加载失败
+      </div>
     </Modal>
 
     <div class="rounded-lg border bg-card p-6 shadow-sm">

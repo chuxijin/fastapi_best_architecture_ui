@@ -1,10 +1,8 @@
 <script setup lang="ts">
-import linkViewTypes, { type LinkViewType } from "../editor/link-view-type";
-import {
-  DropdownItem,
-  type BubbleItemComponentProps,
-  type Editor,
-} from "../../..";
+import type { LinkViewType } from '../editor/link-view-type';
+
+import { DropdownItem } from '../../..';
+import linkViewTypes from '../editor/link-view-type';
 
 interface Props {
   editor: any;

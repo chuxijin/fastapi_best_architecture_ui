@@ -1,5 +1,5 @@
 <script lang="ts" setup>
-import type { ToolboxItemComponentProps } from "@HaloEditor/types";
+import type { ToolboxItemComponentProps } from '@HaloEditor/types';
 
 defineProps<ToolboxItemComponentProps>();
 </script>

@@ -1,13 +1,17 @@
 <script setup lang="ts">
-import { VDropdown } from "#/stubs/halo-components";
-import { computed } from "vue";
-import MingcuteDistributeSpacingHorizontalLine from "~icons/mingcute/distribute-spacing-horizontal-line";
-import { BlockActionSeparator } from "@HaloEditor/components";
-import Input from "@HaloEditor/components/base/Input.vue";
-import BubbleButton from "@HaloEditor/components/bubble/BubbleButton.vue";
-import { i18n } from "@HaloEditor/locales";
-import type { BubbleItemComponentProps } from "@HaloEditor/types";
-import { ExtensionGallery } from "./index";
+import type { BubbleItemComponentProps } from '@HaloEditor/types';
+
+import { computed } from 'vue';
+
+import { BlockActionSeparator } from '@HaloEditor/components';
+import Input from '@HaloEditor/components/base/Input.vue';
+import BubbleButton from '@HaloEditor/components/bubble/BubbleButton.vue';
+import { i18n } from '@HaloEditor/locales';
+import MingcuteDistributeSpacingHorizontalLine from '~icons/mingcute/distribute-spacing-horizontal-line';
+
+import { VDropdown } from '#/stubs/halo-components';
+
+import { ExtensionGallery } from './index';
 
 const props = defineProps<BubbleItemComponentProps>();
 
@@ -15,7 +19,7 @@ const gap = computed(() => {
   return props.editor.getAttributes(ExtensionGallery.name).gap;
 });
 
-function onGapChange(value: string | number | undefined) {
+function onGapChange(value: number | string | undefined) {
   props.editor
     .chain()
     .updateAttributes(ExtensionGallery.name, { gap: value })
@@ -24,12 +28,7 @@ function onGapChange(value: string | number | undefined) {
 </script>
 
 <template>
-  <VDropdown
-    ref="dropdownRef"
-    class="inline-flex"
-    :triggers="['click']"
-    :distance="10"
-  >
+  <VDropdown class="inline-flex" :triggers="['click']" :distance="10">
     <BubbleButton
       :title="i18n.global.t('editor.extensions.gallery.gap')"
       :text="`${gap}px`"

@@ -1,32 +1,38 @@
+import type {
+  Editor,
+  EditorState,
+  ExtensionOptions,
+  Range,
+} from '#/components/HaloEditor';
+
+import { markRaw } from 'vue';
+
+import { markdown } from '@codemirror/lang-markdown';
+import TurndownService from 'turndown';
+import { gfm } from 'turndown-plugin-gfm';
+import MdiDeleteForeverOutline from '~icons/mdi/delete-forever-outline?color=red';
+import MdiLanguageMarkdown from '~icons/mdi/language-markdown';
+
 import {
   findParentNode,
+  Fragment,
   isActive,
   mergeAttributes,
   Node,
-  Fragment,
   ToolboxItem,
   VueNodeViewRenderer,
-  type Editor,
-  type Range,
-  type EditorState,
-  type ExtensionOptions,
-} from "#/components/HaloEditor";
-import { markRaw } from "vue";
-import MdiLanguageMarkdown from "~icons/mdi/language-markdown";
-import CodeMirrorView from "./CodeMirrorView.vue";
-import { markdown } from "@codemirror/lang-markdown";
-import marked from "../utils/markdown";
-import TurndownService from "turndown";
-import { gfm } from "turndown-plugin-gfm";
-import MdiDeleteForeverOutline from "~icons/mdi/delete-forever-outline?color=red";
-import { deleteNode } from "../utils/delete-node";
+} from '#/components/HaloEditor';
+
+import { deleteNode } from '../utils/delete-node';
+import marked from '../utils/markdown';
+import CodeMirrorView from './CodeMirrorView.vue';
 const temporaryDocument = document.implementation.createHTMLDocument();
 const turndownService = new TurndownService({
-  headingStyle: "atx",
-  hr: "---",
-  bulletListMarker: "-",
-  codeBlockStyle: "fenced",
-  blankReplacement: function (content, node) {
+  headingStyle: 'atx',
+  hr: '---',
+  bulletListMarker: '-',
+  codeBlockStyle: 'fenced',
+  blankReplacement(content, node) {
     if (node instanceof HTMLElement) {
       return node.outerHTML;
     }
@@ -34,25 +40,25 @@ const turndownService = new TurndownService({
   },
 });
 turndownService.keep([
-  "audio",
-  "button",
-  "canvas",
-  "cite",
-  "datalist",
-  "div",
-  "figure",
-  "iframe",
-  "script",
-  "source",
-  "span",
-  "style",
-  "summary",
-  "textarea",
-  "video",
+  'audio',
+  'button',
+  'canvas',
+  'cite',
+  'datalist',
+  'div',
+  'figure',
+  'iframe',
+  'script',
+  'source',
+  'span',
+  'style',
+  'summary',
+  'textarea',
+  'video',
 ]);
 turndownService.use(gfm);
 
-declare module "#/components/HaloEditor" {
+declare module '#/components/HaloEditor' {
   interface Commands<ReturnType> {
     MarkdownEdited: {
       addMarkdownEdited: () => ReturnType;
@@ -62,11 +68,11 @@ declare module "#/components/HaloEditor" {
 }
 
 const MarkdownEdited = Node.create<ExtensionOptions>({
-  name: "markdown_edited",
+  name: 'markdown_edited',
 
-  content: "text*",
+  content: 'text*',
 
-  group: "block",
+  group: 'block',
 
   defining: true,
 
@@ -74,7 +80,7 @@ const MarkdownEdited = Node.create<ExtensionOptions>({
     return {
       collapsed: {
         default: false,
-        parseHTML: (element) => !!element.getAttribute("collapsed"),
+        parseHTML: (element) => !!element.getAttribute('collapsed'),
         renderHTML: (attributes) => {
           if (attributes.collapsed) {
             return {
@@ -90,16 +96,16 @@ const MarkdownEdited = Node.create<ExtensionOptions>({
   addOptions() {
     return {
       HTMLAttributes: {
-        class: "markdown-edited",
+        class: 'markdown-edited',
       },
-      blockType: "markdown",
+      blockType: 'markdown',
       extensions: [markdown()],
       getCommandMenuItems() {
         return {
           priority: 82,
           icon: markRaw(MdiLanguageMarkdown),
-          title: "Markdown 编辑块",
-          keywords: ["markdown", "编辑块"],
+          title: 'Markdown 编辑块',
+          keywords: ['markdown', '编辑块'],
           command: ({ editor, range }: { editor: Editor; range: Range }) => {
             editor
               .chain()
@@ -119,7 +125,7 @@ const MarkdownEdited = Node.create<ExtensionOptions>({
             props: {
               editor,
               icon: markRaw(MdiLanguageMarkdown),
-              title: "Markdown 编辑块",
+              title: 'Markdown 编辑块',
               action: () => {
                 editor
                   .chain()
@@ -134,7 +140,7 @@ const MarkdownEdited = Node.create<ExtensionOptions>({
       },
       getBubbleMenu() {
         return {
-          pluginKey: "htmlEditedBubbleMenu",
+          pluginKey: 'htmlEditedBubbleMenu',
           shouldShow: ({ state }: { state: EditorState }): boolean => {
             return isActive(state, MarkdownEdited.name);
           },
@@ -143,7 +149,7 @@ const MarkdownEdited = Node.create<ExtensionOptions>({
               priority: 100,
               props: {
                 icon: markRaw(MdiDeleteForeverOutline),
-                title: "删除",
+                title: '删除',
                 action: ({ editor }: { editor: Editor }) => {
                   deleteNode(MarkdownEdited.name, editor);
                 },
@@ -170,14 +176,14 @@ const MarkdownEdited = Node.create<ExtensionOptions>({
         () =>
         ({ chain, state }) => {
           const markdownNode = findParentNode(
-            (node) => node.type.name === MarkdownEdited.name
+            (node) => node.type.name === MarkdownEdited.name,
           )(state.selection) as
+            | undefined
             | {
+                depth: number;
                 pos: number;
                 start: number;
-                depth: number;
-              }
-            | undefined;
+              };
           if (!markdownNode) {
             return false;
           }
@@ -190,7 +196,7 @@ const MarkdownEdited = Node.create<ExtensionOptions>({
   parseHTML() {
     return [
       {
-        tag: "div[class=markdown-edited]",
+        tag: 'div[class=markdown-edited]',
         getContent: (node, schema) => {
           const htmlNode = node as HTMLElement;
           if (!htmlNode) {
@@ -199,7 +205,7 @@ const MarkdownEdited = Node.create<ExtensionOptions>({
           // html covert to markdown
           let markdown = turndownService.turndown(htmlNode.innerHTML);
           if (!markdown) {
-            markdown = "<br>";
+            markdown = '<br>';
           }
           const textNode = schema.text(markdown);
           return Fragment.from(textNode);
@@ -211,12 +217,14 @@ const MarkdownEdited = Node.create<ExtensionOptions>({
   renderHTML({ HTMLAttributes, node }) {
     const content = node.content;
     if (!content.firstChild) {
-      return ["div", mergeAttributes(HTMLAttributes, {})];
+      return ['div', mergeAttributes(HTMLAttributes, {})];
     }
-    const container = temporaryDocument.createElement("div");
-    container.classList.add("markdown-edited");
+    const container = temporaryDocument.createElement('div');
+    container.classList.add('markdown-edited');
     // markdown covert to html
-    container.innerHTML = marked.parse(content.firstChild.text || "");
+    container.innerHTML = marked.parse(content.firstChild.text || '', {
+      async: false,
+    }) as string;
     return {
       dom: container,
     };
