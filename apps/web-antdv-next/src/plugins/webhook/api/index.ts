@@ -2,265 +2,365 @@ import type { RequestClient } from '@vben/request';
 
 import { requestClient } from '#/api/request';
 
-export interface WebhookEvent {
+// ==================== 类型定义 ====================
+
+/** 出站端点 */
+export interface WebhookEndpoint {
   id: number;
-  event_type: string;
-  source: string;
-  webhook_url?: string;
+  uid: string;
+  name: string;
+  url: string;
+  description?: string;
+  event_types: string[];
   headers?: Record<string, any>;
-  payload: string;
-  status: number;
-  error_message?: string;
-  processed_at?: string;
-  retry_count: number;
+  is_active: boolean;
+  failure_count: number;
+  max_retries: number;
+  timeout_seconds: number;
+  last_success_at?: string;
+  last_failure_at?: string;
   created_time: string;
   updated_time?: string;
 }
 
-export interface WebhookReceiveParam {
-  event_type?: string;
-  data: Record<string, any> | string;
-}
-
-export interface HeaderValidationRule {
-  header_name: string;
-  header_value: string;
-  is_required: boolean;
-  validation_type: 'contains' | 'exact' | 'regex';
-}
-
-export interface WebhookListParam {
-  event_type?: string;
-  source?: string;
-  status?: number;
-  start_time?: string;
-  end_time?: string;
-}
-
-export interface WebhookConfig {
+/** 投递记录 */
+export interface WebhookDelivery {
   id: number;
-  name: string;
-  endpoint_url: string;
-  secret_key?: string;
-  required_headers?: Record<string, any>;
-  allowed_event_types?: string[];
+  uid: string;
+  endpoint_id: number;
+  event_id: string;
+  event_type: string;
+  status: number;
+  response_code?: number;
+  response_body?: string;
+  attempt_count: number;
+  next_retry_at?: string;
+  completed_at?: string;
+  created_time: string;
+  updated_time?: string;
+}
+
+/** 入站事件日志 */
+export interface WebhookEventLog {
+  id: number;
+  uid: string;
+  source: string;
+  event_type: string;
+  event_id?: string;
+  payload: string;
+  signature_valid: boolean;
+  status: number;
+  error_message?: string;
+  processed_at?: string;
+  source_ip?: string;
+  created_time: string;
+  updated_time?: string;
+}
+
+/** 事件类型注册 */
+export interface WebhookEventType {
+  id: number;
+  type_key: string;
+  category: string;
+  description?: string;
+  payload_schema?: Record<string, any>;
   is_active: boolean;
   created_time: string;
   updated_time?: string;
 }
 
-export interface WebhookConfigListParam {
-  name?: string;
-  endpoint_url?: string;
-  is_active?: boolean;
+/** CloudEvents 信封 */
+export interface CloudEvent {
+  specversion: string;
+  id: string;
+  type: string;
+  source: string;
+  time?: string;
+  datacontenttype: string;
+  subject?: string;
+  data?: Record<string, any>;
 }
 
-export interface CreateWebhookConfigParam {
+// ==================== 参数类型 ====================
+
+export interface CreateEndpointParam {
   name: string;
-  endpoint_url: string;
-  secret_key?: string;
-  required_headers?: Record<string, any>;
-  allowed_event_types?: string[];
+  url: string;
+  description?: string;
+  event_types: string[];
+  headers?: Record<string, any>;
+  max_retries?: number;
+  timeout_seconds?: number;
+}
+
+export interface UpdateEndpointParam {
+  name?: string;
+  url?: string;
+  description?: string;
+  event_types?: string[];
+  headers?: Record<string, any>;
+  is_active?: boolean;
+  max_retries?: number;
+  timeout_seconds?: number;
+}
+
+export interface CreateEventTypeParam {
+  type_key: string;
+  category: string;
+  description?: string;
+  payload_schema?: Record<string, any>;
   is_active?: boolean;
 }
 
-export interface UpdateWebhookConfigParam {
-  name?: string;
-  endpoint_url?: string;
-  secret_key?: string;
-  required_headers?: Record<string, any>;
-  allowed_event_types?: string[];
+export interface UpdateEventTypeParam {
+  category?: string;
+  description?: string;
+  payload_schema?: Record<string, any>;
   is_active?: boolean;
 }
+
+export interface PublishEventParam {
+  type: string;
+  source?: string;
+  data?: Record<string, any>;
+  subject?: string;
+}
+
+export interface EndpointListParam {
+  name?: string;
+  is_active?: boolean;
+  event_type?: string;
+}
+
+export interface DeliveryListParam {
+  endpoint_id?: number;
+  event_type?: string;
+  status?: number;
+  start_time?: string;
+  end_time?: string;
+}
+
+export interface EventLogListParam {
+  source?: string;
+  event_type?: string;
+  status?: number;
+  start_time?: string;
+  end_time?: string;
+}
+
+export interface EventTypeListParam {
+  category?: string;
+  is_active?: boolean;
+}
+
+// ==================== 响应类型 ====================
+
+export interface RotateSecretResult {
+  uid: string;
+  new_secret: string;
+  message: string;
+}
+
+export interface TestEndpointResult {
+  success: boolean;
+  status_code?: number;
+  response_body?: string;
+  message: string;
+}
+
+export interface InboundReceiveResult {
+  status: string;
+  event_id?: string;
+  event_type?: string;
+  log_id?: number;
+}
+
+export interface PublishResult {
+  deliveries_created: number;
+  message: string;
+}
+
+// ==================== API 类 ====================
 
 export class WebhookApi {
   constructor(private request: RequestClient) {}
 
-  /**
-   * 创建WebhookConfig
-   */
-  async createWebhookConfig(data: CreateWebhookConfigParam) {
-    return this.request.post('/api/v1/sys/webhook-configs', data);
+  // ---------- 出站端点 ----------
+
+  async createEndpoint(data: CreateEndpointParam) {
+    return this.request.post<WebhookEndpoint>(
+      '/api/v1/sys/webhook/endpoints',
+      data,
+    );
   }
 
-  /**
-   * 批量删除WebhookConfig
-   */
-  async deleteWebhookConfigs(pks: number[]) {
-    return this.request.delete('/api/v1/sys/webhook-configs', {
+  async getEndpointList(
+    params?: EndpointListParam & { page?: number; size?: number },
+  ) {
+    return this.request.get<{
+      items: WebhookEndpoint[];
+      page: number;
+      size: number;
+      total: number;
+    }>('/api/v1/sys/webhook/endpoints', { params });
+  }
+
+  async getEndpointDetail(id: number) {
+    return this.request.get<WebhookEndpoint>(
+      `/api/v1/sys/webhook/endpoints/${id}`,
+    );
+  }
+
+  async updateEndpoint(id: number, data: UpdateEndpointParam) {
+    return this.request.put(`/api/v1/sys/webhook/endpoints/${id}`, data);
+  }
+
+  async deleteEndpoints(pks: number[]) {
+    return this.request.delete('/api/v1/sys/webhook/endpoints', {
       data: { pks },
     });
   }
 
-  /**
-   * 批量删除Webhook事件
-   */
-  async deleteWebhooks(pks: number[]) {
-    return this.request.delete('/api/v1/sys/webhooks', { data: { pks } });
-  }
-
-  /**
-   * 获取所有启用的WebhookConfig
-   */
-  async getActiveWebhookConfigs() {
-    return this.request.get<WebhookConfig[]>(
-      '/api/v1/sys/webhook-configs/active',
+  async rotateSecret(id: number) {
+    return this.request.post<RotateSecretResult>(
+      `/api/v1/sys/webhook/endpoints/${id}/rotate-secret`,
     );
   }
 
-  /**
-   * 获取待处理的Webhook事件
-   */
-  async getPendingWebhooks(limit = 100) {
-    return this.request.get<WebhookEvent[]>('/api/v1/sys/webhooks/pending', {
-      params: { limit },
-    });
+  async testEndpoint(id: number) {
+    return this.request.post<TestEndpointResult>(
+      `/api/v1/sys/webhook/endpoints/${id}/test`,
+    );
   }
 
-  /**
-   * 获取WebhookConfig详情
-   */
-  async getWebhookConfigDetail(id: number) {
-    return this.request.get<WebhookConfig>(`/api/v1/sys/webhook-configs/${id}`);
-  }
+  // ---------- 投递记录 ----------
 
-  /**
-   * 获取WebhookConfig列表
-   */
-  async getWebhookConfigList(
-    params?: WebhookConfigListParam & { page?: number; size?: number },
+  async getDeliveryList(
+    params?: DeliveryListParam & { page?: number; size?: number },
   ) {
     return this.request.get<{
-      items: WebhookConfig[];
+      items: WebhookDelivery[];
       page: number;
       size: number;
       total: number;
-    }>('/api/v1/sys/webhook-configs', { params });
+    }>('/api/v1/sys/webhook/deliveries', { params });
   }
 
-  /**
-   * 获取Webhook事件详情
-   */
-  async getWebhookDetail(id: number) {
-    return this.request.get<WebhookEvent>(`/api/v1/sys/webhooks/${id}`);
+  async getDeliveryDetail(id: number) {
+    return this.request.get<WebhookDelivery>(
+      `/api/v1/sys/webhook/deliveries/${id}`,
+    );
   }
 
-  /**
-   * 获取Webhook事件列表
-   */
-  async getWebhookList(
-    params?: WebhookListParam & { page?: number; size?: number },
+  async retryDelivery(id: number) {
+    return this.request.post(`/api/v1/sys/webhook/deliveries/${id}/retry`);
+  }
+
+  async processPending(batchSize = 50) {
+    return this.request.post<{ processed: number; message: string }>(
+      '/api/v1/sys/webhook/deliveries/process',
+      null,
+      { params: { batch_size: batchSize } },
+    );
+  }
+
+  // ---------- 入站事件日志 ----------
+
+  async getEventLogList(
+    params?: EventLogListParam & { page?: number; size?: number },
   ) {
     return this.request.get<{
-      items: WebhookEvent[];
+      items: WebhookEventLog[];
       page: number;
       size: number;
       total: number;
-    }>('/api/v1/sys/webhooks', { params });
+    }>('/api/v1/sys/webhook/event-logs', { params });
   }
 
-  /**
-   * 重试失败的Webhook事件
-   */
-  async retryFailedWebhooks() {
-    return this.request.post<{
-      message: string;
-      retry_count: number;
-    }>('/api/v1/sys/webhooks/retry');
+  async getEventLogDetail(id: number) {
+    return this.request.get<WebhookEventLog>(
+      `/api/v1/sys/webhook/event-logs/${id}`,
+    );
   }
 
-  /**
-   * 发送测试Webhook事件
-   */
-  async sendTestWebhook(data: WebhookReceiveParam) {
-    return this.request.post<{
-      event_type: string;
-      message: string;
-      source: string;
-      status: string;
-      webhook_id: number;
-    }>('/api/v1/sys/webhooks/receive', data);
+  // ---------- 事件类型 ----------
+
+  async createEventType(data: CreateEventTypeParam) {
+    return this.request.post<WebhookEventType>(
+      '/api/v1/sys/webhook/event-types',
+      data,
+    );
   }
 
-  /**
-   * 发送带验证的测试Webhook事件
-   */
-  async sendValidatedTestWebhook(
-    data: WebhookReceiveParam,
-    validationRules?: HeaderValidationRule[],
-    secretKey?: string,
+  async getEventTypeList(
+    params?: EventTypeListParam & { page?: number; size?: number },
   ) {
-    return this.request.post<{
-      event_type: string;
-      message: string;
-      source: string;
-      status: string;
-      webhook_id: number;
-    }>('/api/v1/sys/webhooks/receive/validated', data, {
-      params: { secret_key: secretKey },
-      headers: validationRules?.reduce(
-        (acc, rule) => {
-          acc[rule.header_name] = rule.header_value;
-          return acc;
-        },
-        {} as Record<string, string>,
-      ),
+    return this.request.get<{
+      items: WebhookEventType[];
+      page: number;
+      size: number;
+      total: number;
+    }>('/api/v1/sys/webhook/event-types', { params });
+  }
+
+  async getEventTypeDetail(id: number) {
+    return this.request.get<WebhookEventType>(
+      `/api/v1/sys/webhook/event-types/${id}`,
+    );
+  }
+
+  async updateEventType(id: number, data: UpdateEventTypeParam) {
+    return this.request.put(`/api/v1/sys/webhook/event-types/${id}`, data);
+  }
+
+  async deleteEventTypes(pks: number[]) {
+    return this.request.delete('/api/v1/sys/webhook/event-types', {
+      data: { pks },
     });
   }
 
-  /**
-   * 更新Webhook事件
-   */
-  async updateWebhook(id: number, data: Partial<WebhookEvent>) {
-    return this.request.put(`/api/v1/sys/webhooks/${id}`, data);
-  }
+  // ---------- 手动发布 ----------
 
-  /**
-   * 更新WebhookConfig
-   */
-  async updateWebhookConfig(id: number, data: UpdateWebhookConfigParam) {
-    return this.request.put(`/api/v1/sys/webhook-configs/${id}`, data);
-  }
-
-  /**
-   * 更新WebhookConfig状态
-   */
-  async updateWebhookConfigStatus(id: number, is_active: boolean) {
-    return this.request.put(
-      `/api/v1/sys/webhook-configs/${id}/status?is_active=${is_active}`,
-      {},
+  async publishEvent(data: PublishEventParam) {
+    return this.request.post<PublishResult>(
+      '/api/v1/sys/webhook/publish',
+      data,
     );
   }
 }
 
-// 创建API实例
+// 创建 API 实例
 const webhookApi = new WebhookApi(requestClient);
 
-// 导出API函数
-export const getWebhookListApi = webhookApi.getWebhookList.bind(webhookApi);
-export const getWebhookDetailApi = webhookApi.getWebhookDetail.bind(webhookApi);
-export const updateWebhookApi = webhookApi.updateWebhook.bind(webhookApi);
-export const deleteWebhookApi = webhookApi.deleteWebhooks.bind(webhookApi);
-export const retryFailedWebhooksApi =
-  webhookApi.retryFailedWebhooks.bind(webhookApi);
-export const getPendingWebhooksApi =
-  webhookApi.getPendingWebhooks.bind(webhookApi);
-export const sendTestWebhookApi = webhookApi.sendTestWebhook.bind(webhookApi);
-export const sendValidatedTestWebhookApi =
-  webhookApi.sendValidatedTestWebhook.bind(webhookApi);
+// 导出端点 API
+export const createEndpointApi = webhookApi.createEndpoint.bind(webhookApi);
+export const getEndpointListApi = webhookApi.getEndpointList.bind(webhookApi);
+export const getEndpointDetailApi =
+  webhookApi.getEndpointDetail.bind(webhookApi);
+export const updateEndpointApi = webhookApi.updateEndpoint.bind(webhookApi);
+export const deleteEndpointsApi = webhookApi.deleteEndpoints.bind(webhookApi);
+export const rotateSecretApi = webhookApi.rotateSecret.bind(webhookApi);
+export const testEndpointApi = webhookApi.testEndpoint.bind(webhookApi);
 
-// 导出WebhookConfig API函数
-export const getWebhookConfigListApi =
-  webhookApi.getWebhookConfigList.bind(webhookApi);
-export const getWebhookConfigDetailApi =
-  webhookApi.getWebhookConfigDetail.bind(webhookApi);
-export const createWebhookConfigApi =
-  webhookApi.createWebhookConfig.bind(webhookApi);
-export const updateWebhookConfigApi =
-  webhookApi.updateWebhookConfig.bind(webhookApi);
-export const deleteWebhookConfigsApi =
-  webhookApi.deleteWebhookConfigs.bind(webhookApi);
-export const updateWebhookConfigStatusApi =
-  webhookApi.updateWebhookConfigStatus.bind(webhookApi);
-export const getActiveWebhookConfigsApi =
-  webhookApi.getActiveWebhookConfigs.bind(webhookApi);
+// 导出投递 API
+export const getDeliveryListApi = webhookApi.getDeliveryList.bind(webhookApi);
+export const getDeliveryDetailApi =
+  webhookApi.getDeliveryDetail.bind(webhookApi);
+export const retryDeliveryApi = webhookApi.retryDelivery.bind(webhookApi);
+export const processPendingApi = webhookApi.processPending.bind(webhookApi);
+
+// 导出事件日志 API
+export const getEventLogListApi = webhookApi.getEventLogList.bind(webhookApi);
+export const getEventLogDetailApi =
+  webhookApi.getEventLogDetail.bind(webhookApi);
+
+// 导出事件类型 API
+export const createEventTypeApi = webhookApi.createEventType.bind(webhookApi);
+export const getEventTypeListApi = webhookApi.getEventTypeList.bind(webhookApi);
+export const getEventTypeDetailApi =
+  webhookApi.getEventTypeDetail.bind(webhookApi);
+export const updateEventTypeApi = webhookApi.updateEventType.bind(webhookApi);
+export const deleteEventTypesApi = webhookApi.deleteEventTypes.bind(webhookApi);
+
+// 导出发布 API
+export const publishEventApi = webhookApi.publishEvent.bind(webhookApi);

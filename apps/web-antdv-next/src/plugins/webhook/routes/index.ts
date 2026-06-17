@@ -1,33 +1,40 @@
 import type { RouteRecordRaw } from 'vue-router';
 
-import { $t } from '#/locales';
-
 const routes: RouteRecordRaw[] = [
   {
-    name: 'PluginWebhook',
-    path: '/plugins/webhook',
-    component: () => import('#/plugins/webhook/views/index.vue'),
+    name: 'PluginWebhookEndpoint',
+    path: '/plugins/webhook/endpoints',
+    component: () => import('#/plugins/webhook/views/endpoint.vue'),
     meta: {
-      title: $t('webhook.menu'),
+      title: '出站端点',
       icon: 'mdi:webhook',
     },
   },
   {
-    name: 'PluginWebhookConfig',
-    path: '/system/webhook/config',
-    component: () => import('#/plugins/webhook/views/config.vue'),
+    name: 'PluginWebhookDelivery',
+    path: '/plugins/webhook/deliveries',
+    component: () => import('#/plugins/webhook/views/delivery.vue'),
     meta: {
-      title: 'Webhook配置管理',
-      icon: 'mdi:cog',
+      title: '投递记录',
+      icon: 'mdi:send-clock',
     },
   },
   {
-    name: 'PluginMcpConfigs',
-    path: '/plugins/mcp/configs',
-    component: () => import('#/plugins/mcp_service/views/index.vue'),
+    name: 'PluginWebhookInbound',
+    path: '/plugins/webhook/inbound',
+    component: () => import('#/plugins/webhook/views/inbound.vue'),
     meta: {
-      title: $t('mcp_service.menu'),
-      icon: 'mdi:cog-outline',
+      title: '入站事件',
+      icon: 'mdi:inbox-arrow-down',
+    },
+  },
+  {
+    name: 'PluginWebhookEventType',
+    path: '/plugins/webhook/event-types',
+    component: () => import('#/plugins/webhook/views/event-type.vue'),
+    meta: {
+      title: '事件类型',
+      icon: 'mdi:tag-multiple',
     },
   },
 ];

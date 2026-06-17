@@ -1,3 +1,7 @@
 {
-  "menu": "Webhook管理"
+  "menu": "Webhook 管理",
+  "endpoint": "出站端点",
+  "delivery": "投递记录",
+  "inbound": "入站事件",
+  "eventType": "事件类型"
 }

@@ -1,3 +1,7 @@
 {
-  "menu": "Webhook Management"
+  "menu": "Webhook Management",
+  "endpoint": "Endpoints",
+  "delivery": "Deliveries",
+  "inbound": "Inbound Events",
+  "eventType": "Event Types"
 }
