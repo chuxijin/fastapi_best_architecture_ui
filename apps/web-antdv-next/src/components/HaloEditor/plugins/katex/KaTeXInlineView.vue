@@ -41,6 +41,7 @@ function onEditorChange(e: Event) {
     "
   >
     <!-- 如果不可编辑，直接渲染纯净 HTML，丢弃掉外层 VDropdown 的交互包袱 -->
+    <!-- eslint-disable-next-line vue/no-v-html -->
     <span v-if="!props.editor.isEditable" v-html="renderedKatex"></span>
 
     <!-- 编辑模式时保持原样 -->
@@ -52,11 +53,13 @@ function onEditorChange(e: Event) {
       :shown="showEditor"
     >
       <div class="katex-node-view-content-wrapper">
+        <!-- eslint-disable vue/no-v-html -->
         <span
           v-if="node.attrs.content"
           contenteditable="false"
           v-html="renderedKatex"
         ></span>
+        <!-- eslint-enable vue/no-v-html -->
         <span v-else> 添加LaTeX公式 </span>
       </div>
       <template #popper>

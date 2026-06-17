@@ -5,6 +5,8 @@
     "src/components/JiaEditor/index.ts",
     "src/components/JiaEditor/plugins/**/*.ts",
     "src/components/JiaEditor/plugins/**/*.vue",
+    "src/components/HaloEditor/**/*.ts",
+    "src/components/HaloEditor/**/*.vue",
     "src/stubs/**/*.ts",
     "src/views/demos/editor/index.vue",
     "src/views/knowledge-store/home/index.vue",

@@ -96,6 +96,7 @@ function onEditorChange(e: Event) {
           @input="onEditorChange"
         ></textarea>
       </div>
+      <!-- eslint-disable-next-line vue/no-v-html -->
       <div class="katex-block-preview" v-html="renderedKatex"></div>
     </div>
   </NodeViewWrapper>

@@ -14,6 +14,6 @@ defineProps<{
     }"
     :disabled="disabled"
   >
-    <slot />
+    <slot></slot>
   </button>
 </template>

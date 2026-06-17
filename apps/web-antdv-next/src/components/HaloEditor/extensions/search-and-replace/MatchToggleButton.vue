@@ -14,6 +14,6 @@ defineProps<{
         isActive,
     }"
   >
-    <slot />
+    <slot></slot>
   </button>
 </template>
