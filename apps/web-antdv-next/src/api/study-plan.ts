@@ -1,3 +1,5 @@
+import type { PaginationResult } from '#/types';
+
 import { requestClient } from './request';
 
 export type StudyPlanModuleType =
@@ -36,6 +38,44 @@ export type StudyAbilityBindingRole =
   | 'solution_method';
 export type StudyAbilityProfileSourceType = 'ability' | 'question_bank';
 export type StudyPlanRecommendationModuleType = 'ability' | 'practice';
+export type SpatialCubePatternRenderType = 'builtin' | 'image';
+export type SpatialCubePatternRotationPeriod = 90 | 180 | 360;
+
+export interface SpatialCubePatternQueryParams {
+  keyword?: string;
+  page?: number;
+  render_type?: SpatialCubePatternRenderType;
+  size?: number;
+  status?: 'active' | 'inactive';
+}
+
+export interface SpatialCubePatternDetail {
+  asset_url?: null | string;
+  asset_version: string;
+  code: string;
+  created_time: string;
+  id: number;
+  is_active: boolean;
+  name: string;
+  render_type: SpatialCubePatternRenderType;
+  rotation_period: SpatialCubePatternRotationPeriod;
+  sort: number;
+  updated_time?: null | string;
+}
+
+export interface CreateSpatialCubePatternParams {
+  asset_url?: null | string;
+  asset_version?: string;
+  code: string;
+  is_active?: boolean;
+  name: string;
+  render_type?: SpatialCubePatternRenderType;
+  rotation_period?: SpatialCubePatternRotationPeriod;
+  sort?: number;
+}
+
+export type UpdateSpatialCubePatternParams =
+  Partial<CreateSpatialCubePatternParams>;
 
 export interface StudyPlanProgress {
   completed: number;
@@ -400,6 +440,40 @@ export async function createStudyPlanFromTemplateApi(
   return requestClient.post<StudyPlanDetail>(
     '/api/v1/study/mentor/plans/from-template',
     data,
+  );
+}
+
+export async function getSpatialCubePatternsApi(
+  params?: SpatialCubePatternQueryParams,
+) {
+  return requestClient.get<PaginationResult<SpatialCubePatternDetail>>(
+    '/api/v1/study/admin/spatial-cube/patterns',
+    { params },
+  );
+}
+
+export async function createSpatialCubePatternApi(
+  data: CreateSpatialCubePatternParams,
+) {
+  return requestClient.post<SpatialCubePatternDetail>(
+    '/api/v1/study/admin/spatial-cube/patterns',
+    data,
+  );
+}
+
+export async function updateSpatialCubePatternApi(
+  patternId: number,
+  data: UpdateSpatialCubePatternParams,
+) {
+  return requestClient.put<SpatialCubePatternDetail>(
+    `/api/v1/study/admin/spatial-cube/patterns/${patternId}`,
+    data,
+  );
+}
+
+export async function deleteSpatialCubePatternApi(patternId: number) {
+  return requestClient.delete(
+    `/api/v1/study/admin/spatial-cube/patterns/${patternId}`,
   );
 }
 

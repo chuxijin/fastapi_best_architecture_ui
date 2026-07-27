@@ -197,9 +197,15 @@ export async function deleteChapterApi(data: DeleteChapterParams) {
 }
 
 export type QuestionType =
+  | 'anchorLocate'
+  | 'connection'
+  | 'evidenceLocate'
   | 'fill'
   | 'judgement'
+  | 'matching'
   | 'multiple'
+  | 'numberLocate'
+  | 'regionLocate'
   | 'shortAnswer'
   | 'single';
 
@@ -405,6 +411,241 @@ export async function markAnalysisHelpfulApi(
     `/api/v1/qbank/questions/${questionId}/analysis/helpful`,
     { is_helpful: isHelpful },
   );
+}
+
+// ==================== 材料交互标注 API ====================
+
+export type MaterialAnchorType =
+  | 'image_point'
+  | 'image_region'
+  | 'table_cell'
+  | 'text_block'
+  | 'text_range';
+
+export type MaterialAnchorSource = 'ai' | 'import' | 'manual' | 'ocr';
+
+export type QuestionInteractionSelectionMode =
+  | 'multi_role'
+  | 'multiple'
+  | 'single';
+
+export interface MaterialAnchorResult {
+  id: number;
+  material_id: number;
+  anchor_key: string;
+  anchor_type: MaterialAnchorType;
+  text?: null | string;
+  role?: null | string;
+  block_id?: null | string;
+  start_offset?: null | number;
+  end_offset?: null | number;
+  asset_url?: null | string;
+  asset_hash?: null | string;
+  natural_width?: null | number;
+  natural_height?: null | number;
+  bbox?: null | Record<string, any>;
+  polygon?: null | Record<string, any>[];
+  table_cell?: null | Record<string, any>;
+  ocr_confidence?: null | number | string;
+  source: MaterialAnchorSource;
+  content_hash?: null | string;
+  status: number;
+  extra_data?: Record<string, any>;
+  created_time?: string;
+  updated_time?: null | string;
+}
+
+export interface MaterialAnchorParams {
+  material_id: number;
+  anchor_key: string;
+  anchor_type: MaterialAnchorType;
+  text?: null | string;
+  role?: null | string;
+  block_id?: null | string;
+  start_offset?: null | number;
+  end_offset?: null | number;
+  asset_url?: null | string;
+  asset_hash?: null | string;
+  natural_width?: null | number;
+  natural_height?: null | number;
+  bbox?: null | Record<string, any>;
+  polygon?: null | Record<string, any>[];
+  table_cell?: null | Record<string, any>;
+  ocr_confidence?: null | number | string;
+  source?: MaterialAnchorSource;
+  content_hash?: null | string;
+  status?: number;
+  extra_data?: Record<string, any>;
+}
+
+export interface BatchMaterialAnchorParams {
+  items: MaterialAnchorParams[];
+}
+
+export interface MaterialAnchorQueryParams {
+  anchor_type?: MaterialAnchorType;
+  material_id?: number;
+  role?: string;
+  status?: number;
+}
+
+export interface QuestionInteractionAnnotationResult {
+  id: number;
+  question_id: number;
+  material_id?: null | number;
+  annotation_key: string;
+  interaction_type: string;
+  title?: null | string;
+  instruction: string;
+  selection_mode: QuestionInteractionSelectionMode;
+  candidate_anchor_ids: number[];
+  answer_data: Record<string, any>;
+  config: Record<string, any>;
+  content_hash?: null | string;
+  version_no: number;
+  is_default: boolean;
+  status: number;
+  created_time?: string;
+  updated_time?: null | string;
+}
+
+export interface QuestionInteractionAnnotationParams {
+  question_id: number;
+  material_id?: null | number;
+  annotation_key: string;
+  interaction_type: string;
+  title?: null | string;
+  instruction: string;
+  selection_mode?: QuestionInteractionSelectionMode;
+  candidate_anchor_ids?: number[];
+  answer_data?: Record<string, any>;
+  config?: Record<string, any>;
+  content_hash?: null | string;
+  version_no?: number;
+  is_default?: boolean;
+  status?: number;
+}
+
+export interface QuestionInteractionAnnotationQueryParams {
+  interaction_type?: string;
+  is_default?: boolean;
+  material_id?: number;
+  question_id?: number;
+  status?: number;
+}
+
+export interface InteractionMaterialBlocksResult {
+  material_id: number;
+  title: string;
+  content_hash: string;
+  blocks: Record<string, any>[];
+}
+
+export interface InteractionMaterialQuestionResult {
+  id: number;
+  type: QuestionType;
+  stem: string;
+  options: QuestionOptionItem[];
+  difficulty: DifficultyType | null | number | string;
+  material_ids: number[];
+}
+
+export interface MaterialSelectResult {
+  id: number;
+  title: string;
+}
+
+export async function getMaterialListApi(params?: {
+  is_active?: boolean;
+  keyword?: string;
+}) {
+  return requestClient.get<MaterialSelectResult[]>('/api/v1/qbank/materials', {
+    params,
+  });
+}
+
+export async function getInteractionMaterialBlocksApi(materialId: number) {
+  return requestClient.get<InteractionMaterialBlocksResult>(
+    `/api/v1/qbank/interactions/materials/${materialId}/blocks`,
+  );
+}
+
+export async function getInteractionMaterialQuestionsApi(materialId: number) {
+  return requestClient.get<InteractionMaterialQuestionResult[]>(
+    `/api/v1/qbank/interactions/materials/${materialId}/questions`,
+  );
+}
+
+export async function getMaterialAnchorListApi(
+  params?: MaterialAnchorQueryParams,
+) {
+  return requestClient.get<MaterialAnchorResult[]>(
+    '/api/v1/qbank/interactions/anchors',
+    { params },
+  );
+}
+
+export async function createMaterialAnchorApi(data: MaterialAnchorParams) {
+  return requestClient.post<MaterialAnchorResult>(
+    '/api/v1/qbank/interactions/anchors',
+    data,
+  );
+}
+
+export async function createMaterialAnchorsBatchApi(
+  data: BatchMaterialAnchorParams,
+) {
+  return requestClient.post<MaterialAnchorResult[]>(
+    '/api/v1/qbank/interactions/anchors/batch',
+    data,
+  );
+}
+
+export async function updateMaterialAnchorApi(
+  pk: number,
+  data: Partial<MaterialAnchorParams>,
+) {
+  return requestClient.put(`/api/v1/qbank/interactions/anchors/${pk}`, data);
+}
+
+export async function deleteMaterialAnchorsApi(ids: number[]) {
+  return requestClient.delete('/api/v1/qbank/interactions/anchors', {
+    data: { ids },
+  });
+}
+
+export async function getQuestionInteractionAnnotationListApi(
+  params?: QuestionInteractionAnnotationQueryParams,
+) {
+  return requestClient.get<QuestionInteractionAnnotationResult[]>(
+    '/api/v1/qbank/interactions/annotations',
+    { params },
+  );
+}
+
+export async function createQuestionInteractionAnnotationApi(
+  data: QuestionInteractionAnnotationParams,
+) {
+  return requestClient.post<QuestionInteractionAnnotationResult>(
+    '/api/v1/qbank/interactions/annotations',
+    data,
+  );
+}
+
+export async function updateQuestionInteractionAnnotationApi(
+  pk: number,
+  data: Partial<QuestionInteractionAnnotationParams>,
+) {
+  return requestClient.put(
+    `/api/v1/qbank/interactions/annotations/${pk}`,
+    data,
+  );
+}
+
+export async function deleteQuestionInteractionAnnotationsApi(ids: number[]) {
+  return requestClient.delete('/api/v1/qbank/interactions/annotations', {
+    data: { ids },
+  });
 }
 
 // ==================== 题目统计 API ====================

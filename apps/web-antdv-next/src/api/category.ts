@@ -74,6 +74,54 @@ export interface SysCategoryQueryParams {
   status?: boolean;
 }
 
+export interface SysCategoryDocBindingResult {
+  id: number;
+  category_id: number;
+  halo_project_name: string;
+  halo_project_version_name: string;
+  halo_tree_name: string;
+  halo_doc_name: string;
+  title: string;
+  relation_type: string;
+  category_code?: string;
+  category_path?: string;
+  halo_doc_path?: string;
+  halo_permalink?: string;
+  enabled: boolean;
+  sort_order: number;
+  extra_data?: Record<string, any>;
+  created_time: string;
+  updated_time?: string;
+}
+
+export interface SysCategoryDocBindingParams {
+  halo_project_name: string;
+  halo_project_version_name: string;
+  halo_tree_name: string;
+  halo_doc_name: string;
+  title: string;
+  relation_type?: string;
+  halo_doc_path?: string;
+  halo_permalink?: string;
+  enabled?: boolean;
+  sort_order?: number;
+  extra_data?: Record<string, any>;
+}
+
+export interface SysCategoryDocBindingUpdateParams {
+  halo_project_name?: string;
+  halo_project_version_name?: string;
+  halo_tree_name?: string;
+  halo_doc_name?: string;
+  title?: string;
+  relation_type?: string;
+  halo_doc_path?: string;
+  halo_permalink?: string;
+  enabled?: boolean;
+  sort_order?: number;
+  extra_data?: Record<string, any>;
+}
+
 /**
  * 获取分类树
  */
@@ -150,4 +198,41 @@ export async function updateSysCategoryApi(
  */
 export async function deleteSysCategoryApi(ids: number[]) {
   return requestClient.delete('/api/v1/sys/categories', { data: { ids } });
+}
+
+export async function getSysCategoryDocBindingsApi(params?: {
+  category_id?: number;
+  enabled?: boolean;
+  relation_type?: string;
+}) {
+  return requestClient.get<SysCategoryDocBindingResult[]>(
+    '/api/v1/sys/categories/doc-bindings',
+    { params },
+  );
+}
+
+export async function createSysCategoryDocBindingApi(
+  categoryId: number,
+  data: SysCategoryDocBindingParams,
+) {
+  return requestClient.post<SysCategoryDocBindingResult>(
+    `/api/v1/sys/categories/${categoryId}/doc-bindings`,
+    data,
+  );
+}
+
+export async function updateSysCategoryDocBindingApi(
+  bindingId: number,
+  data: SysCategoryDocBindingUpdateParams,
+) {
+  return requestClient.put<SysCategoryDocBindingResult>(
+    `/api/v1/sys/categories/doc-bindings/${bindingId}`,
+    data,
+  );
+}
+
+export async function deleteSysCategoryDocBindingApi(bindingId: number) {
+  return requestClient.delete(
+    `/api/v1/sys/categories/doc-bindings/${bindingId}`,
+  );
 }

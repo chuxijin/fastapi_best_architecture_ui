@@ -5,6 +5,15 @@ import { DictEnum, getDictOptions } from '#/utils/dict';
 
 import { requestClient } from './request';
 
+export type JsonValue =
+  | boolean
+  | JsonValue[]
+  | null
+  | number
+  | string
+  | { [key: string]: JsonValue };
+export type ResourceImageValue = JsonValue;
+
 // ==================== 枚举定义 ====================
 
 // 递归速度枚举
@@ -995,20 +1004,20 @@ export async function getRuleTemplateStatsApi() {
 export interface ResourceDetail {
   id: number;
   category_id: number;
-  main_name: string;
+  category_name?: string;
+  remark?: string;
   title?: string;
+  org_name?: string;
   resource_type: string;
   url_type: string;
   url: string;
-  description?: string;
   resource_intro?: string;
-  resource_image?: string;
+  resource_image?: ResourceImageValue;
   extract_code?: string;
   is_temp_file: number; // 0无操作 1定时删除 2定时刷新 3定时更新
   price?: number;
   suggested_price?: number;
   sort: number;
-  remark?: string;
   share_id?: string;
   pwd_id?: string;
   expired_type: number;
@@ -1029,30 +1038,35 @@ export interface ResourceDetail {
   updated_by?: number;
   created_time: string;
   updated_time?: string;
-  local_file_path?: string;
+  storage_key?: string;
   file_type?: string;
 }
 
 export interface ResourceListItem {
   id: number;
   category_id: number;
-  main_name: string;
+  category_name?: string;
+  remark?: string;
   title?: string;
+  org_name?: string;
   resource_type: string;
+  resource_intro?: string;
+  resource_image?: ResourceImageValue;
   url_type: string;
   url: string;
+  file_size?: number;
   price?: number;
   suggested_price?: number;
-  view_count: number;
+  view_count?: number;
   sort: number;
   status: number;
   audit_status: number;
   is_deleted: boolean;
   user_id: number;
-  remark?: string;
+  hot?: number;
   created_time: string;
   updated_time?: string;
-  local_file_path?: string;
+  storage_key?: string;
   file_type?: string;
 }
 
@@ -1108,31 +1122,30 @@ export interface ResourceListParams {
 
 export interface CreateResourceParams {
   category_id: number;
-  main_name: string;
   resource_type: string;
   url: string;
   url_type: string;
   user_id: number;
-  description?: string;
+  remark?: string;
+  org_name?: string;
   resource_intro?: string;
-  resource_image?: string;
+  resource_image?: ResourceImageValue;
   extract_code?: string;
   is_temp_file?: number; // 0无操作 1定时删除 2定时刷新 3定时更新
   price?: number;
   suggested_price?: number;
   sort?: number;
-  remark?: string;
-  local_file_path?: string;
+  storage_key?: string;
   file_type?: string;
 }
 
 export interface UpdateResourceParams {
   category_id?: number;
-  main_name?: string;
   resource_type?: string;
-  description?: string;
+  remark?: string;
+  org_name?: string;
   resource_intro?: string;
-  resource_image?: string;
+  resource_image?: ResourceImageValue;
   url?: string;
   url_type?: string;
   extract_code?: string;
@@ -1140,8 +1153,7 @@ export interface UpdateResourceParams {
   price?: number;
   suggested_price?: number;
   sort?: number;
-  remark?: string;
-  local_file_path?: string;
+  storage_key?: string;
   file_type?: string;
 }
 
@@ -1302,11 +1314,51 @@ export async function uploadResourceFileApi(file: File) {
   return requestClient.post<{
     file_type: string;
     filename: string;
-    local_path: string;
+    resource_image: string[];
+    storage_key: string;
+    thumbnail_urls?: string[];
     url: string;
   }>('/api/v1/resources/upload', formData, {
     headers: {
       'Content-Type': 'multipart/form-data',
+    },
+  });
+}
+
+/**
+ * 上传 PDF 生成资源缩略图
+ */
+export async function uploadResourcePdfPreviewsApi(
+  file: File,
+  options?: {
+    maxSide?: number;
+    pageCount?: number;
+    quality?: number;
+  },
+) {
+  const formData = new FormData();
+  formData.append('file', file);
+  return requestClient.post<{
+    file_type: string;
+    filename: string;
+    resource_image: string[];
+    thumbnail_urls?: string[];
+    thumbnails?: Array<{
+      height: number;
+      source: string;
+      storage_key: string;
+      url: string;
+      variant: string;
+      width: number;
+    }>;
+  }>('/api/v1/resources/upload/pdf-previews', formData, {
+    headers: {
+      'Content-Type': 'multipart/form-data',
+    },
+    params: {
+      max_side: options?.maxSide,
+      page_count: options?.pageCount,
+      quality: options?.quality,
     },
   });
 }
