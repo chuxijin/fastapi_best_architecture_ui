@@ -177,27 +177,21 @@ async function removeAccount(account: MyDriveAccount): Promise<void> {
 
       <template #vip="{ row }">
         <a-tag :color="row.vip_level ? 'gold' : 'default'">
-{{
-          row.vip_level || '普通用户'
-        }}
-</a-tag>
+          {{ row.vip_level || '普通用户' }}
+        </a-tag>
       </template>
 
       <template #status="{ row }">
         <a-tag :color="row.status === 'active' ? 'success' : 'error'">
-{{
-          row.status
-        }}
-</a-tag>
+          {{ row.status }}
+        </a-tag>
       </template>
 
       <template #operation="{ row }">
         <div class="flex items-center justify-center gap-2">
-          <a-button size="small" type="primary" @click="syncProfile(row)"
-            >
-同步资料
-</a-button
-          >
+          <a-button size="small" type="primary" @click="syncProfile(row)">
+            同步资料
+          </a-button>
           <a-button size="small" @click="openAccountModal(row)">编辑</a-button>
           <a-popconfirm
             title="确定删除此网盘账户？"

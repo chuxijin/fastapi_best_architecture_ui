@@ -303,11 +303,9 @@ async function openTrend(resource: MyDriveResource): Promise<void> {
           >
             <a-button danger size="small">取消分享</a-button>
           </a-popconfirm>
-          <a-button size="small" type="primary" @click="openDrawer(row)"
-            >
-编辑
-</a-button
-          >
+          <a-button size="small" type="primary" @click="openDrawer(row)">
+            编辑
+          </a-button>
           <a-popconfirm title="确定删除此资源？" @confirm="removeResource(row)">
             <a-button danger size="small">删除</a-button>
           </a-popconfirm>
@@ -454,11 +452,9 @@ async function openTrend(resource: MyDriveResource): Promise<void> {
       <template #footer>
         <div class="flex justify-end gap-2">
           <a-button @click="drawerOpen = false">取消</a-button>
-          <a-button :loading="saving" type="primary" @click="saveResource"
-            >
-保存
-</a-button
-          >
+          <a-button :loading="saving" type="primary" @click="saveResource">
+            保存
+          </a-button>
         </div>
       </template>
     </a-drawer>

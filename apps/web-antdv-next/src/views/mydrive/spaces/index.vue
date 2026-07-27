@@ -1688,10 +1688,9 @@ onMounted(() => {
                     ? openPathSelector()
                     : openExternalPathSelector()
                 "
-                >
-选择
-</a-button
               >
+                选择
+              </a-button>
             </div>
           </a-form-item>
         </div>
@@ -1947,11 +1946,9 @@ onMounted(() => {
     >
       <template v-if="shareResult">
         <a-textarea :value="shareResult" :auto-size="{ minRows: 3 }" readonly />
-        <VbenButton class="mt-3" @click="copyShareResult"
-          >
-复制分享信息
-</VbenButton
-        >
+        <VbenButton class="mt-3" @click="copyShareResult">
+          复制分享信息
+        </VbenButton>
       </template>
       <a-form v-else layout="vertical">
         <a-form-item label="分享文件">
@@ -1988,11 +1985,9 @@ onMounted(() => {
 
     <a-drawer v-model:open="sharesVisible" :width="720" title="我的分享">
       <template #extra>
-        <VbenButton :loading="loadingShares" @click="loadShares"
-          >
-刷新
-</VbenButton
-        >
+        <VbenButton :loading="loadingShares" @click="loadShares">
+          刷新
+        </VbenButton>
       </template>
       <a-table
         :columns="shareColumns"

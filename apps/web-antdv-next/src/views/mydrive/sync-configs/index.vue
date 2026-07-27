@@ -1056,17 +1056,13 @@ async function showTaskItems(task: MyDriveSyncTask): Promise<void> {
       </template>
       <template #operation="{ row }">
         <div class="flex items-center justify-center gap-2">
-          <a-button size="small" type="primary" @click="runConfig(row)"
-            >
-执行
-</a-button
-          >
+          <a-button size="small" type="primary" @click="runConfig(row)">
+            执行
+          </a-button>
           <a-button size="small" @click="openConfigModal(row)">编辑</a-button>
-          <a-button size="small" type="primary" @click="copyConfig(row)"
-            >
-复制
-</a-button
-          >
+          <a-button size="small" type="primary" @click="copyConfig(row)">
+            复制
+          </a-button>
           <a-button size="small" @click="showTaskRecords(row)">记录</a-button>
           <a-popconfirm
             title="确定删除此同步配置？"
@@ -1112,10 +1108,9 @@ async function showTaskItems(task: MyDriveSyncTask): Promise<void> {
                 <a-button
                   :disabled="!configForm.rule_set_id"
                   @click="editSelectedRuleSet"
-                  >
-编辑
-</a-button
                 >
+                  编辑
+                </a-button>
               </div>
             </a-form-item>
           </div>
@@ -1139,11 +1134,9 @@ async function showTaskItems(task: MyDriveSyncTask): Promise<void> {
                   class="flex-1"
                   readonly
                 />
-                <a-button type="primary" @click="openPathSelector('source')"
-                  >
-选择路径
-</a-button
-                >
+                <a-button type="primary" @click="openPathSelector('source')">
+                  选择路径
+                </a-button>
               </div>
             </a-form-item>
           </div>
@@ -1163,11 +1156,9 @@ async function showTaskItems(task: MyDriveSyncTask): Promise<void> {
                   class="flex-1"
                   readonly
                 />
-                <a-button type="primary" @click="openPathSelector('target')"
-                  >
-选择路径
-</a-button
-                >
+                <a-button type="primary" @click="openPathSelector('target')">
+                  选择路径
+                </a-button>
               </div>
             </a-form-item>
           </div>
@@ -1319,10 +1310,8 @@ async function showTaskItems(task: MyDriveSyncTask): Promise<void> {
         <template #bodyCell="{ column, record }">
           <template v-if="column.key === 'description'">
             <a-typography-text ellipsis>
-{{
-              record.description || '-'
-            }}
-</a-typography-text>
+              {{ record.description || '-' }}
+            </a-typography-text>
           </template>
           <template v-else-if="column.key === 'is_enabled'">
             <a-tag :color="record.is_enabled ? 'success' : 'default'">
@@ -1369,11 +1358,9 @@ async function showTaskItems(task: MyDriveSyncTask): Promise<void> {
         </div>
         <div class="mb-2 flex items-center justify-between">
           <span class="font-medium text-slate-700">规则列表</span>
-          <a-button size="small" type="primary" @click="addRule"
-            >
-新增规则
-</a-button
-          >
+          <a-button size="small" type="primary" @click="addRule">
+            新增规则
+          </a-button>
         </div>
         <div class="space-y-3">
           <div
@@ -1430,11 +1417,9 @@ async function showTaskItems(task: MyDriveSyncTask): Promise<void> {
                 重命名规则会在复制前调整文件名，按规则顺序命中第一条后停止。
               </template>
             </div>
-            <a-checkbox v-model:checked="rule.is_enabled" class="mt-2"
-              >
-启用规则
-</a-checkbox
-            >
+            <a-checkbox v-model:checked="rule.is_enabled" class="mt-2">
+              启用规则
+            </a-checkbox>
           </div>
         </div>
       </a-form>
@@ -1446,10 +1431,8 @@ async function showTaskItems(task: MyDriveSyncTask): Promise<void> {
           <a-tag :color="taskStatusColor(row.status)">{{ row.status }}</a-tag>
         </template>
         <template #statistics="{ row }">
-{{
-          formatStatistics(row.statistics)
-        }}
-</template>
+          {{ formatStatistics(row.statistics) }}
+        </template>
         <template #operation="{ row }">
           <a-button size="small" @click="showTaskItems(row)">明细</a-button>
           <a-button

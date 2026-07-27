@@ -371,7 +371,9 @@ function formatDateTime(dateTime: null | number | string): string {
         date = new Date(value);
       }
     } else {
-      date = new Date(dateTime.toString().length <= 10 ? dateTime * 1000 : dateTime);
+      date = new Date(
+        dateTime.toString().length <= 10 ? dateTime * 1000 : dateTime,
+      );
     }
 
     if (Number.isNaN(date.getTime()) || date.getFullYear() <= 1971) {

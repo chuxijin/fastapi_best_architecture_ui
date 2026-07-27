@@ -1,10 +1,6 @@
 import type { VbenFormSchema } from '#/adapter/form';
 import type { VxeGridProps } from '#/adapter/vxe-table';
-
-import type {
-  MyDriveSpace,
-  MyDriveSyncRuleSet,
-} from '#/api';
+import type { MyDriveSpace, MyDriveSyncRuleSet } from '#/api';
 
 const providerLabels: Record<string, string> = {
   baidu: '百度网盘',

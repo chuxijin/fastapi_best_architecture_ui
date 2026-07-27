@@ -15,7 +15,11 @@ const resourceTitle = computed(() => {
   if (!props.resource) {
     return '';
   }
-  return props.resource.remark || props.resource.title || `资源 #${props.resource.id}`;
+  return (
+    props.resource.remark ||
+    props.resource.title ||
+    `资源 #${props.resource.id}`
+  );
 });
 const resourceCoverImage = computed(() => {
   return normalizeResourceImages(props.resource?.resource_image)[0] || '';

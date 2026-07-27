@@ -116,9 +116,12 @@ const anchorDraftSequence = ref(0);
 const anchorFocusedAnchorId = ref<null | number>(null);
 const anchorImagePointerState = ref<AnchorImagePointerState | null>(null);
 const annotationMaterialAnchors = ref<MaterialAnchorResult[]>([]);
-const annotationMaterialPreview =
-  ref<InteractionMaterialBlocksResult | null>(null);
-const annotationMaterialQuestions = ref<InteractionMaterialQuestionResult[]>([]);
+const annotationMaterialPreview = ref<InteractionMaterialBlocksResult | null>(
+  null,
+);
+const annotationMaterialQuestions = ref<InteractionMaterialQuestionResult[]>(
+  [],
+);
 const annotationQuestionPreview = ref<null | QuestionDetail>(null);
 const annotationFocusedAnchorId = ref<null | number>(null);
 const annotationRoleTargetId = ref<null | number>(null);
@@ -454,7 +457,9 @@ const annotationRoleTargetLabel = computed(() => {
   if (!anchorId) {
     return '';
   }
-  const anchor = annotationMaterialAnchors.value.find((item) => item.id === anchorId);
+  const anchor = annotationMaterialAnchors.value.find(
+    (item) => item.id === anchorId,
+  );
   return anchor ? formatAnchorDisplayText(anchor) : `#${anchorId}`;
 });
 
@@ -978,13 +983,15 @@ function addCurrentAnchorDraftIfReady(showSuccess = true) {
 function hasCurrentAnchorDraft() {
   return Boolean(
     anchorForm.material_id &&
-      anchorForm.anchor_key.trim() &&
-      anchorForm.block_id,
+    anchorForm.anchor_key.trim() &&
+    anchorForm.block_id,
   );
 }
 
 function removeAnchorDraft(localKey: string) {
-  anchorDrafts.value = anchorDrafts.value.filter((item) => item.local_key !== localKey);
+  anchorDrafts.value = anchorDrafts.value.filter(
+    (item) => item.local_key !== localKey,
+  );
 }
 
 function clearAnchorDrafts() {
@@ -1057,7 +1064,10 @@ function applyTextSelectionAnchor(block: Record<string, any>) {
   message.success('已根据选中文字生成文本锚点');
 }
 
-function beginAnchorImageSelection(block: Record<string, any>, event: MouseEvent) {
+function beginAnchorImageSelection(
+  block: Record<string, any>,
+  event: MouseEvent,
+) {
   const pointer = getImageNormalizedPoint(event);
   if (!pointer) {
     return;
@@ -1075,7 +1085,10 @@ function beginAnchorImageSelection(block: Record<string, any>, event: MouseEvent
   };
 }
 
-function updateAnchorImageSelection(block: Record<string, any>, event: MouseEvent) {
+function updateAnchorImageSelection(
+  block: Record<string, any>,
+  event: MouseEvent,
+) {
   const currentState = anchorImagePointerState.value;
   if (!currentState || currentState.blockId !== getBlockId(block)) {
     return;
@@ -1097,7 +1110,10 @@ function cancelAnchorImageSelection() {
   anchorImagePointerState.value = null;
 }
 
-function finishAnchorImageSelection(block: Record<string, any>, event: MouseEvent) {
+function finishAnchorImageSelection(
+  block: Record<string, any>,
+  event: MouseEvent,
+) {
   const pointer = getImageNormalizedPoint(event);
   const start = anchorImagePointerState.value;
   anchorImagePointerState.value = null;
@@ -1169,7 +1185,9 @@ function isAnnotationAnswerAnchor(anchor: MaterialAnchorResult) {
 }
 
 function getAnchorsByBlock(blockId: string) {
-  return annotationMaterialAnchors.value.filter((item) => item.block_id === blockId);
+  return annotationMaterialAnchors.value.filter(
+    (item) => item.block_id === blockId,
+  );
 }
 
 function getAnnotationAnchorRoleMap(): Record<string, string> {
@@ -1181,7 +1199,8 @@ function getAnnotationAnchorRoleMap(): Record<string, string> {
     }
     return Object.fromEntries(
       Object.entries(rawRoles).filter(
-        ([anchorId, role]) => Boolean(Number(anchorId)) && typeof role === 'string' && role,
+        ([anchorId, role]) =>
+          Boolean(Number(anchorId)) && typeof role === 'string' && role,
       ),
     );
   } catch {
@@ -1223,7 +1242,10 @@ function updateAnnotationAnchorRole(value: null | string = null) {
   message.success(value ? '本题锚点 role 已更新' : '本题锚点 role 已清除');
 }
 
-function handleAnnotationRolePopoverOpenChange(open: boolean, anchorId: number) {
+function handleAnnotationRolePopoverOpenChange(
+  open: boolean,
+  anchorId: number,
+) {
   if (!open && annotationRoleTargetId.value === anchorId) {
     annotationRoleTargetId.value = null;
   }
@@ -1243,7 +1265,10 @@ function setAnnotationCandidateIds(ids: number[]) {
 
 function getAnnotationAnswerAnchorIds() {
   try {
-    const answerData = parseJsonObject(annotationForm.answer_data_json, '答案 JSON');
+    const answerData = parseJsonObject(
+      annotationForm.answer_data_json,
+      '答案 JSON',
+    );
     const correct = answerData.correct ?? answerData.anchor_ids;
     return extractAnchorIds(correct);
   } catch {
@@ -1262,7 +1287,10 @@ function buildAnnotationAnswerData(anchor: MaterialAnchorResult) {
   }
 
   if (annotationForm.selection_mode === 'multi_role') {
-    const answerData = parseJsonObject(annotationForm.answer_data_json, '答案 JSON');
+    const answerData = parseJsonObject(
+      annotationForm.answer_data_json,
+      '答案 JSON',
+    );
     const correct = answerData.correct;
     const current =
       correct && typeof correct === 'object' && !Array.isArray(correct)
@@ -1388,7 +1416,10 @@ function buildAnnotationPayload(): QuestionInteractionAnnotationParams {
     throw new Error('请至少选择一个候选锚点');
   }
 
-  const answerData = parseJsonObject(annotationForm.answer_data_json, '答案 JSON');
+  const answerData = parseJsonObject(
+    annotationForm.answer_data_json,
+    '答案 JSON',
+  );
   if (getAnnotationAnswerAnchorIds().length === 0) {
     throw new Error('请先设置正确答案锚点');
   }
@@ -1498,7 +1529,10 @@ function normalizeInteger(value?: null | number): null | number {
 }
 
 function stripHtml(value: string) {
-  return value.replaceAll(/<[^>]*>/g, '').replaceAll(/\s+/g, ' ').trim();
+  return value
+    .replaceAll(/<[^>]*>/g, '')
+    .replaceAll(/\s+/g, ' ')
+    .trim();
 }
 
 function truncateText(value: string, maxLength: number) {
@@ -1559,7 +1593,9 @@ function getBlockContent(block: Record<string, any>) {
 }
 
 function getBlockAssetUrl(block: Record<string, any>) {
-  return String(block.asset_url || block.image_url || block.url || block.src || '');
+  return String(
+    block.asset_url || block.image_url || block.url || block.src || '',
+  );
 }
 
 function getTextBlockSegments(block: Record<string, any>) {
@@ -1576,7 +1612,9 @@ function getTextBlockSegments(block: Record<string, any>) {
         startOffset,
       };
     })
-    .filter((item) => item.startOffset >= 0 && item.endOffset > item.startOffset)
+    .filter(
+      (item) => item.startOffset >= 0 && item.endOffset > item.startOffset,
+    )
     .toSorted((left, right) => left.startOffset - right.startOffset);
 
   const segments: Array<{
@@ -1631,12 +1669,14 @@ function getImageBlockMarkers(block: Record<string, any>) {
       const y = normalizeRatio(bbox.y);
       const width = normalizeRatio(bbox.width);
       const height = normalizeRatio(bbox.height);
-      const isPoint = item.anchor_type === 'image_point' || width <= 0 || height <= 0;
+      const isPoint =
+        item.anchor_type === 'image_point' || width <= 0 || height <= 0;
 
       return {
         active:
           typeof item.id === 'number' &&
-          (item.id === anchorFocusedAnchorId.value || item.id === anchorForm.id),
+          (item.id === anchorFocusedAnchorId.value ||
+            item.id === anchorForm.id),
         answer: false,
         candidate: false,
         draft: item.draft,
@@ -1668,7 +1708,8 @@ function getAnnotationImageBlockMarkers(block: Record<string, any>) {
       const y = normalizeRatio(bbox.y);
       const width = normalizeRatio(bbox.width);
       const height = normalizeRatio(bbox.height);
-      const isPoint = item.anchor_type === 'image_point' || width <= 0 || height <= 0;
+      const isPoint =
+        item.anchor_type === 'image_point' || width <= 0 || height <= 0;
 
       return {
         anchor: item,
@@ -1711,7 +1752,9 @@ function getAnnotationTextBlockSegments(block: Record<string, any>) {
         startOffset,
       };
     })
-    .filter((item) => item.startOffset >= 0 && item.endOffset > item.startOffset)
+    .filter(
+      (item) => item.startOffset >= 0 && item.endOffset > item.startOffset,
+    )
     .toSorted((left, right) => left.startOffset - right.startOffset);
 
   const segments: Array<{
@@ -1869,7 +1912,9 @@ function getAnchorRoleLabel(role?: null | string) {
     return '';
   }
 
-  const option = dataAnalysisAnchorRoleOptions.find((item) => item.value === role);
+  const option = dataAnalysisAnchorRoleOptions.find(
+    (item) => item.value === role,
+  );
   return option?.label || role;
 }
 
@@ -1885,7 +1930,10 @@ function sanitizeAnchorPayload(payload: MaterialAnchorParams) {
     };
   }
 
-  if (payload.anchor_type === 'text_range' || payload.anchor_type === 'text_block') {
+  if (
+    payload.anchor_type === 'text_range' ||
+    payload.anchor_type === 'text_block'
+  ) {
     return {
       ...payload,
       asset_hash: null,
@@ -2026,7 +2074,11 @@ function showErrorMessage(error: unknown, fallback: string) {
 
           <template #annotation_operation_default="{ row }">
             <a-space>
-              <a-button size="small" type="link" @click="openEditAnnotation(row)">
+              <a-button
+                size="small"
+                type="link"
+                @click="openEditAnnotation(row)"
+              >
                 编辑
               </a-button>
               <a-button
@@ -2092,7 +2144,8 @@ function showErrorMessage(error: unknown, fallback: string) {
             文本块：用鼠标选中文字后松开即可生成文本锚点；图片块：按住拖拽生成区域，轻点生成点位。
           </div>
           <div class="mb-3 text-xs text-muted-foreground">
-            文本块用鼠标选中文字，图片块按住拖拽生成区域，轻点生成点位；role 请在题目交互标注中按题目设置。
+            文本块用鼠标选中文字，图片块按住拖拽生成区域，轻点生成点位；role
+            请在题目交互标注中按题目设置。
           </div>
           <div class="space-y-3">
             <div
@@ -2114,11 +2167,18 @@ function showErrorMessage(error: unknown, fallback: string) {
                     {{ getBlockTitle(block, index) }}
                   </span>
                 </div>
-                <a-button size="small" type="link" @click="selectAnchorMaterialBlock(block)">
+                <a-button
+                  size="small"
+                  type="link"
+                  @click="selectAnchorMaterialBlock(block)"
+                >
                   只选中块
                 </a-button>
               </div>
-              <div v-if="isImageBlock(block)" class="relative inline-block max-w-full">
+              <div
+                v-if="isImageBlock(block)"
+                class="relative inline-block max-w-full"
+              >
                 <img
                   class="material-anchor-image max-w-full cursor-crosshair rounded border"
                   :src="getBlockAssetUrl(block)"
@@ -2149,7 +2209,9 @@ function showErrorMessage(error: unknown, fallback: string) {
                   }"
                   :style="marker.style"
                 >
-                  <span class="material-anchor-marker-label">{{ marker.label }}</span>
+                  <span class="material-anchor-marker-label">{{
+                    marker.label
+                  }}</span>
                 </span>
               </div>
               <div
@@ -2162,7 +2224,8 @@ function showErrorMessage(error: unknown, fallback: string) {
                   :key="segment.key"
                   :class="{
                     'material-anchor-highlight': segment.highlighted,
-                    'material-anchor-highlight--draft': segment.highlighted && segment.draft,
+                    'material-anchor-highlight--draft':
+                      segment.highlighted && segment.draft,
                   }"
                 >
                   {{ segment.text }}
@@ -2193,15 +2256,26 @@ function showErrorMessage(error: unknown, fallback: string) {
                   </span>
                 </div>
                 <div class="truncate text-sm">
-                  {{ draft.payload.text || draft.payload.asset_url || draft.payload.anchor_key }}
+                  {{
+                    draft.payload.text ||
+                    draft.payload.asset_url ||
+                    draft.payload.anchor_key
+                  }}
                 </div>
               </div>
-              <a-button danger size="small" @click="removeAnchorDraft(draft.local_key)">
+              <a-button
+                danger
+                size="small"
+                @click="removeAnchorDraft(draft.local_key)"
+              >
                 移除
               </a-button>
             </div>
           </div>
-          <a-empty v-else description="还没有草稿：请在材料中划选文字或框选图片区域" />
+          <a-empty
+            v-else
+            description="还没有草稿：请在材料中划选文字或框选图片区域"
+          />
           <template v-if="anchorDrafts.length > 0" #extra>
             <a-button danger size="small" @click="clearAnchorDrafts">
               清空草稿
@@ -2251,7 +2325,8 @@ function showErrorMessage(error: unknown, fallback: string) {
               :key="anchor.id"
               class="flex flex-wrap items-center gap-2 rounded border bg-white p-2"
               :class="{
-                'border-blue-400 bg-blue-50': anchorFocusedAnchorId === anchor.id,
+                'border-blue-400 bg-blue-50':
+                  anchorFocusedAnchorId === anchor.id,
               }"
               @mouseenter="anchorFocusedAnchorId = anchor.id"
               @mouseleave="anchorFocusedAnchorId = null"
@@ -2389,7 +2464,8 @@ function showErrorMessage(error: unknown, fallback: string) {
           :title="`材料内容：${annotationMaterialPreview.title}`"
         >
           <div class="mb-3 text-xs text-muted-foreground">
-            点击材料块中的锚点可为当前题目设置 role；锚点本身请先在“材料锚点”里用鼠标标好。
+            点击材料块中的锚点可为当前题目设置
+            role；锚点本身请先在“材料锚点”里用鼠标标好。
           </div>
           <div class="space-y-3">
             <div
@@ -2406,7 +2482,10 @@ function showErrorMessage(error: unknown, fallback: string) {
                   {{ getBlockTitle(block, index) }}
                 </span>
               </div>
-              <div v-if="isImageBlock(block)" class="relative inline-block max-w-full">
+              <div
+                v-if="isImageBlock(block)"
+                class="relative inline-block max-w-full"
+              >
                 <img
                   class="material-anchor-image max-w-full rounded border"
                   :src="getBlockAssetUrl(block)"
@@ -2420,13 +2499,16 @@ function showErrorMessage(error: unknown, fallback: string) {
                     trigger="click"
                     :open="annotationRoleTargetId === marker.id"
                     @open-change="
-                      (open) => handleAnnotationRolePopoverOpenChange(open, marker.id)
+                      (open) =>
+                        handleAnnotationRolePopoverOpenChange(open, marker.id)
                     "
                   >
                     <template #content>
                       <div class="anchor-role-popover">
                         <div class="mb-1 font-medium">选择本题 role</div>
-                        <div class="mb-2 max-w-60 truncate text-xs text-muted-foreground">
+                        <div
+                          class="mb-2 max-w-60 truncate text-xs text-muted-foreground"
+                        >
                           {{ formatAnchorDisplayText(marker.anchor) }}
                         </div>
                         <a-select
@@ -2451,7 +2533,9 @@ function showErrorMessage(error: unknown, fallback: string) {
                       :style="marker.style"
                       @click.stop="selectAnnotationAnchorRole(marker.anchor)"
                     >
-                      <span class="material-anchor-marker-label">{{ marker.label }}</span>
+                      <span class="material-anchor-marker-label">{{
+                        marker.label
+                      }}</span>
                     </span>
                   </a-popover>
                 </template>
@@ -2471,13 +2555,18 @@ function showErrorMessage(error: unknown, fallback: string) {
                     :open="annotationRoleTargetId === segment.anchor.id"
                     @open-change="
                       (open) =>
-                        handleAnnotationRolePopoverOpenChange(open, segment.anchor.id)
+                        handleAnnotationRolePopoverOpenChange(
+                          open,
+                          segment.anchor.id,
+                        )
                     "
                   >
                     <template #content>
                       <div class="anchor-role-popover">
                         <div class="mb-1 font-medium">选择本题 role</div>
-                        <div class="mb-2 max-w-60 truncate text-xs text-muted-foreground">
+                        <div
+                          class="mb-2 max-w-60 truncate text-xs text-muted-foreground"
+                        >
                           {{ formatAnchorDisplayText(segment.anchor) }}
                         </div>
                         <a-select
@@ -2503,16 +2592,16 @@ function showErrorMessage(error: unknown, fallback: string) {
                   <span
                     v-else
                     class="material-anchor-highlight"
-                    :class="{ 'material-anchor-highlight--selected': segment.selected }"
+                    :class="{
+                      'material-anchor-highlight--selected': segment.selected,
+                    }"
                   >
                     {{ segment.text }}
                   </span>
                 </template>
               </div>
               <div class="mt-3 rounded bg-gray-50 p-3">
-                <div class="mb-2 text-xs text-muted-foreground">
-                  本块锚点
-                </div>
+                <div class="mb-2 text-xs text-muted-foreground">本块锚点</div>
                 <div
                   v-if="getAnchorsByBlock(getBlockId(block)).length > 0"
                   class="space-y-2"
@@ -2524,8 +2613,10 @@ function showErrorMessage(error: unknown, fallback: string) {
                     :class="{
                       'border-blue-400 bg-blue-50':
                         annotationFocusedAnchorId === anchor.id,
-                      'border-green-400 bg-green-50': isAnnotationCandidateAnchor(anchor),
-                      'border-red-400 bg-red-50': isAnnotationAnswerAnchor(anchor),
+                      'border-green-400 bg-green-50':
+                        isAnnotationCandidateAnchor(anchor),
+                      'border-red-400 bg-red-50':
+                        isAnnotationAnswerAnchor(anchor),
                     }"
                     @mouseenter="annotationFocusedAnchorId = anchor.id"
                     @mouseleave="annotationFocusedAnchorId = null"
@@ -2534,13 +2625,26 @@ function showErrorMessage(error: unknown, fallback: string) {
                       <div class="mb-1 flex flex-wrap items-center gap-2">
                         <a-tag color="blue">#{{ anchor.id }}</a-tag>
                         <a-tag>{{ anchor.anchor_type }}</a-tag>
-                        <a-tag v-if="getAnnotationAnchorRole(anchor.id)" color="purple">
-                          {{ getAnchorRoleLabel(getAnnotationAnchorRole(anchor.id)) }}
+                        <a-tag
+                          v-if="getAnnotationAnchorRole(anchor.id)"
+                          color="purple"
+                        >
+                          {{
+                            getAnchorRoleLabel(
+                              getAnnotationAnchorRole(anchor.id),
+                            )
+                          }}
                         </a-tag>
-                        <a-tag v-if="isAnnotationCandidateAnchor(anchor)" color="green">
+                        <a-tag
+                          v-if="isAnnotationCandidateAnchor(anchor)"
+                          color="green"
+                        >
                           候选
                         </a-tag>
-                        <a-tag v-if="isAnnotationAnswerAnchor(anchor)" color="red">
+                        <a-tag
+                          v-if="isAnnotationAnswerAnchor(anchor)"
+                          color="red"
+                        >
                           答案
                         </a-tag>
                       </div>
@@ -2549,7 +2653,10 @@ function showErrorMessage(error: unknown, fallback: string) {
                       </div>
                     </div>
                     <a-space>
-                      <a-button size="small" @click="toggleAnnotationCandidateAnchor(anchor)">
+                      <a-button
+                        size="small"
+                        @click="toggleAnnotationCandidateAnchor(anchor)"
+                      >
                         {{
                           isAnnotationCandidateAnchor(anchor)
                             ? '移出候选'
@@ -2592,7 +2699,9 @@ function showErrorMessage(error: unknown, fallback: string) {
                 color="green"
                 @close.prevent="
                   setAnnotationCandidateIds(
-                    getAnnotationCandidateIds().filter((item) => item !== anchorId),
+                    getAnnotationCandidateIds().filter(
+                      (item) => item !== anchorId,
+                    ),
                   )
                 "
               >
@@ -2645,13 +2754,13 @@ function showErrorMessage(error: unknown, fallback: string) {
 
 <style scoped>
 .interaction-tabs {
-  min-height: 0;
   flex: 1;
+  min-height: 0;
 }
 
 :deep(.interaction-tabs > .ant-tabs-content-holder) {
-  min-height: 0;
   flex: 1;
+  min-height: 0;
 }
 
 :deep(.interaction-tabs > .ant-tabs-content-holder > .ant-tabs-content) {
@@ -2667,8 +2776,8 @@ function showErrorMessage(error: unknown, fallback: string) {
   bottom: 0;
   display: flex;
   justify-content: flex-end;
-  margin: 24px -24px -24px;
   padding: 12px 24px;
+  margin: 24px -24px -24px;
   background: hsl(var(--background));
   border-top: 1px solid hsl(var(--border));
 }
@@ -2698,10 +2807,10 @@ function showErrorMessage(error: unknown, fallback: string) {
 .material-anchor-marker {
   position: absolute;
   pointer-events: none;
-  border: 2px solid rgb(234 179 8);
   background: rgb(254 240 138 / 22%);
-  transform: translate(0, 0);
+  border: 2px solid rgb(234 179 8);
   box-shadow: 0 0 0 1px rgb(255 255 255 / 85%);
+  transform: translate(0, 0);
   transition:
     border-color 0.15s ease,
     box-shadow 0.15s ease,
@@ -2709,24 +2818,24 @@ function showErrorMessage(error: unknown, fallback: string) {
 }
 
 .material-anchor-marker--candidate {
-  border-color: rgb(34 197 94);
   background: rgb(187 247 208 / 22%);
+  border-color: rgb(34 197 94);
 }
 
 .material-anchor-marker--answer {
-  border-color: rgb(239 68 68);
   background: rgb(254 202 202 / 26%);
+  border-color: rgb(239 68 68);
 }
 
 .material-anchor-marker--draft {
-  border-color: rgb(59 130 246);
   background: rgb(191 219 254 / 22%);
+  border-color: rgb(59 130 246);
 }
 
 .material-anchor-marker--active {
   z-index: 2;
-  border-color: rgb(37 99 235);
   background: rgb(147 197 253 / 26%);
+  border-color: rgb(37 99 235);
   box-shadow:
     0 0 0 2px rgb(255 255 255 / 95%),
     0 0 0 5px rgb(37 99 235 / 55%);
@@ -2739,16 +2848,16 @@ function showErrorMessage(error: unknown, fallback: string) {
 
 .material-anchor-marker--selected {
   z-index: 3;
-  border-color: rgb(124 58 237);
   background: rgb(196 181 253 / 35%);
+  border-color: rgb(124 58 237);
   box-shadow:
     0 0 0 2px rgb(255 255 255 / 95%),
     0 0 0 5px rgb(124 58 237 / 55%);
 }
 
 .material-anchor-marker--preview {
-  border-style: dashed;
   background: rgb(59 130 246 / 12%);
+  border-style: dashed;
 }
 
 .material-anchor-marker--point {
@@ -2756,8 +2865,8 @@ function showErrorMessage(error: unknown, fallback: string) {
   height: 12px;
   margin-top: -6px;
   margin-left: -6px;
-  border-radius: 999px;
   background: rgb(234 179 8 / 90%);
+  border-radius: 999px;
 }
 
 .material-anchor-marker--draft.material-anchor-marker--point {

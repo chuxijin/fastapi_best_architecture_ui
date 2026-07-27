@@ -201,30 +201,31 @@ const answerText = computed(() => {
   return String(correct);
 });
 
-const currentKnowledgePoints = computed<
-  Array<{ id?: number; name: string }>
->(() => {
-  const raw =
-    (currentDetail.value as any)?.knowledge_point ??
-    (currentQuestion.value as any)?.knowledge_point;
-  if (!Array.isArray(raw)) {
-    return [];
-  }
-  return raw
-    .map((item: any) => {
-      if (typeof item === 'string' || typeof item === 'number') {
-        return { name: String(item) };
-      }
-      if (item && typeof item === 'object') {
-        return {
-          id: typeof item.id === 'number' ? item.id : undefined,
-          name: item.name || item.label || item.title || String(item.id || ''),
-        };
-      }
-      return null;
-    })
-    .filter(Boolean) as Array<{ id?: number; name: string }>;
-});
+const currentKnowledgePoints = computed<Array<{ id?: number; name: string }>>(
+  () => {
+    const raw =
+      (currentDetail.value as any)?.knowledge_point ??
+      (currentQuestion.value as any)?.knowledge_point;
+    if (!Array.isArray(raw)) {
+      return [];
+    }
+    return raw
+      .map((item: any) => {
+        if (typeof item === 'string' || typeof item === 'number') {
+          return { name: String(item) };
+        }
+        if (item && typeof item === 'object') {
+          return {
+            id: typeof item.id === 'number' ? item.id : undefined,
+            name:
+              item.name || item.label || item.title || String(item.id || ''),
+          };
+        }
+        return null;
+      })
+      .filter(Boolean) as Array<{ id?: number; name: string }>;
+  },
+);
 
 const quickKnowledgeList = computed<QuickKnowledge[]>(() => {
   const raw = getRecentKnowledgePoints();
@@ -238,10 +239,10 @@ const isQuickSelected = (kp: QuickKnowledge) => {
 function toggleQuickKnowledge(kp: QuickKnowledge) {
   const ids = [...selectedCategoryIds.value];
   const index = ids.indexOf(kp.id);
-  if (index >= 0) {
-    ids.splice(index, 1);
-  } else {
+  if (index === -1) {
     ids.push(kp.id);
+  } else {
+    ids.splice(index, 1);
   }
   selectedCategoryIds.value = ids;
 }
@@ -255,11 +256,9 @@ function getRecentKnowledgePoints(): QuickKnowledge[] {
     return parsed
       .filter(
         (item: any) =>
-          item &&
-          typeof item.id === 'number' &&
-          typeof item.name === 'string',
+          item && typeof item.id === 'number' && typeof item.name === 'string',
       )
-      .sort((a: QuickKnowledge, b: QuickKnowledge) => b.count - a.count);
+      .toSorted((a: QuickKnowledge, b: QuickKnowledge) => b.count - a.count);
   } catch {
     return [];
   }
@@ -280,7 +279,7 @@ function recordKnowledgePointUsage(items: Array<{ id: number; name: string }>) {
   }
 
   const updated = [...nameMap.values()]
-    .sort((a, b) => b.count - a.count)
+    .toSorted((a, b) => b.count - a.count)
     .slice(0, MAX_RECENT);
 
   localStorage.setItem(RECENT_KP_STORAGE_KEY, JSON.stringify(updated));
@@ -539,10 +538,9 @@ async function saveKnowledgePoints() {
       source?.difficulty || currentQuestion.value.difficulty || 'medium',
     default_score:
       source?.default_score ?? currentQuestion.value.default_score ?? 1,
-    knowledge_point:
-      (knowledgePointPayload.length > 0
-        ? knowledgePointPayload
-        : null) as any,
+    knowledge_point: (knowledgePointPayload.length > 0
+      ? knowledgePointPayload
+      : null) as any,
     content_status:
       source?.content_status ?? currentQuestion.value.content_status ?? 10,
   };
@@ -641,11 +639,7 @@ onMounted(() => {
       </Card>
 
       <div class="flex flex-1 gap-3 overflow-hidden">
-        <Card
-          title="知识点树"
-          size="small"
-          class="w-80 shrink-0 overflow-auto"
-        >
+        <Card title="知识点树" size="small" class="w-80 shrink-0 overflow-auto">
           <Spin :spinning="loadingKnowledgeTree">
             <TreeSelect
               v-model:value="selectedCategoryIds"
@@ -674,10 +668,7 @@ onMounted(() => {
                   questionTypeMap[currentQuestion.type] || currentQuestion.type
                 }}
               </Tag>
-              <Tag
-                v-if="(currentQuestion as any)?.chapter_name"
-                color="cyan"
-              >
+              <Tag v-if="(currentQuestion as any)?.chapter_name" color="cyan">
                 {{ (currentQuestion as any).chapter_name }}
               </Tag>
             </div>
@@ -686,12 +677,8 @@ onMounted(() => {
           <Spin :spinning="loadingQuestion || saving">
             <div v-if="currentQuestion">
               <div class="space-y-4">
-                <div
-                  class="rounded border border-gray-200 bg-gray-50 p-3"
-                >
-                  <div class="mb-1 text-sm font-medium text-gray-600">
-                    题干
-                  </div>
+                <div class="rounded border border-gray-200 bg-gray-50 p-3">
+                  <div class="mb-1 text-sm font-medium text-gray-600">题干</div>
                   <div
                     class="prose max-w-none text-sm"
                     v-html="currentDetail?.stem || currentQuestion.stem"
@@ -702,9 +689,7 @@ onMounted(() => {
                   v-if="displayOptions.length > 0"
                   class="rounded border border-gray-200 bg-gray-50 p-3"
                 >
-                  <div class="mb-1 text-sm font-medium text-gray-600">
-                    选项
-                  </div>
+                  <div class="mb-1 text-sm font-medium text-gray-600">选项</div>
                   <div class="grid grid-cols-1 gap-2 md:grid-cols-2">
                     <div
                       v-for="option in displayOptions"
@@ -718,22 +703,15 @@ onMounted(() => {
                     >
                       <span class="font-medium">
                         {{ option.code
-                        }}{{
-                          correctOptionCodes.has(option.code) ? ' ✓' : ''
-                        }}
+                        }}{{ correctOptionCodes.has(option.code) ? ' ✓' : '' }}
                       </span>
-                      <span
-                        class="ml-2"
-                        v-html="option.content"
-                      ></span>
+                      <span class="ml-2" v-html="option.content"></span>
                     </div>
                   </div>
                 </div>
 
                 <div class="rounded border border-gray-200 bg-gray-50 p-3">
-                  <div class="mb-1 text-sm font-medium text-gray-600">
-                    答案
-                  </div>
+                  <div class="mb-1 text-sm font-medium text-gray-600">答案</div>
                   <div class="text-sm">{{ answerText }}</div>
                 </div>
 
@@ -782,10 +760,7 @@ onMounted(() => {
               </div>
             </div>
 
-            <Empty
-              v-else
-              description="请选择试卷后搜索，或调整筛选条件"
-            />
+            <Empty v-else description="请选择试卷后搜索，或调整筛选条件" />
           </Spin>
         </Card>
       </div>

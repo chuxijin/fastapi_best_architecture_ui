@@ -498,7 +498,9 @@ export async function syncMyDriveAccountProfileApi(accountId: number) {
 }
 
 export async function deleteMyDriveAccountApi(accountId: number) {
-  return requestClient.delete<undefined>(`/api/v1/mydrive/accounts/${accountId}`);
+  return requestClient.delete<undefined>(
+    `/api/v1/mydrive/accounts/${accountId}`,
+  );
 }
 
 export async function createMyDriveSpaceApi(params: {
@@ -523,7 +525,10 @@ export async function updateMyDriveSpaceApi(
     root_path?: string;
   },
 ) {
-  return requestClient.put<undefined>(`/api/v1/mydrive/spaces/${spaceId}`, params);
+  return requestClient.put<undefined>(
+    `/api/v1/mydrive/spaces/${spaceId}`,
+    params,
+  );
 }
 
 export async function deleteMyDriveSpaceApi(spaceId: number) {
@@ -592,7 +597,9 @@ export async function updateMyDriveSyncConfigApi(
 }
 
 export async function deleteMyDriveSyncConfigApi(configId: number) {
-  return requestClient.delete<undefined>(`/api/v1/mydrive/sync/configs/${configId}`);
+  return requestClient.delete<undefined>(
+    `/api/v1/mydrive/sync/configs/${configId}`,
+  );
 }
 
 export async function createMyDriveSyncTaskApi(configId: number) {
@@ -652,7 +659,9 @@ export async function updateMyDriveResourceApi(
 }
 
 export async function deleteMyDriveResourceApi(resourceId: number) {
-  return requestClient.delete<undefined>(`/api/v1/mydrive/resources/${resourceId}`);
+  return requestClient.delete<undefined>(
+    `/api/v1/mydrive/resources/${resourceId}`,
+  );
 }
 
 export async function recordMyDriveResourceViewApi(resourceId: number) {

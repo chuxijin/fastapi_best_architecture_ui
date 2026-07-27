@@ -84,12 +84,19 @@ const tableColumns = [
   { dataIndex: 'stage', key: 'stage', title: '阶段', width: 120 },
   { dataIndex: 'level_no', key: 'level_no', title: '阶段关卡', width: 100 },
   { dataIndex: 'title', key: 'title', title: '关卡名称', width: 220 },
-  { dataIndex: 'question_count', key: 'question_count', title: '题量', width: 80 },
+  {
+    dataIndex: 'question_count',
+    key: 'question_count',
+    title: '题量',
+    width: 80,
+  },
   { dataIndex: 'status', key: 'status', title: '状态', width: 100 },
   { key: 'operation', title: '操作', width: 180 },
 ];
 
-const drawerTitle = computed(() => (editingId.value ? '编辑闯关关卡' : '新增闯关关卡'));
+const drawerTitle = computed(() =>
+  editingId.value ? '编辑闯关关卡' : '新增闯关关卡',
+);
 
 function createDefaultSection(seqNo = 1): SectionForm {
   return {
@@ -190,7 +197,10 @@ function buildPayload(includeStatus: boolean): ChallengeLevelPayload {
     question_count: Number(section.question_count),
     required_correct_count: section.required_correct_count ?? null,
     seq_no: Number(section.seq_no),
-    source_config: parseObject(section.source_config_text, `第 ${section.seq_no} 组题源配置`),
+    source_config: parseObject(
+      section.source_config_text,
+      `第 ${section.seq_no} 组题源配置`,
+    ),
     source_type: section.source_type,
   }));
   const payload: ChallengeLevelPayload = {
@@ -371,7 +381,11 @@ onMounted(() => {
           <template v-else-if="column.key === 'operation'">
             <a-space>
               <a-button type="link" @click="editRow(record)">编辑</a-button>
-              <a-button v-if="record.status !== 'published'" type="link" @click="publishRow(record)">
+              <a-button
+                v-if="record.status !== 'published'"
+                type="link"
+                @click="publishRow(record)"
+              >
                 发布
               </a-button>
             </a-space>
@@ -380,7 +394,12 @@ onMounted(() => {
       </a-table>
     </a-card>
 
-    <a-drawer v-model:open="drawerOpen" :destroy-on-close="true" :title="drawerTitle" width="960">
+    <a-drawer
+      v-model:open="drawerOpen"
+      :destroy-on-close="true"
+      :title="drawerTitle"
+      width="960"
+    >
       <a-form layout="vertical">
         <a-card class="mb-4" size="small" title="基础信息">
           <div class="grid grid-cols-1 gap-x-4 md:grid-cols-3">
@@ -388,19 +407,41 @@ onMounted(() => {
               <a-input v-model:value="form.challenge_key" disabled />
             </a-form-item>
             <a-form-item label="阶段" required>
-              <a-select v-model:value="form.stage" :disabled="Boolean(editingId)" :options="stageOptions" />
+              <a-select
+                v-model:value="form.stage"
+                :disabled="Boolean(editingId)"
+                :options="stageOptions"
+              />
             </a-form-item>
             <a-form-item label="关卡名称" required>
-              <a-input v-model:value="form.title" placeholder="例如：四概念识别" />
+              <a-input
+                v-model:value="form.title"
+                placeholder="例如：四概念识别"
+              />
             </a-form-item>
             <a-form-item label="阶段内序号" required>
-              <a-input-number v-model:value="form.level_no" class="w-full" :disabled="Boolean(editingId)" :min="1" />
+              <a-input-number
+                v-model:value="form.level_no"
+                class="w-full"
+                :disabled="Boolean(editingId)"
+                :min="1"
+              />
             </a-form-item>
             <a-form-item label="全局序号" required>
-              <a-input-number v-model:value="form.global_no" class="w-full" :disabled="Boolean(editingId)" :min="1" />
+              <a-input-number
+                v-model:value="form.global_no"
+                class="w-full"
+                :disabled="Boolean(editingId)"
+                :min="1"
+              />
             </a-form-item>
             <a-form-item label="前置关卡 ID">
-              <a-input-number v-model:value="form.previous_level_id" allow-clear class="w-full" :min="1" />
+              <a-input-number
+                v-model:value="form.previous_level_id"
+                allow-clear
+                class="w-full"
+                :min="1"
+              />
             </a-form-item>
             <a-form-item class="md:col-span-3" label="关卡说明">
               <a-textarea v-model:value="form.description" :rows="2" />
@@ -410,29 +451,143 @@ onMounted(() => {
 
         <a-card class="mb-4" size="small" title="题目与通关条件">
           <div class="grid grid-cols-1 gap-x-4 md:grid-cols-4">
-            <a-form-item label="题目数量"><a-input-number v-model:value="form.question_count" class="w-full" :min="1" /></a-form-item>
-            <a-form-item label="建议用时（秒）"><a-input-number v-model:value="form.time_limit" class="w-full" :min="0" /></a-form-item>
-            <a-form-item label="通关正确率"><a-input-number v-model:value="form.pass_rate" class="w-full" :max="100" :min="0" /></a-form-item>
-            <a-form-item label="状态"><a-select v-model:value="form.status" :disabled="!editingId" :options="statusOptions" /></a-form-item>
-            <a-form-item label="通关模式"><a-select v-model:value="form.completion_mode" :options="completionModeOptions" /></a-form-item>
-            <a-form-item label="要求达标次数"><a-input-number v-model:value="form.completion_required_attempts" class="w-full" :min="1" /></a-form-item>
-            <a-form-item label="单次最低正确率"><a-input-number v-model:value="form.completion_min_accuracy_rate" allow-clear class="w-full" :max="100" :min="0" /></a-form-item>
-            <a-form-item label="单次最长用时（秒）"><a-input-number v-model:value="form.completion_max_total_time" allow-clear class="w-full" :min="1" /></a-form-item>
+            <a-form-item label="题目数量"
+              >
+<a-input-number
+                v-model:value="form.question_count"
+                class="w-full"
+                :min="1"
+            />
+</a-form-item>
+            <a-form-item label="建议用时（秒）"
+              >
+<a-input-number
+                v-model:value="form.time_limit"
+                class="w-full"
+                :min="0"
+            />
+</a-form-item>
+            <a-form-item label="通关正确率"
+              >
+<a-input-number
+                v-model:value="form.pass_rate"
+                class="w-full"
+                :max="100"
+                :min="0"
+            />
+</a-form-item>
+            <a-form-item label="状态"
+              >
+<a-select
+                v-model:value="form.status"
+                :disabled="!editingId"
+                :options="statusOptions"
+            />
+</a-form-item>
+            <a-form-item label="通关模式"
+              >
+<a-select
+                v-model:value="form.completion_mode"
+                :options="completionModeOptions"
+            />
+</a-form-item>
+            <a-form-item label="要求达标次数"
+              >
+<a-input-number
+                v-model:value="form.completion_required_attempts"
+                class="w-full"
+                :min="1"
+            />
+</a-form-item>
+            <a-form-item label="单次最低正确率"
+              >
+<a-input-number
+                v-model:value="form.completion_min_accuracy_rate"
+                allow-clear
+                class="w-full"
+                :max="100"
+                :min="0"
+            />
+</a-form-item>
+            <a-form-item label="单次最长用时（秒）"
+              >
+<a-input-number
+                v-model:value="form.completion_max_total_time"
+                allow-clear
+                class="w-full"
+                :min="1"
+            />
+</a-form-item>
           </div>
         </a-card>
 
         <a-card class="mb-4" size="small" title="题目分组">
-          <template #extra><a-button size="small" type="dashed" @click="addSection">新增分组</a-button></template>
+          <template #extra
+            >
+<a-button size="small" type="dashed" @click="addSection"
+              >
+新增分组
+</a-button
+            >
+</template
+          >
           <div class="space-y-4">
-            <a-card v-for="(section, index) in form.sections" :key="section.seq_no" size="small">
+            <a-card
+              v-for="(section, index) in form.sections"
+              :key="section.seq_no"
+              size="small"
+            >
               <template #title>第 {{ section.seq_no }} 组</template>
-              <template #extra><a-button danger size="small" type="link" @click="removeSection(index)">移除</a-button></template>
+              <template #extra
+                >
+<a-button
+                  danger
+                  size="small"
+                  type="link"
+                  @click="removeSection(index)"
+                  >
+移除
+</a-button
+                >
+</template
+              >
               <div class="grid grid-cols-1 gap-x-4 md:grid-cols-4">
-                <a-form-item label="分组名称"><a-input v-model:value="section.name" /></a-form-item>
-                <a-form-item label="题源类型"><a-select v-model:value="section.source_type" :options="sourceTypeOptions" /></a-form-item>
-                <a-form-item label="题目数量"><a-input-number v-model:value="section.question_count" class="w-full" :min="1" /></a-form-item>
-                <a-form-item label="最低答对数"><a-input-number v-model:value="section.required_correct_count" allow-clear class="w-full" :min="0" /></a-form-item>
-                <a-form-item class="md:col-span-4" label="题源配置 JSON"><a-textarea v-model:value="section.source_config_text" :rows="4" /></a-form-item>
+                <a-form-item label="分组名称"
+                  >
+<a-input v-model:value="section.name"
+                />
+</a-form-item>
+                <a-form-item label="题源类型"
+                  >
+<a-select
+                    v-model:value="section.source_type"
+                    :options="sourceTypeOptions"
+                />
+</a-form-item>
+                <a-form-item label="题目数量"
+                  >
+<a-input-number
+                    v-model:value="section.question_count"
+                    class="w-full"
+                    :min="1"
+                />
+</a-form-item>
+                <a-form-item label="最低答对数"
+                  >
+<a-input-number
+                    v-model:value="section.required_correct_count"
+                    allow-clear
+                    class="w-full"
+                    :min="0"
+                />
+</a-form-item>
+                <a-form-item class="md:col-span-4" label="题源配置 JSON"
+                  >
+<a-textarea
+                    v-model:value="section.source_config_text"
+                    :rows="4"
+                />
+</a-form-item>
               </div>
             </a-card>
           </div>
@@ -445,7 +600,11 @@ onMounted(() => {
       <template #footer>
         <a-space>
           <a-button @click="drawerOpen = false">取消</a-button>
-          <a-button type="primary" :loading="saving" @click="saveLevel">保存配置</a-button>
+          <a-button type="primary" :loading="saving" @click="saveLevel"
+            >
+保存配置
+</a-button
+          >
         </a-space>
       </template>
     </a-drawer>
