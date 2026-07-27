@@ -5,11 +5,17 @@ import type { DifficultyType, QuestionListItem, QuestionType } from '#/api';
  * 题型映射（字符串类型）
  */
 export const questionTypeMap: Record<QuestionType, string> = {
-  single: '单选题',
-  multiple: '多选题',
-  judgement: '判断题',
+  anchorLocate: '锚点定位',
+  connection: '连线题',
+  evidenceLocate: '找证据',
   fill: '填空题',
+  judgement: '判断题',
+  matching: '匹配题',
+  multiple: '多选题',
+  numberLocate: '找数题',
+  regionLocate: '区域定位',
   shortAnswer: '简答题',
+  single: '单选题',
 };
 
 /**
@@ -40,6 +46,12 @@ const questionTypeOptions: Array<{ label: string; value: QuestionType }> = [
   { label: '判断题', value: 'judgement' },
   { label: '填空题', value: 'fill' },
   { label: '简答题', value: 'shortAnswer' },
+  { label: '匹配题', value: 'matching' },
+  { label: '连线题', value: 'connection' },
+  { label: '找数题', value: 'numberLocate' },
+  { label: '找证据', value: 'evidenceLocate' },
+  { label: '区域定位', value: 'regionLocate' },
+  { label: '锚点定位', value: 'anchorLocate' },
 ];
 
 /**
