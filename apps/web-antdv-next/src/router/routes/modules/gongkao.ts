@@ -101,6 +101,15 @@ const routes: RouteRecordRaw[] = [
           icon: 'mdi:file-edit-outline',
         },
       },
+      {
+        name: 'GongkaoHandbook',
+        path: '/gongkao/handbook',
+        component: () => import('#/views/gongkao/handbook.vue'),
+        meta: {
+          title: '学习手册',
+          icon: 'mdi:book-open-page-variant-outline',
+        },
+      },
     ],
   },
 ];

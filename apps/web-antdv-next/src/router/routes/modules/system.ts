@@ -151,6 +151,15 @@ const routes: RouteRecordRaw[] = [
           icon: 'clarity:plugin-line',
         },
       },
+      {
+        name: 'SysGrayscale',
+        path: '/system/grayscale',
+        component: () => import('#/views/system/grayscale/index.vue'),
+        meta: {
+          title: '灰度管理',
+          icon: 'carbon:load-balancer-vpc',
+        },
+      },
     ],
   },
 ];

@@ -64,6 +64,17 @@ const routes: RouteRecordRaw[] = [
           icon: 'mdi:vector-link',
         },
       },
+      {
+        name: 'StudyPlanSpatialCubePatterns',
+        path: 'spatial-cube-patterns',
+        component: () =>
+          import('#/views/study-plan/spatial-cube-patterns/index.vue'),
+        meta: {
+          title: '六面体素材',
+          icon: 'mdi:cube-outline',
+          authority: ['study_plan:admin:read'],
+        },
+      },
     ],
   },
 ];

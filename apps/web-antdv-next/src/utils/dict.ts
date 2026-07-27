@@ -7,6 +7,7 @@ export enum DictEnum {
   DRIVE_TYPE = 'drive_type',
   JOB_APPLICATION_STATUS = 'job_application_status',
   NOTICE = 'notice',
+  RESOURCE_TYPE = 'resource_type',
   SYS_CHOOSE = 'sys_choose',
   SYS_DATA_RULE_EXPRESSION = 'sys_data_rule_expression',
   SYS_DATA_RULE_OPERATOR = 'sys_data_rule_operator',
@@ -22,6 +23,7 @@ export enum DictEnum {
 
 export const DICT_CONFIG: Record<string, DictOptionsParams> = {
   [DictEnum.DRIVE_TYPE]: { asString: true },
+  [DictEnum.RESOURCE_TYPE]: { asString: true },
   [DictEnum.SYS_STATUS]: { asNumber: true },
   [DictEnum.NOTICE]: { asNumber: true },
   [DictEnum.SYS_CHOOSE]: { asBoolean: true },
