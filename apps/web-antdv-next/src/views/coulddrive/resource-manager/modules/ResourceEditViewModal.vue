@@ -4,8 +4,8 @@ import { computed } from 'vue';
 
 import { getDriveTypeColor, getDriveTypeLabel } from '#/api';
 
-import { RESOURCE_TYPE_OPTIONS } from '../data';
 import ResourceFileUploader from './ResourceFileUploader.vue';
+import ResourcePdfPreviewUploader from './ResourcePdfPreviewUploader.vue';
 
 const props = defineProps<{
   accountOptions?: ReadonlyArray<{
@@ -23,6 +23,7 @@ const props = defineProps<{
   onCopyShare?: (data: any) => Promise<void>;
   onImageError?: (e: Event) => void;
   onUrlTypeChange?: (urlType: string) => void;
+  resourceTypeOptions?: ReadonlyArray<any>;
   tempModes?: Array<{ label: string; value: number }>;
 }>();
 
@@ -39,18 +40,81 @@ const driveTypeClass = computed(() => {
   return 'bg-gray-100 text-gray-800';
 });
 
+const resourceImages = computed(() =>
+  normalizeResourceImages(props.formData?.resource_image),
+);
+const resourceImageText = computed({
+  get: () => resourceImages.value.join('\n'),
+  set: (value: string) => {
+    props.formData.resource_image = normalizeResourceImages(value);
+  },
+});
+
+function normalizeResourceImages(value: unknown): string[] {
+  if (Array.isArray(value)) {
+    return value.map((item) => String(item || '').trim()).filter(Boolean);
+  }
+
+  if (value && typeof value === 'object') {
+    const imageData = value as Record<string, unknown>;
+    const nestedValue =
+      imageData.images || imageData.urls || imageData.resource_image;
+    if (nestedValue) {
+      return normalizeResourceImages(nestedValue);
+    }
+
+    return [];
+  }
+
+  const text = String(value || '').trim();
+  if (!text) {
+    return [];
+  }
+
+  if (text.startsWith('[') || text.startsWith('{')) {
+    try {
+      return normalizeResourceImages(JSON.parse(text));
+    } catch {
+      // 不是合法 JSON 时按普通文本处理
+    }
+  }
+
+  return text
+    .split(/[\n,，]/)
+    .map((item) => item.trim())
+    .filter(Boolean);
+}
+
 // 处理账号变更，自动设置网盘类型
-function onAccountChange(userId: number) {
+function onAccountChange(userId: number | undefined) {
   const account = props.accountOptions?.find((opt) => opt.value === userId);
   if (account && account.type) {
     props.formData.url_type = account.type;
+    return;
   }
+
+  props.formData.url_type = '';
 }
 
 // 处理文件上传成功
 function onUploadSuccess(result: any) {
-  // v-model 已经处理了 local_file_path 的更新 (result.url)
+  // v-model 已经处理了 storage_key 的更新
   if (result.file_type) props.formData.file_type = result.file_type;
+  if (result.url && !props.formData.url) props.formData.url = result.url;
+  if (result.resource_image) {
+    props.formData.resource_image = normalizeResourceImages(
+      result.resource_image,
+    );
+  }
+}
+
+// 处理仅生成缩略图成功
+function onPdfPreviewSuccess(result: any) {
+  if (result.resource_image) {
+    props.formData.resource_image = normalizeResourceImages(
+      result.resource_image,
+    );
+  }
 }
 </script>
 
@@ -61,11 +125,11 @@ function onUploadSuccess(result: any) {
       <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
         <div>
           <label class="mb-1 block text-sm font-medium text-gray-700">
-            备注
+            资源标题 *
           </label>
           <a-input
             v-model:value="formData.remark"
-            placeholder="请输入备注"
+            placeholder="请输入资源标题"
             allow-clear
             class="w-full"
           />
@@ -133,7 +197,7 @@ function onUploadSuccess(result: any) {
           </label>
           <a-select
             v-model:value="formData.resource_type"
-            :options="[...RESOURCE_TYPE_OPTIONS]"
+            :options="[...(resourceTypeOptions || [])]"
             placeholder="请选择资源类型"
             class="w-full"
             allow-clear
@@ -144,11 +208,11 @@ function onUploadSuccess(result: any) {
       <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
         <div>
           <label class="mb-1 block text-sm font-medium text-gray-700">
-            主要名字 *
+            机构/老师
           </label>
           <a-input
-            v-model:value="formData.main_name"
-            placeholder="请输入主要名字"
+            v-model:value="formData.org_name"
+            placeholder="请输入机构或老师名称"
             allow-clear
             class="w-full"
           />
@@ -169,20 +233,14 @@ function onUploadSuccess(result: any) {
           >
             <template #notFoundContent> 无可用账号数据 </template>
           </a-select>
+          <p class="mt-1 text-xs text-gray-500">
+            {{
+              formData.url_type
+                ? `网盘类型由关联账号自动带出：${driveTypeLabel}`
+                : '选择关联账号后自动带出网盘类型'
+            }}
+          </p>
         </div>
-      </div>
-
-      <div>
-        <label class="mb-1 block text-sm font-medium text-gray-700">
-          描述
-        </label>
-        <a-textarea
-          v-model:value="formData.description"
-          :rows="3"
-          placeholder="请输入描述"
-          allow-clear
-          class="w-full"
-        />
       </div>
 
       <div>
@@ -200,14 +258,25 @@ function onUploadSuccess(result: any) {
 
       <div>
         <label class="mb-1 block text-sm font-medium text-gray-700">
-          资源图片
+          资源图片（每行一个）
         </label>
-        <a-input
-          v-model:value="formData.resource_image"
-          placeholder="请输入图片链接"
+        <a-textarea
+          v-model:value="resourceImageText"
+          :rows="3"
+          placeholder="上传文件后自动生成，也可以每行填写一个图片链接"
           allow-clear
           class="w-full"
         />
+        <div v-if="resourceImages.length > 0" class="mt-2 flex flex-wrap gap-2">
+          <img
+            v-for="image in resourceImages"
+            :key="image"
+            :src="image"
+            alt="资源图片"
+            class="h-16 w-24 rounded border object-cover"
+            @error="onImageError"
+          />
+        </div>
       </div>
 
       <div class="grid grid-cols-1 gap-4 md:grid-cols-3">
@@ -250,15 +319,21 @@ function onUploadSuccess(result: any) {
         </div>
       </div>
 
-      <div class="grid grid-cols-1 gap-4">
+      <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
         <div>
           <label class="mb-1 block text-sm font-medium text-gray-700">
             上传文件 (可选)
           </label>
           <ResourceFileUploader
-            v-model="formData.local_file_path"
+            v-model="formData.storage_key"
             @success="onUploadSuccess"
           />
+        </div>
+        <div>
+          <label class="mb-1 block text-sm font-medium text-gray-700">
+            只生成缩略图 (可选)
+          </label>
+          <ResourcePdfPreviewUploader @success="onPdfPreviewSuccess" />
         </div>
       </div>
     </template>
@@ -271,15 +346,25 @@ function onUploadSuccess(result: any) {
           <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
             <div>
               <label class="mb-1 block text-sm font-medium text-gray-700">
-                主要名字
+                资源标题
               </label>
-              <p class="text-sm text-gray-900">{{ formData.main_name }}</p>
+              <p class="text-sm text-gray-900">
+                {{ formData.remark || formData.title || '无' }}
+              </p>
             </div>
             <div>
               <label class="mb-1 block text-sm font-medium text-gray-700">
-                标题
+                分享标题
               </label>
               <p class="text-sm text-gray-900">{{ formData.title || '无' }}</p>
+            </div>
+            <div>
+              <label class="mb-1 block text-sm font-medium text-gray-700">
+                机构/老师
+              </label>
+              <p class="text-sm text-gray-900">
+                {{ formData.org_name || '无' }}
+              </p>
             </div>
             <div>
               <label class="mb-1 block text-sm font-medium text-gray-700">
@@ -368,14 +453,14 @@ function onUploadSuccess(result: any) {
               </div>
             </div>
 
-            <div v-if="formData.local_file_path">
+            <div v-if="formData.storage_key">
               <label class="mb-1 block text-sm font-medium text-gray-700">
-                本地文件路径
+                存储对象 Key
               </label>
               <p
                 class="break-all rounded border bg-white p-2 text-sm text-gray-900"
               >
-                {{ formData.local_file_path }}
+                {{ formData.storage_key }}
               </p>
             </div>
 
@@ -410,16 +495,6 @@ function onUploadSuccess(result: any) {
         <div class="rounded-lg bg-gray-50 p-4">
           <h4 class="text-md mb-4 font-semibold">详细信息</h4>
           <div class="space-y-4">
-            <div v-if="formData.description">
-              <label class="mb-1 block text-sm font-medium text-gray-700">
-                描述
-              </label>
-              <p
-                class="whitespace-pre-wrap rounded border bg-white p-3 text-sm text-gray-900"
-              >
-                {{ formData.description }}
-              </p>
-            </div>
             <div v-if="formData.resource_intro">
               <label class="mb-1 block text-sm font-medium text-gray-700">
                 资源介绍
@@ -430,26 +505,20 @@ function onUploadSuccess(result: any) {
                 {{ formData.resource_intro }}
               </p>
             </div>
-            <div v-if="formData.resource_image">
+            <div v-if="resourceImages.length > 0">
               <label class="mb-1 block text-sm font-medium text-gray-700">
                 资源图片
               </label>
-              <img
-                :src="formData.resource_image"
-                alt="资源图片"
-                class="max-w-xs rounded-lg border"
-                @error="onImageError"
-              />
-            </div>
-            <div v-if="formData.remark">
-              <label class="mb-1 block text-sm font-medium text-gray-700">
-                备注
-              </label>
-              <p
-                class="whitespace-pre-wrap rounded border bg-white p-3 text-sm text-gray-900"
-              >
-                {{ formData.remark }}
-              </p>
+              <div class="flex flex-wrap gap-3">
+                <img
+                  v-for="image in resourceImages"
+                  :key="image"
+                  :src="image"
+                  alt="资源图片"
+                  class="h-28 w-40 rounded-lg border object-cover"
+                  @error="onImageError"
+                />
+              </div>
             </div>
             <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
               <div>

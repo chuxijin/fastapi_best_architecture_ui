@@ -17,6 +17,7 @@ import {
   getCoulddriveRelationshipListApi,
   getCoulddriveUserListApi,
   getDictOptions,
+  getDriveTypeLabel,
   getRuleTemplatesByTypeApi,
   RECURSION_SPEED_OPTIONS,
   SYNC_METHOD_OPTIONS,
@@ -100,7 +101,7 @@ const pathSelectionModalVisible = ref(false);
 const pathSelectionMode = ref<'source' | 'target'>('source');
 const selectedAccountCookies = ref('');
 
-const sourceType = ref('');
+const sourceType = ref('local');
 const sourceId = ref('');
 
 const isEditMode = ref(false);
@@ -116,12 +117,20 @@ const driveTypeOptions = computed(() => {
   }));
 });
 
-const sourceTypeOptions: Array<SelectOption<string>> = [
-  { label: '我的网盘', value: '' },
-  { label: '好友分享', value: 'friend' },
-  { label: '群组分享', value: 'group' },
-  { label: '分享链接', value: 'link' },
-];
+const sourceTypeOptions = computed<Array<SelectOption<string>>>(() => {
+  const localOption = { label: '我的网盘', value: 'local' };
+
+  if (formData.value.type === 'OpenListDrive') {
+    return [localOption];
+  }
+
+  return [
+    localOption,
+    { label: '好友分享', value: 'friend' },
+    { label: '群组分享', value: 'group' },
+    { label: '分享链接', value: 'link' },
+  ];
+});
 
 const cronTypeOptions: Array<SelectOption<string>> = [
   { label: '手动执行', value: '' },
@@ -285,7 +294,7 @@ function createDefaultFormData(): SyncConfigFormData {
 }
 
 function resetSourceSelection() {
-  sourceType.value = '';
+  sourceType.value = 'local';
   sourceId.value = '';
   sourceOptions.value = [];
   formData.value.src_path = '';
@@ -334,7 +343,7 @@ async function initializeEditForm(editData: any) {
   if (editData.src_meta) {
     try {
       const srcMeta = JSON.parse(editData.src_meta);
-      sourceType.value = srcMeta.source_type || '';
+      sourceType.value = normalizeSourceType(srcMeta.source_type);
       sourceId.value = srcMeta.source_id || '';
     } catch (error) {
       console.error('解析来源元数据失败:', error);
@@ -391,7 +400,7 @@ async function loadAccountOptions(type?: string) {
     const accounts = response.items || [];
 
     const options = accounts.map((account: CoulddriveDriveAccountDetail) => ({
-      label: `${account.username || account.user_id} (${account.type})`,
+      label: `${account.username || account.user_id} (${getDriveTypeLabel(account.type)})`,
       value: account.id,
       cookies: account.cookies,
     }));
@@ -462,14 +471,14 @@ async function loadRenameRuleOptions() {
 }
 
 async function onSourceTypeChange(type: string) {
-  sourceType.value = type;
+  sourceType.value = normalizeSourceType(type);
   sourceId.value = '';
   sourceOptions.value = [];
   formData.value.src_path = '';
   formData.value.src_meta = '';
 
-  if (type === 'friend' || type === 'group') {
-    await loadSourceOptions(type);
+  if (isRelationshipSourceType(sourceType.value)) {
+    await loadSourceOptions(sourceType.value);
   }
 }
 
@@ -535,7 +544,7 @@ async function selectSourcePath() {
     return;
   }
 
-  if (sourceType.value && !sourceId.value) {
+  if (isShareSourceType(sourceType.value) && !sourceId.value) {
     message.warning(
       sourceType.value === 'link'
         ? '请先填写分享链接'
@@ -602,6 +611,22 @@ function handleFileSelectConfirm(data: any) {
 
 function handleFileSelectCancel() {
   pathSelectionModalVisible.value = false;
+}
+
+function normalizeSourceType(type?: string): string {
+  if (!type) {
+    return 'local';
+  }
+
+  return type;
+}
+
+function isRelationshipSourceType(type: string): boolean {
+  return type === 'friend' || type === 'group';
+}
+
+function isShareSourceType(type: string): boolean {
+  return type === 'friend' || type === 'group' || type === 'link';
 }
 
 function getPopupContainer(triggerNode: HTMLElement) {
@@ -1034,9 +1059,13 @@ onMounted(() => {
     v-model:visible="pathSelectionModalVisible"
     :drive-type="formData.type"
     :auth-token="selectedAccountCookies"
-    :mode="pathSelectionMode === 'source' && sourceType ? 'share' : 'disk'"
+    :mode="
+      pathSelectionMode === 'source' && isShareSourceType(sourceType)
+        ? 'share'
+        : 'disk'
+    "
     :share-params="
-      pathSelectionMode === 'source' && sourceType
+      pathSelectionMode === 'source' && isShareSourceType(sourceType)
         ? {
             sourceType,
             sourceId,

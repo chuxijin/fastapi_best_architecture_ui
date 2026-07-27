@@ -7,11 +7,11 @@ import { createIconifyIcon } from '@vben/icons';
 
 import { message, UploadDragger } from 'ant-design-vue';
 
-import { uploadFileApi } from '#/api/upload';
+import { uploadResourceFileApi } from '#/api';
 
 const props = withDefaults(defineProps<Props>(), {
   modelValue: '',
-  maxSize: 100,
+  maxSize: 5,
   accept: '*',
   fileType: '',
 });
@@ -56,7 +56,7 @@ watch(
 
 // 上传前验证
 function beforeUpload(file: File) {
-  const isLtMaxSize = file.size / 1024 / 1024 < props.maxSize;
+  const isLtMaxSize = file.size / 1024 / 1024 <= props.maxSize;
   if (!isLtMaxSize) {
     message.error(`文件大小不能超过 ${props.maxSize}MB！`);
     return false;
@@ -69,17 +69,19 @@ async function customRequest(options: any) {
   const { file, onSuccess, onError } = options;
 
   try {
-    const response = await uploadFileApi(file, 'resources');
+    const response = await uploadResourceFileApi(file);
 
     // 构建结果对象
     const extension = file.name.split('.').pop()?.toLowerCase() || '';
     const result = {
+      storage_key: response.storage_key,
       url: response.url,
       filename: file.name,
-      file_type: extension,
+      file_type: response.file_type || extension,
+      resource_image: response.resource_image || response.thumbnail_urls || [],
     };
 
-    emit('update:modelValue', result.url);
+    emit('update:modelValue', result.storage_key);
     if (result.file_type) {
       emit('update:fileType', result.file_type);
     }

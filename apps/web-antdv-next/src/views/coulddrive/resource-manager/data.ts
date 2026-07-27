@@ -70,7 +70,7 @@ export const EXPIRED_TYPE_LABEL_MAP = {
   1: '定时',
 } as const;
 
-export const RESOURCE_TYPE_OPTIONS = [
+export const DEFAULT_RESOURCE_TYPE_OPTIONS = [
   { label: '课程', value: '课程' },
   { label: '电子书', value: '电子书' },
   { label: '笔记', value: '笔记' },
@@ -79,17 +79,33 @@ export const RESOURCE_TYPE_OPTIONS = [
   { label: '其他', value: '其他' },
 ] as const;
 
+export function getResourceTypeOptions() {
+  const dictOptions = getDictOptions(DictEnum.RESOURCE_TYPE);
+  if (dictOptions.length > 0) {
+    return dictOptions;
+  }
+
+  return [...DEFAULT_RESOURCE_TYPE_OPTIONS];
+}
+
 // 表格列配置
 export const RESOURCE_TABLE_COLUMNS: TableColumnsType = [
   {
-    title: '主要名字',
-    dataIndex: 'main_name',
-    key: 'main_name',
-    width: 80,
+    title: '资源标题',
+    dataIndex: 'remark',
+    key: 'remark',
+    width: 160,
     ellipsis: true,
   },
   {
-    title: '标题',
+    title: '机构/老师',
+    dataIndex: 'org_name',
+    key: 'org_name',
+    width: 120,
+    ellipsis: true,
+  },
+  {
+    title: '分享标题',
     dataIndex: 'title',
     key: 'title',
     width: 200,
@@ -373,14 +389,20 @@ export function useResourceColumns(
       align: 'center',
     },
     {
-      field: 'main_name',
-      title: '主要名字',
+      field: 'remark',
+      title: '资源标题',
+      minWidth: 120,
+      showOverflow: 'tooltip',
+    },
+    {
+      field: 'org_name',
+      title: '机构/老师',
       minWidth: 120,
       showOverflow: 'tooltip',
     },
     {
       field: 'title',
-      title: '标题',
+      title: '分享标题',
       minWidth: 150,
       showOverflow: 'tooltip',
     },
@@ -473,7 +495,7 @@ export function useResourceColumns(
       width: 200,
       cellRender: {
         attrs: {
-          nameField: 'main_name',
+          nameField: 'remark',
           onClick: onActionClick,
         },
         name: 'CellOperation',
@@ -527,14 +549,14 @@ export async function getCategoryOptions() {
     const categoryTree = buildTree(categories);
 
     return {
-      resourceTypeOptions: [...RESOURCE_TYPE_OPTIONS],
+      resourceTypeOptions: getResourceTypeOptions(),
       allCategories: categories,
       categoryTree,
     };
   } catch (error) {
     console.error('获取分类选项失败:', error);
     return {
-      resourceTypeOptions: [...RESOURCE_TYPE_OPTIONS],
+      resourceTypeOptions: getResourceTypeOptions(),
       allCategories: [],
       categoryTree: [],
     };
@@ -569,11 +591,19 @@ export function createResourceFormSchema(categoryOptions?: {
     {
       component: 'Input',
       componentProps: {
-        placeholder: '请输入主要名字',
+        placeholder: '请输入资源标题',
       },
-      fieldName: 'main_name',
-      label: '主要名字',
+      fieldName: 'remark',
+      label: '资源标题',
       rules: 'required',
+    },
+    {
+      component: 'Input',
+      componentProps: {
+        placeholder: '请输入机构或老师名称',
+      },
+      fieldName: 'org_name',
+      label: '机构/老师',
     },
     {
       component: 'Select',
@@ -595,16 +625,6 @@ export function createResourceFormSchema(categoryOptions?: {
       rules: 'required',
     },
     {
-      component: 'Select',
-      componentProps: {
-        options: getDictOptions(DictEnum.DRIVE_TYPE),
-        placeholder: '请选择网盘类型',
-      },
-      fieldName: 'url_type',
-      label: '网盘类型',
-      rules: 'required',
-    },
-    {
       component: 'InputNumber',
       componentProps: {
         placeholder: '请输入用户ID',
@@ -617,15 +637,6 @@ export function createResourceFormSchema(categoryOptions?: {
     {
       component: 'Textarea',
       componentProps: {
-        placeholder: '请输入描述',
-        rows: 3,
-      },
-      fieldName: 'description',
-      label: '描述',
-    },
-    {
-      component: 'Textarea',
-      componentProps: {
         placeholder: '请输入资源介绍',
         rows: 3,
       },
@@ -633,13 +644,13 @@ export function createResourceFormSchema(categoryOptions?: {
       label: '资源介绍',
     },
     {
-      component: 'Input',
+      component: 'Textarea',
       componentProps: {
-        placeholder: '请输入图片链接',
-        type: 'url',
+        placeholder: '请输入图片链接，每行一个',
+        rows: 3,
       },
       fieldName: 'resource_image',
-      label: '资源图片',
+      label: '资源图片列表',
     },
     {
       component: 'Input',
@@ -695,15 +706,6 @@ export function createResourceFormSchema(categoryOptions?: {
       fieldName: 'sort',
       label: '排序',
       defaultValue: 0,
-    },
-    {
-      component: 'Textarea',
-      componentProps: {
-        placeholder: '请输入备注',
-        rows: 2,
-      },
-      fieldName: 'remark',
-      label: '备注',
     },
   ];
 }

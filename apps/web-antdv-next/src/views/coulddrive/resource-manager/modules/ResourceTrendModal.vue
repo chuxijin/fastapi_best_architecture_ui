@@ -11,6 +11,51 @@ const props = defineProps<{
   resource: any | null;
 }>();
 
+const resourceTitle = computed(() => {
+  if (!props.resource) {
+    return '';
+  }
+  return props.resource.remark || props.resource.title || `资源 #${props.resource.id}`;
+});
+const resourceCoverImage = computed(() => {
+  return normalizeResourceImages(props.resource?.resource_image)[0] || '';
+});
+
+function normalizeResourceImages(value: unknown): string[] {
+  if (Array.isArray(value)) {
+    return value.map((item) => String(item || '').trim()).filter(Boolean);
+  }
+
+  if (value && typeof value === 'object') {
+    const imageData = value as Record<string, unknown>;
+    const nestedValue =
+      imageData.images || imageData.urls || imageData.resource_image;
+    if (nestedValue) {
+      return normalizeResourceImages(nestedValue);
+    }
+
+    return [];
+  }
+
+  const text = String(value || '').trim();
+  if (!text) {
+    return [];
+  }
+
+  if (text.startsWith('[') || text.startsWith('{')) {
+    try {
+      return normalizeResourceImages(JSON.parse(text));
+    } catch {
+      // 不是合法 JSON 时按普通文本处理
+    }
+  }
+
+  return text
+    .split(/[\n,，]/)
+    .map((item) => item.trim())
+    .filter(Boolean);
+}
+
 // 趋势数据
 const trendChartData = ref<Array<{ record_time: string; view_count: number }>>(
   [],
@@ -234,14 +279,14 @@ watch(
     <div v-if="resource" class="rounded-lg bg-gray-50 p-4">
       <div class="flex items-start space-x-4">
         <img
-          v-if="resource.resource_image"
-          :src="resource.resource_image"
-          :alt="resource.main_name"
+          v-if="resourceCoverImage"
+          :src="resourceCoverImage"
+          :alt="resourceTitle"
           class="h-16 w-16 rounded-lg object-cover"
         />
         <div class="flex-1">
           <h3 class="mb-2 text-lg font-semibold text-gray-900">
-            {{ resource.main_name }}
+            {{ resourceTitle }}
           </h3>
           <div class="grid grid-cols-2 gap-4 text-sm text-gray-600">
             <div>

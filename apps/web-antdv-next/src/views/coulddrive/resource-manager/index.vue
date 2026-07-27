@@ -83,7 +83,7 @@ const accountOptions = ref<
 
 // 全量分类数据
 const categoryTree = ref<any[]>([]);
-const resourceTypeOptions = ref<Array<{ label: string; value: string }>>([]);
+const resourceTypeOptions = ref<any[]>([]);
 
 // 查询表单配置（使用空选项的默认schema）
 const queryFormOptions: VbenFormProps = {
@@ -153,26 +153,59 @@ const [Grid, gridApi] = useVbenVxeGrid({
   gridOptions,
 });
 
+function normalizeResourceImages(value: unknown): string[] {
+  if (Array.isArray(value)) {
+    return value.map((item) => String(item || '').trim()).filter(Boolean);
+  }
+
+  if (value && typeof value === 'object') {
+    const imageData = value as Record<string, unknown>;
+    const nestedValue =
+      imageData.images || imageData.urls || imageData.resource_image;
+    if (nestedValue) {
+      return normalizeResourceImages(nestedValue);
+    }
+
+    return [];
+  }
+
+  const text = String(value || '').trim();
+  if (!text) {
+    return [];
+  }
+
+  if (text.startsWith('[') || text.startsWith('{')) {
+    try {
+      return normalizeResourceImages(JSON.parse(text));
+    } catch {
+      // 不是合法 JSON 时按普通文本处理
+    }
+  }
+
+  return text
+    .split(/[\n,，]/)
+    .map((item) => item.trim())
+    .filter(Boolean);
+}
+
 // 表单默认值生成器
 function getDefaultFormData() {
   return {
     category_id: undefined as number | undefined,
-    main_name: '',
+    remark: '',
+    org_name: '',
     resource_type: '',
     url: '',
     url_type: '',
     user_id: null as null | number,
-    description: '',
     resource_intro: '',
-    resource_image: '',
+    resource_image: [] as string[],
     extract_code: '',
     is_temp_file: 0,
     price: undefined as number | undefined,
     suggested_price: undefined as number | undefined,
     sort: 0,
-
-    remark: '',
-    local_file_path: '',
+    storage_key: '',
     file_type: '',
   };
 }
@@ -220,20 +253,20 @@ const [EditModal, editModalApi] = useVbenModal({
       message.error('请选择分类');
       return;
     }
-    if (!formData.value.main_name.trim()) {
-      message.error('请输入主要名字');
+    if (!formData.value.remark.trim()) {
+      message.error('请输入资源标题');
       return;
     }
     if (!formData.value.url.trim()) {
       message.error('请输入资源链接');
       return;
     }
-    if (!formData.value.url_type.trim()) {
-      message.error('请选择网盘类型');
-      return;
-    }
     if (!formData.value.user_id) {
       message.error('请选择关联账号');
+      return;
+    }
+    if (!formData.value.url_type.trim()) {
+      message.error('请选择有效的关联账号');
       return;
     }
 
@@ -242,33 +275,31 @@ const [EditModal, editModalApi] = useVbenModal({
       // 构造API需要的数据格式，过滤掉空字符串和 null 值
       const rawData = {
         category_id: formData.value.category_id,
-        main_name: formData.value.main_name,
+        remark: formData.value.remark,
+        org_name: formData.value.org_name,
         resource_type: formData.value.resource_type,
         url: formData.value.url,
         url_type: formData.value.url_type,
         user_id: formData.value.user_id,
-        description: formData.value.description,
         resource_intro: formData.value.resource_intro,
-        resource_image: formData.value.resource_image,
+        resource_image: normalizeResourceImages(formData.value.resource_image),
         extract_code: formData.value.extract_code,
         is_temp_file: formData.value.is_temp_file,
         price: formData.value.price,
         suggested_price: formData.value.suggested_price,
         sort: formData.value.sort,
-
-        remark: formData.value.remark,
-        local_file_path: formData.value.local_file_path,
+        storage_key: formData.value.storage_key,
         file_type: formData.value.file_type,
       };
 
       // 过滤掉空字符串、null 和 undefined 值
       // 但是某些字段即使是空字符串也要传递
       const allowEmptyStringFields = new Set([
-        'description',
         'extract_code',
+        'org_name',
         'remark',
-        'resource_image',
         'resource_intro',
+        'storage_key',
       ]);
       const apiData: CreateResourceParams | UpdateResourceParams = {};
       Object.entries(rawData).forEach(([key, value]) => {
@@ -317,6 +348,9 @@ const [EditModal, editModalApi] = useVbenModal({
       if (data) {
         editingResourceId.value = data.id;
         Object.assign(formData.value, data);
+        formData.value.resource_image = normalizeResourceImages(
+          data.resource_image,
+        );
       } else {
         editingResourceId.value = null;
         // 重置表单数据
@@ -361,6 +395,9 @@ async function onActionClick({ code, row }: OnActionClickParams) {
     case 'edit': {
       editingResourceId.value = row.id;
       Object.assign(formData.value, row);
+      formData.value.resource_image = normalizeResourceImages(
+        row.resource_image,
+      );
       editModalApi.setData(row);
       editModalApi.open();
       break;
@@ -404,22 +441,20 @@ function onCreate() {
   editingResourceId.value = null;
   Object.assign(formData.value, {
     category_id: undefined,
-    main_name: '',
+    remark: '',
+    org_name: '',
     resource_type: '',
     url: '',
     url_type: '',
     user_id: null,
-    description: '',
     resource_intro: '',
-    resource_image: '',
+    resource_image: [],
     extract_code: '',
     is_temp_file: 0,
     price: undefined,
     suggested_price: undefined,
     sort: 0,
-
-    remark: '',
-    local_file_path: '',
+    storage_key: '',
     file_type: '',
   });
   // 确保新增态没有残留的 id，便于显示智能识别区域
@@ -460,7 +495,9 @@ async function copyShareLinkWithExtractCode(resourceData: any) {
         (option) => option.value === resourceData.url_type,
       )?.label || '网盘';
 
-    let shareText = `我用${driveTypeLabel}分享了「${resourceData.main_name || resourceData.title}」，点击链接即可保存。打开「${driveTypeLabel}APP」在线查看，支持多种文档格式转换。\n链接：${resourceData.url}`;
+    const resourceTitle =
+      resourceData.remark || resourceData.title || `资源 #${resourceData.id}`;
+    let shareText = `我用${driveTypeLabel}分享了「${resourceTitle}」，点击链接即可保存。打开「${driveTypeLabel}APP」在线查看，支持多种文档格式转换。\n链接：${resourceData.url}`;
 
     // 如果有提取码，添加提取码信息
     if (resourceData.extract_code) {
@@ -479,6 +516,9 @@ function editResource(resourceData: any) {
   viewModalApi.close();
   editingResourceId.value = resourceData.id;
   Object.assign(formData.value, resourceData);
+  formData.value.resource_image = normalizeResourceImages(
+    resourceData.resource_image,
+  );
   editModalApi.setData(resourceData);
   editModalApi.open();
 }
@@ -710,7 +750,7 @@ onMounted(async () => {
     <TrendModal
       :title="
         trendResourceData
-          ? `${trendResourceData.main_name} - 浏览量趋势`
+          ? `${trendResourceData.remark || trendResourceData.title || `资源 #${trendResourceData.id}`} - 浏览量趋势`
           : '浏览量趋势'
       "
     >

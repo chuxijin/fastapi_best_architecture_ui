@@ -84,13 +84,35 @@ export function formatFileSize(bytes: number): string {
 export function formatDateTime(timestamp: number | string): string {
   if (!timestamp) return '-';
 
-  let ts =
-    typeof timestamp === 'string' ? Number.parseInt(timestamp) : timestamp;
+  if (typeof timestamp === 'string') {
+    const date = new Date(timestamp);
+    if (!Number.isNaN(date.getTime())) {
+      if (date.getFullYear() <= 1971) {
+        return '-';
+      }
+
+      return date.toLocaleString();
+    }
+  }
+
+  let ts = typeof timestamp === 'string' ? Number(timestamp) : timestamp;
+  if (Number.isNaN(ts)) {
+    return '-';
+  }
 
   // 如果是13位时间戳（毫秒级），转换为10位（秒级）
   if (ts > 9_999_999_999) {
     ts = Math.floor(ts / 1000);
   }
 
-  return ts ? new Date(ts * 1000).toLocaleString() : '-';
+  if (!ts) {
+    return '-';
+  }
+
+  const date = new Date(ts * 1000);
+  if (Number.isNaN(date.getTime()) || date.getFullYear() <= 1971) {
+    return '-';
+  }
+
+  return date.toLocaleString();
 }
