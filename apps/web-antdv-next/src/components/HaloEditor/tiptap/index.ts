@@ -1,9 +1,6 @@
 export { Editor, type MarkType, MarkView, type NodeType } from './core';
 export * from './pm';
-export {
-  Fragment,
-  Node as PMNode,
-} from './pm';
+export { Fragment, Node as PMNode } from './pm';
 export * from './vue-3';
 export {
   type Command,

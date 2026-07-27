@@ -356,23 +356,29 @@ function formatFileSize(bytes: number): string {
 function formatDateTime(dateTime: null | number | string): string {
   if (!dateTime) return '';
   try {
-    const timestamp =
-      typeof dateTime === 'string' ? Number.parseInt(dateTime) : dateTime;
-    if (!Number.isNaN(timestamp) && Number(timestamp) > 0) {
-      const ms =
-        timestamp!.toString().length <= 10
-          ? Number(timestamp) * 1000
-          : Number(timestamp);
-      const date = new Date(ms);
-      if (!Number.isNaN(date.getTime())) {
-        return date.toLocaleString();
+    let date: Date;
+
+    if (typeof dateTime === 'string') {
+      const value = dateTime.trim();
+      if (!value) {
+        return '';
       }
+
+      if (/^\d+$/.test(value)) {
+        const timestamp = Number(value);
+        date = new Date(value.length <= 10 ? timestamp * 1000 : timestamp);
+      } else {
+        date = new Date(value);
+      }
+    } else {
+      date = new Date(dateTime.toString().length <= 10 ? dateTime * 1000 : dateTime);
     }
-    const date = new Date(dateTime);
-    if (!Number.isNaN(date.getTime())) {
-      return date.toLocaleString();
+
+    if (Number.isNaN(date.getTime()) || date.getFullYear() <= 1971) {
+      return '';
     }
-    return '';
+
+    return date.toLocaleString();
   } catch {
     return '';
   }
