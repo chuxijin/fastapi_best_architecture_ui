@@ -44,7 +44,7 @@ const formOptions: VbenFormProps = {
 };
 
 const gridOptions: VxeTableGridOptions<ExperienceAccountResult> = {
-  rowConfig: { keyField: 'id' },
+  rowConfig: { keyField: 'user_id' },
   checkboxConfig: { highlight: true },
   height: 'auto',
   toolbarConfig: {
@@ -97,8 +97,8 @@ const [GrantModal, grantModalApi] = useVbenModal({
     try {
       await grantExperienceApi({
         user_id: activeRow.value.user_id,
-        family_code: activeRow.value.family_code,
         exp_delta: expDelta.value,
+        source_key: `admin:grant:${activeRow.value.user_id}:${Date.now()}`,
         reason: expReason.value,
       });
       message.success('发放成功');
@@ -127,8 +127,8 @@ const [ConsumeModal, consumeModalApi] = useVbenModal({
     try {
       await consumeExperienceApi({
         user_id: activeRow.value.user_id,
-        family_code: activeRow.value.family_code,
         exp_delta: expDelta.value,
+        source_key: `admin:consume:${activeRow.value.user_id}:${Date.now()}`,
         reason: expReason.value,
       });
       message.success('扣减成功');
@@ -150,7 +150,6 @@ async function loadRecords(row: ExperienceAccountResult): Promise<void> {
   try {
     const res = await getExperienceRecordListApi({
       user_id: row.user_id,
-      family_code: row.family_code,
       page: 1,
       size: 50,
     });
@@ -165,12 +164,13 @@ async function loadRecords(row: ExperienceAccountResult): Promise<void> {
 
 const recordColumns = [
   { title: 'ID', dataIndex: 'id', width: 70 },
-  { title: '类型', dataIndex: 'op_type', width: 100 },
+  { title: '类型', dataIndex: 'operation', width: 100 },
   { title: '变化', dataIndex: 'exp_delta', width: 80 },
-  { title: '余额', dataIndex: 'exp_after', width: 90 },
+  { title: '累计经验', dataIndex: 'total_exp_after', width: 100 },
+  { title: '可用经验', dataIndex: 'available_exp_after', width: 100 },
   { title: '来源', dataIndex: 'source', width: 100 },
   { title: '原因', dataIndex: 'reason' },
-  { title: '时间', dataIndex: 'created_time', width: 170 },
+  { title: '时间', dataIndex: 'occurred_at', width: 170 },
 ];
 
 function onActionClick({

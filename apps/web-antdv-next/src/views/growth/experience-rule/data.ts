@@ -6,12 +6,6 @@ import { h } from 'vue';
 
 import { Tag } from 'ant-design-vue';
 
-const FAMILY_OPTIONS = [
-  { label: 'FREE 免费', value: 'FREE' },
-  { label: 'VIP', value: 'VIP' },
-  { label: 'SVIP', value: 'SVIP' },
-];
-
 const DAY_OPTIONS = [
   { label: '周一 / 第1天', value: 1 },
   { label: '周二 / 第2天', value: 2 },
@@ -24,14 +18,10 @@ const DAY_OPTIONS = [
 
 export const querySchema: VbenFormSchema[] = [
   {
-    component: 'Select',
-    componentProps: {
-      allowClear: true,
-      options: FAMILY_OPTIONS,
-      placeholder: '家族',
-    },
-    fieldName: 'family_code',
-    label: '家族',
+    component: 'Input',
+    componentProps: { placeholder: '如 qbank.kaoyan.access' },
+    fieldName: 'required_entitlement_code',
+    label: '所需权益',
   },
   {
     component: 'Input',
@@ -56,14 +46,11 @@ export const querySchema: VbenFormSchema[] = [
 
 export const schema: VbenFormSchema[] = [
   {
-    component: 'Select',
-    componentProps: {
-      options: FAMILY_OPTIONS,
-      allowClear: true,
-      placeholder: '不限制则留空',
-    },
-    fieldName: 'family_code',
-    label: '家族',
+    component: 'Input',
+    componentProps: { placeholder: '留空表示对所有用户生效' },
+    fieldName: 'required_entitlement_code',
+    label: '所需权益',
+    help: '填写权益编码可做差异化奖励（如会员双倍经验），不再使用固定的 VIP/SVIP 档位',
   },
   {
     component: 'Input',
@@ -120,12 +107,6 @@ export const schema: VbenFormSchema[] = [
   },
 ];
 
-const FAMILY_COLOR: Record<string, string> = {
-  FREE: 'default',
-  VIP: 'blue',
-  SVIP: 'gold',
-};
-
 export function useColumns(
   onActionClick: (params: any) => void,
 ): VxeGridPropTypes.Columns {
@@ -133,16 +114,14 @@ export function useColumns(
     { type: 'checkbox', width: 60 },
     { field: 'id', title: 'ID', width: 80 },
     {
-      field: 'family_code',
-      title: '家族',
-      width: 100,
+      field: 'required_entitlement_code',
+      title: '所需权益',
+      minWidth: 180,
       slots: {
         default: ({ row }: any) =>
-          h(
-            Tag,
-            { color: FAMILY_COLOR[row.family_code] || 'default' },
-            () => row.family_code || '通用',
-          ),
+          row.required_entitlement_code
+            ? h(Tag, { color: 'blue' }, () => row.required_entitlement_code)
+            : h('span', { style: 'color: rgba(0,0,0,0.45);' }, '所有用户'),
       },
     },
     { field: 'event_code', title: '事件编码', minWidth: 160 },

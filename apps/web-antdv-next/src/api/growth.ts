@@ -9,7 +9,7 @@ export interface ExperienceRuleResult {
   event_code: string;
   name: string;
   exp_delta: number;
-  family_code: null | string;
+  required_entitlement_code: null | string;
   cycle_day: null | number;
   min_practice_count: number;
   min_practice_duration: number;
@@ -24,7 +24,7 @@ export interface CreateExperienceRuleParams {
   event_code: string;
   name: string;
   exp_delta: number;
-  family_code?: null | string;
+  required_entitlement_code?: null | string;
   cycle_day?: null | number;
   min_practice_count?: number;
   min_practice_duration?: number;
@@ -38,7 +38,7 @@ export type UpdateExperienceRuleParams = Partial<CreateExperienceRuleParams> & {
 };
 
 export interface ExperienceRuleQueryParams extends PaginationParams {
-  family_code?: string;
+  required_entitlement_code?: string;
   status?: number;
   event_code?: string;
 }
@@ -74,33 +74,20 @@ export function deleteExperienceRuleApi(pk: number) {
 // ==================== Experience Account (经验账户) ====================
 
 export interface ExperienceAccountResult {
-  id: number;
   user_id: number;
-  username: null | string;
-  family_code: string;
-  current_grade: string;
+  current_grade: number;
   total_exp: number;
   available_exp: number;
-  updated_time: string;
 }
 
 export interface ExperienceAccountQueryParams extends PaginationParams {
   user_id?: number;
-  username?: string;
-  family_code?: string;
 }
 
-export interface GrantExperienceParams {
+export interface ManualExperienceParams {
   user_id: number;
-  family_code: string;
   exp_delta: number;
-  reason: string;
-}
-
-export interface ConsumeExperienceParams {
-  user_id: number;
-  family_code: string;
-  exp_delta: number;
+  source_key: string;
   reason: string;
 }
 
@@ -113,11 +100,11 @@ export function getExperienceAccountListApi(
   );
 }
 
-export function grantExperienceApi(data: GrantExperienceParams) {
+export function grantExperienceApi(data: ManualExperienceParams) {
   return requestClient.post('/api/v1/growth/accounts/grant', data);
 }
 
-export function consumeExperienceApi(data: ConsumeExperienceParams) {
+export function consumeExperienceApi(data: ManualExperienceParams) {
   return requestClient.post('/api/v1/growth/accounts/consume', data);
 }
 
@@ -126,23 +113,21 @@ export function consumeExperienceApi(data: ConsumeExperienceParams) {
 export interface ExperienceRecordResult {
   id: number;
   user_id: number;
-  family_code: string;
-  op_type: string;
+  operation: string;
   exp_delta: number;
-  exp_after: number;
+  total_exp_after: number;
+  available_exp_after: number;
+  grade_after: number;
   source: string;
   source_key: null | string;
   reason: null | string;
-  created_time: string;
+  occurred_at: string;
 }
 
 export interface ExperienceRecordQueryParams extends PaginationParams {
   user_id?: number;
-  family_code?: string;
-  op_type?: string;
+  operation?: string;
   source?: string;
-  start_time?: string;
-  end_time?: string;
 }
 
 export function getExperienceRecordListApi(
