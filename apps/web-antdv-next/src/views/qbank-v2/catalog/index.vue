@@ -287,20 +287,20 @@ const [MountModal, mountModalApi] = useVbenModal({
       try {
         if (mountFormData.value?.id) {
           await updateCollectionBankApi(
-            selectedCollection.value as GetCollectionCatalogItem.id,
+            (selectedCollection.value as GetCollectionCatalogItem).id,
             mountFormData.value.id,
             data,
           );
           message.success('挂载更新成功');
         } else {
           await createCollectionBankApi(
-            selectedCollection.value as GetCollectionCatalogItem.id,
+            (selectedCollection.value as GetCollectionCatalogItem).id,
             data as CreateCollectionBankMountParam,
           );
           message.success('题库挂载成功');
         }
         await mountModalApi.close();
-        loadBanks(selectedCollection.value as GetCollectionCatalogItem.id);
+        loadBanks((selectedCollection.value as GetCollectionCatalogItem).id);
       } finally {
         mountModalApi.unlock();
       }
@@ -321,11 +321,11 @@ const [MountModal, mountModalApi] = useVbenModal({
 
 function deleteMount(mountId: number) {
   deleteCollectionBankApi(
-    selectedCollection.value as GetCollectionCatalogItem.id,
+    (selectedCollection.value as GetCollectionCatalogItem).id,
     mountId,
   ).then(() => {
     message.success('挂载已移除');
-    loadBanks(selectedCollection.value as GetCollectionCatalogItem.id);
+    loadBanks((selectedCollection.value as GetCollectionCatalogItem).id);
   });
 }
 

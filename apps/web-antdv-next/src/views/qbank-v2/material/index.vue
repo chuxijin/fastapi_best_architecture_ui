@@ -247,7 +247,7 @@ function publishRevision(revisionId: number) {
   if (!materialDetail.value) return;
   publishMaterialRevisionApi(materialDetail.value.id, revisionId).then(() => {
     message.success('版本发布成功');
-    loadMaterialDetail(materialDetail.value as GetMaterialDetail.id);
+    loadMaterialDetail((materialDetail.value as GetMaterialDetail).id);
   });
 }
 
@@ -284,13 +284,13 @@ const [AnchorModal, anchorModalApi] = useVbenModal({
       const data = await anchorFormApi.getValues<CreateMaterialAnchorParam>();
       try {
         await qbankV2CreateMaterialAnchorApi(
-          materialDetail.value as GetMaterialDetail.id,
-          currentRevision.value as GetMaterialRevisionDetail.id,
+          (materialDetail.value as GetMaterialDetail).id,
+          (currentRevision.value as GetMaterialRevisionDetail).id,
           data,
         );
         message.success('锚点创建成功');
         await anchorModalApi.close();
-        loadAnchors(currentRevision.value as GetMaterialRevisionDetail.id);
+        loadAnchors((currentRevision.value as GetMaterialRevisionDetail).id);
       } finally {
         anchorModalApi.unlock();
       }

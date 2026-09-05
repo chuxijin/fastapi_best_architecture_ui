@@ -235,13 +235,13 @@ const [PointModal, pointModalApi] = useVbenModal({
           message.success('知识点更新成功');
         } else {
           await createKnowledgePointApi(
-            selectedSystem.value as GetKnowledgeSystemListItem.id,
+            (selectedSystem.value as GetKnowledgeSystemListItem).id,
             data,
           );
           message.success('知识点创建成功');
         }
         await pointModalApi.close();
-        loadTree(selectedSystem.value as GetKnowledgeSystemListItem.id);
+        loadTree((selectedSystem.value as GetKnowledgeSystemListItem).id);
       } finally {
         pointModalApi.unlock();
       }
@@ -277,7 +277,7 @@ function editPoint(point: GetKnowledgePointTreeNode) {
 function deletePoint(point: GetKnowledgePointTreeNode) {
   deleteKnowledgePointApi(point.id).then(() => {
     message.success('知识点已删除');
-    loadTree(selectedSystem.value as GetKnowledgeSystemListItem.id);
+    loadTree((selectedSystem.value as GetKnowledgeSystemListItem).id);
   });
 }
 </script>
