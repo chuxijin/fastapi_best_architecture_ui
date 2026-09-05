@@ -22,6 +22,7 @@ import { computed, reactive, ref } from 'vue';
 import { Page, VbenButton } from '@vben/common-ui';
 import { MaterialSymbolsAdd } from '@vben/icons';
 
+import { useDebounceFn } from '@vueuse/core';
 import { message, Modal } from 'ant-design-vue';
 
 import { useVbenVxeGrid } from '#/adapter/vxe-table';
@@ -463,14 +464,13 @@ const annotationRoleTargetLabel = computed(() => {
   return anchor ? formatAnchorDisplayText(anchor) : `#${anchorId}`;
 });
 
-async function loadMaterialOptions() {
-  if (materialOptions.value.length > 0) {
-    return;
-  }
-
+async function loadMaterialOptions(keyword?: string) {
   materialOptionsLoading.value = true;
   try {
-    const response = await getMaterialListApi({ is_active: true });
+    const response = await getMaterialListApi({
+      is_active: true,
+      keyword: keyword?.trim() || undefined,
+    });
     const items = Array.isArray(response) ? response : [];
     materialOptions.value = items.map((item) => ({
       label: `${item.title}（ID: ${item.id}）`,
@@ -482,6 +482,10 @@ async function loadMaterialOptions() {
     materialOptionsLoading.value = false;
   }
 }
+
+const debouncedSearchMaterial = useDebounceFn((val: string) => {
+  void loadMaterialOptions(val);
+}, 300);
 
 function createDefaultAnchorForm(): AnchorFormState {
   return {
@@ -2110,12 +2114,13 @@ function showErrorMessage(error: unknown, fallback: string) {
                 allow-clear
                 class="min-w-0 flex-1"
                 :disabled="!!anchorForm.id"
+                :filter-option="false"
                 :loading="materialOptionsLoading"
                 :options="materialOptions"
-                option-filter-prop="label"
-                placeholder="请选择材料"
+                placeholder="输入名称搜索材料"
                 show-search
                 @change="handleAnchorMaterialChange"
+                @search="debouncedSearchMaterial"
               />
               <a-button
                 class="shrink-0"
@@ -2372,12 +2377,13 @@ function showErrorMessage(error: unknown, fallback: string) {
                 allow-clear
                 class="min-w-0 flex-1"
                 :disabled="!!annotationForm.id"
+                :filter-option="false"
                 :loading="materialOptionsLoading"
                 :options="materialOptions"
-                option-filter-prop="label"
-                placeholder="请选择材料"
+                placeholder="输入名称搜索材料"
                 show-search
                 @change="handleAnnotationMaterialChange"
+                @search="debouncedSearchMaterial"
               />
               <a-button
                 class="shrink-0"

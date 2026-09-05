@@ -451,86 +451,74 @@ onMounted(() => {
 
         <a-card class="mb-4" size="small" title="题目与通关条件">
           <div class="grid grid-cols-1 gap-x-4 md:grid-cols-4">
-            <a-form-item label="题目数量"
-              >
-<a-input-number
+            <a-form-item label="题目数量">
+              <a-input-number
                 v-model:value="form.question_count"
                 class="w-full"
                 :min="1"
-            />
-</a-form-item>
-            <a-form-item label="建议用时（秒）"
-              >
-<a-input-number
+              />
+            </a-form-item>
+            <a-form-item label="建议用时（秒）">
+              <a-input-number
                 v-model:value="form.time_limit"
                 class="w-full"
                 :min="0"
-            />
-</a-form-item>
-            <a-form-item label="通关正确率"
-              >
-<a-input-number
+              />
+            </a-form-item>
+            <a-form-item label="通关正确率">
+              <a-input-number
                 v-model:value="form.pass_rate"
                 class="w-full"
                 :max="100"
                 :min="0"
-            />
-</a-form-item>
-            <a-form-item label="状态"
-              >
-<a-select
+              />
+            </a-form-item>
+            <a-form-item label="状态">
+              <a-select
                 v-model:value="form.status"
                 :disabled="!editingId"
                 :options="statusOptions"
-            />
-</a-form-item>
-            <a-form-item label="通关模式"
-              >
-<a-select
+              />
+            </a-form-item>
+            <a-form-item label="通关模式">
+              <a-select
                 v-model:value="form.completion_mode"
                 :options="completionModeOptions"
-            />
-</a-form-item>
-            <a-form-item label="要求达标次数"
-              >
-<a-input-number
+              />
+            </a-form-item>
+            <a-form-item label="要求达标次数">
+              <a-input-number
                 v-model:value="form.completion_required_attempts"
                 class="w-full"
                 :min="1"
-            />
-</a-form-item>
-            <a-form-item label="单次最低正确率"
-              >
-<a-input-number
+              />
+            </a-form-item>
+            <a-form-item label="单次最低正确率">
+              <a-input-number
                 v-model:value="form.completion_min_accuracy_rate"
                 allow-clear
                 class="w-full"
                 :max="100"
                 :min="0"
-            />
-</a-form-item>
-            <a-form-item label="单次最长用时（秒）"
-              >
-<a-input-number
+              />
+            </a-form-item>
+            <a-form-item label="单次最长用时（秒）">
+              <a-input-number
                 v-model:value="form.completion_max_total_time"
                 allow-clear
                 class="w-full"
                 :min="1"
-            />
-</a-form-item>
+              />
+            </a-form-item>
           </div>
         </a-card>
 
         <a-card class="mb-4" size="small" title="题目分组">
-          <template #extra
-            >
-<a-button size="small" type="dashed" @click="addSection"
-              >
-新增分组
-</a-button
-            >
-</template
-          >
+          <template #extra>
+            <a-button size="small" type="dashed" @click="addSection">
+              新增分组
+            </a-button>
+          </template>
           <div class="space-y-4">
             <a-card
               v-for="(section, index) in form.sections"
@@ -538,56 +526,47 @@ onMounted(() => {
               size="small"
             >
               <template #title>第 {{ section.seq_no }} 组</template>
-              <template #extra
-                >
-<a-button
+              <template #extra>
+                <a-button
                   danger
                   size="small"
                   type="link"
                   @click="removeSection(index)"
-                  >
-移除
-</a-button
                 >
-</template
-              >
+                  移除
+                </a-button>
+              </template>
               <div class="grid grid-cols-1 gap-x-4 md:grid-cols-4">
-                <a-form-item label="分组名称"
-                  >
-<a-input v-model:value="section.name"
-                />
-</a-form-item>
-                <a-form-item label="题源类型"
-                  >
-<a-select
+                <a-form-item label="分组名称">
+                  <a-input v-model:value="section.name" />
+                </a-form-item>
+                <a-form-item label="题源类型">
+                  <a-select
                     v-model:value="section.source_type"
                     :options="sourceTypeOptions"
-                />
-</a-form-item>
-                <a-form-item label="题目数量"
-                  >
-<a-input-number
+                  />
+                </a-form-item>
+                <a-form-item label="题目数量">
+                  <a-input-number
                     v-model:value="section.question_count"
                     class="w-full"
                     :min="1"
-                />
-</a-form-item>
-                <a-form-item label="最低答对数"
-                  >
-<a-input-number
+                  />
+                </a-form-item>
+                <a-form-item label="最低答对数">
+                  <a-input-number
                     v-model:value="section.required_correct_count"
                     allow-clear
                     class="w-full"
                     :min="0"
-                />
-</a-form-item>
-                <a-form-item class="md:col-span-4" label="题源配置 JSON"
-                  >
-<a-textarea
+                  />
+                </a-form-item>
+                <a-form-item class="md:col-span-4" label="题源配置 JSON">
+                  <a-textarea
                     v-model:value="section.source_config_text"
                     :rows="4"
-                />
-</a-form-item>
+                  />
+                </a-form-item>
               </div>
             </a-card>
           </div>
@@ -600,11 +579,9 @@ onMounted(() => {
       <template #footer>
         <a-space>
           <a-button @click="drawerOpen = false">取消</a-button>
-          <a-button type="primary" :loading="saving" @click="saveLevel"
-            >
-保存配置
-</a-button
-          >
+          <a-button type="primary" :loading="saving" @click="saveLevel">
+            保存配置
+          </a-button>
         </a-space>
       </template>
     </a-drawer>

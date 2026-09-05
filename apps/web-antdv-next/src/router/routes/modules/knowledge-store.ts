@@ -38,16 +38,6 @@ const routes: RouteRecordRaw[] = [
             },
           },
           {
-            name: 'KnowledgeStoreQuestionInteraction',
-            path: '/knowledge-store/resource/question-interaction',
-            component: () =>
-              import('#/views/knowledge-store/resource/question-interaction/index.vue'),
-            meta: {
-              title: '交互标注',
-              icon: 'mdi:crosshairs-gps',
-            },
-          },
-          {
             name: 'KnowledgeStoreChallenge',
             path: '/knowledge-store/resource/challenge',
             component: () =>
@@ -76,16 +66,6 @@ const routes: RouteRecordRaw[] = [
               title: '题库运营',
               hideInMenu: true,
               activeMenu: '/knowledge-store/resource/question-bank',
-            },
-          },
-          {
-            name: 'KnowledgeStoreQuestionKnowledgeLabel',
-            path: '/knowledge-store/resource/question-knowledge-label',
-            component: () =>
-              import('#/views/knowledge-store/resource/question-knowledge-label/index.vue'),
-            meta: {
-              title: '知识点标注',
-              icon: 'mdi:tag-multiple',
             },
           },
           {
