@@ -32,3 +32,4 @@ export * from './social';
 export * from './study-plan';
 export * from './upload';
 export * from './user-message';
+export * from './media-studio';
