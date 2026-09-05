@@ -1,0 +1,6 @@
+[plugin]
+summary = '网站统计管理端'
+version = '1.0.0'
+description = '多站点流量趋势、来源设备、点击热力图、会话回放和站点配置管理'
+author = 'gongkao'
+tags = ['other']
