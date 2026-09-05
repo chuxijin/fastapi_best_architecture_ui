@@ -59,6 +59,20 @@ export const schema: VbenFormSchema[] = [
     component: 'Select',
     componentProps: {
       allowClear: true,
+      optionFilterProp: 'label',
+      options: [],
+      placeholder: '请选择会员档位',
+      showSearch: true,
+      style: { width: '100%' },
+    },
+    fieldName: 'tier_code',
+    label: '会员档位',
+    rules: 'required',
+  },
+  {
+    component: 'Select',
+    componentProps: {
+      allowClear: true,
       listHeight: 360,
       maxTagCount: 'responsive',
       mode: 'multiple',
@@ -121,6 +135,17 @@ export function useColumns(
     { field: 'code', title: '模板编码', minWidth: 200 },
     { field: 'name', title: '模板名称', minWidth: 160 },
     {
+      field: 'tier_code',
+      title: '会员档位',
+      width: 120,
+      slots: {
+        default: ({ row }: any) =>
+          h(Tag, { color: row.tier_badge_color || 'blue' }, () =>
+            row.tier_name || row.tier_code || '未配置',
+          ),
+      },
+    },
+    {
       field: 'pack_codes',
       title: 'Pack',
       minWidth: 160,
@@ -148,7 +173,10 @@ export function useColumns(
       field: 'duration_days',
       title: '有效期',
       width: 100,
-      formatter: ({ cellValue }) => `${cellValue} 天`,
+      formatter: ({ cellValue }) =>
+        cellValue === null || cellValue === undefined
+          ? '永久'
+          : `${cellValue} 天`,
     },
     {
       field: 'price_cents',

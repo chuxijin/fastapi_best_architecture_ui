@@ -33,13 +33,6 @@ function entries(
   return Object.entries(map).toSorted(([, a], [, b]) => b - a);
 }
 
-const GRADE_LABEL: Record<string, string> = {
-  basic: 'Basic',
-  standard: 'Standard',
-  premium: 'Premium (VIP)',
-  elite: 'Elite (SVIP)',
-};
-
 onMounted(() => {
   void loadStats();
 });
@@ -97,17 +90,17 @@ onMounted(() => {
             </Card>
           </Col>
           <Col :span="8">
-            <Card title="档级分布" size="small">
+            <Card title="套餐分布" size="small">
               <Empty
-                v-if="entries(stats.grade_distribution).length === 0"
+                v-if="entries(stats.template_distribution).length === 0"
                 description="暂无数据"
               />
               <div
-                v-for="[grade, count] in entries(stats.grade_distribution)"
-                :key="grade"
+                v-for="[template, count] in entries(stats.template_distribution)"
+                :key="template"
                 class="flex items-center justify-between py-2"
               >
-                <span class="text-sm">{{ GRADE_LABEL[grade] || grade }}</span>
+                <span class="text-sm">{{ template }}</span>
                 <span class="text-base font-bold">{{ count }}</span>
               </div>
             </Card>

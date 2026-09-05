@@ -75,6 +75,66 @@ export function deleteAccessDomainApi(pk: number) {
   return requestClient.delete(`/api/v1/access/domains/${pk}`);
 }
 
+// ==================== Membership Tier (会员档位) ====================
+
+export interface MembershipTierResult {
+  id: number;
+  code: string;
+  name: string;
+  weight: number;
+  is_paid: boolean;
+  badge_color: null | string;
+  description: null | string;
+  display_order: number;
+  metadata?: Record<string, unknown>;
+  status: string;
+  created_time: string;
+  updated_time?: null | string;
+}
+
+export interface CreateMembershipTierParams {
+  code: string;
+  name: string;
+  weight?: number;
+  is_paid?: boolean;
+  badge_color?: null | string;
+  description?: null | string;
+  display_order?: number;
+  metadata?: Record<string, unknown>;
+  status?: string;
+}
+
+export type UpdateMembershipTierParams = Partial<CreateMembershipTierParams> & {
+  status?: string;
+};
+
+export interface MembershipTierQueryParams extends PaginationParams {
+  keyword?: string;
+  status?: string;
+}
+
+export function getMembershipTierListApi(params?: MembershipTierQueryParams) {
+  return requestClient.get<PaginationResult<MembershipTierResult>>(
+    '/api/v1/access/tiers',
+    { params },
+  );
+}
+
+export function createMembershipTierApi(data: CreateMembershipTierParams) {
+  return requestClient.post('/api/v1/access/tiers', data);
+}
+
+export function updateMembershipTierApi(
+  pk: number,
+  data: UpdateMembershipTierParams,
+) {
+  return requestClient.put(`/api/v1/access/tiers/${pk}`, data);
+}
+
+export function deleteMembershipTierApi(pk: number) {
+  return requestClient.delete(`/api/v1/access/tiers/${pk}`);
+}
+
 // ==================== Entitlement (权益) ====================
 
 export interface AccessEntitlementResult {
@@ -82,8 +142,6 @@ export interface AccessEntitlementResult {
   code: string;
   name: string;
   category: string;
-  metric: string;
-  verb: string;
   domain_id: null | number;
   resource_type: null | string;
   description: null | string;
@@ -147,7 +205,6 @@ export interface AccessPackResult {
   id: number;
   code: string;
   name: string;
-  grade: string;
   description: null | string;
   entitlement_codes?: string[];
   items?: AccessPackItemResult[];
@@ -158,7 +215,6 @@ export interface AccessPackResult {
 export interface CreateAccessPackParams {
   code: string;
   name: string;
-  grade: string;
   description?: null | string;
 }
 
@@ -188,7 +244,6 @@ export interface SetAccessPackItemsParams {
 }
 
 export interface AccessPackQueryParams extends PaginationParams {
-  grade?: string;
   status?: string;
   keyword?: string;
 }
@@ -233,13 +288,35 @@ export interface AccessRuleValidPeriod {
   valid_to?: null | string;
 }
 
+/** 授权模式: 布尔准入 / 计量配额 / 限免 */
+export type AccessGrantMode = 'access' | 'free_pass' | 'metered';
+
+/** 试看模式: 按序位 / 按比例 / 按摘录 / 按日计数 */
+export type AccessTrialMode =
+  | 'daily_count'
+  | 'excerpt'
+  | 'fraction'
+  | 'ordinal';
+
+/** 试看策略: 挂在资源规则上的降级放行策略, 不是权益凭证 */
+export interface AccessTrialPolicy {
+  mode: AccessTrialMode;
+  /** ordinal / daily_count 的次数上限 */
+  limit?: null | number;
+  /** fraction 的放行比例 (0-1] */
+  ratio?: null | number;
+  /** excerpt 的可见字数 */
+  chars?: null | number;
+}
+
 export interface AccessRuleResult {
   id: number;
   resource_type: string;
   resource_id: number;
   entitlement_code: string;
-  grant_mode: string;
+  grant_mode: AccessGrantMode;
   priority: number;
+  trial_policy: AccessTrialPolicy | null;
   valid_period: AccessRuleValidPeriod | null;
   audience_filter: Record<string, unknown>;
   inherit_to_children: boolean;
@@ -252,8 +329,9 @@ export interface CreateAccessRuleParams {
   resource_type: string;
   resource_id: number;
   entitlement_code: string;
-  grant_mode: string;
+  grant_mode: AccessGrantMode;
   priority?: number;
+  trial_policy?: AccessTrialPolicy | null;
   valid_period?: AccessRuleValidPeriod | null;
   audience_filter?: Record<string, unknown>;
   inherit_to_children?: boolean;
@@ -261,8 +339,9 @@ export interface CreateAccessRuleParams {
 }
 
 export interface UpdateAccessRuleParams {
-  grant_mode?: string;
+  grant_mode?: AccessGrantMode;
   priority?: number;
+  trial_policy?: AccessTrialPolicy | null;
   valid_period?: AccessRuleValidPeriod | null;
   audience_filter?: null | Record<string, unknown>;
   inherit_to_children?: boolean;
@@ -274,7 +353,7 @@ export interface AccessRuleQueryParams extends PaginationParams {
   resource_type?: string;
   resource_id?: number;
   entitlement_code?: string;
-  grant_mode?: string;
+  grant_mode?: AccessGrantMode;
   status?: string;
 }
 
@@ -282,8 +361,9 @@ export interface BulkUpsertAccessRulesParams {
   resource_type: string;
   resource_ids: number[];
   entitlement_code: string;
-  grant_mode: string;
+  grant_mode: AccessGrantMode;
   priority?: number;
+  trial_policy?: AccessTrialPolicy | null;
   valid_period?: AccessRuleValidPeriod | null;
 }
 
@@ -323,12 +403,17 @@ export interface SubscriptionTemplateResult {
   id: number;
   code: string;
   name: string;
+  tier_code?: null | string;
+  tier_name?: null | string;
+  tier_weight?: number;
+  is_paid_membership?: boolean;
+  tier_badge_color?: null | string;
   kind?: string;
   pack_code?: string;
   pack_codes?: string[];
   packs?: AccessPackResult[];
   domain_codes?: string[];
-  duration_days: number;
+  duration_days: null | number;
   auto_renewable?: boolean;
   price?: number;
   original_price?: number;
@@ -347,6 +432,7 @@ export interface SubscriptionTemplateResult {
 export interface CreateSubscriptionTemplateParams {
   code: string;
   name: string;
+  tier_code?: null | string;
   kind?: string;
   pack_codes: string[];
   domain_codes?: string[];
@@ -509,8 +595,12 @@ export interface UserSubscriptionResult {
   template_id: number;
   template_code: string;
   template_name: null | string;
+  tier_code?: null | string;
+  tier_name?: null | string;
+  tier_weight?: number;
+  is_paid_membership?: boolean;
   valid_from: string;
-  valid_to: string;
+  valid_to: null | string;
   status: string;
   source: string;
   source_ref: null | string;
@@ -594,8 +684,9 @@ export interface DecideRule {
   resource_type: string;
   resource_id: number;
   entitlement_code: string;
-  grant_mode: string;
+  grant_mode: AccessGrantMode;
   priority: number;
+  trial_policy?: AccessTrialPolicy | null;
   inherit_to_children: boolean;
 }
 
@@ -628,7 +719,7 @@ export interface AccessDashboardStats {
   expiring_in_7_days: number;
   expiring_in_30_days: number;
   pack_distribution: Record<string, number>;
-  grade_distribution: Record<string, number>;
+  template_distribution: Record<string, number>;
   domain_distribution: Record<string, number>;
 }
 

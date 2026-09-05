@@ -1,16 +1,19 @@
 import type { VbenFormSchema } from '@vben/common-ui';
 
 import type { VxeGridPropTypes } from '#/adapter/vxe-table';
+import type { AccessTrialPolicy } from '#/api/access';
 
 import { h } from 'vue';
 
 import { Tag } from 'ant-design-vue';
 
 import { getSysCategoryTreeApi } from '#/api/category';
-import { getBankListApi } from '#/api/knowledge-store';
+import { getCollectionCatalogApi } from '#/api/qbank-v2/catalog';
+import { getBankApi, qbankV2GetBankListApi } from '#/api/qbank-v2/bank';
 
 export const RESOURCE_TYPE_OPTIONS = [
   { label: '题库 (qbank)', value: 'qbank' },
+  { label: '合集 (qbank_collection)', value: 'qbank_collection' },
   { label: '内容 (content)', value: 'content' },
   { label: '视频 (video)', value: 'video' },
   { label: '直播 (live)', value: 'live' },
@@ -19,9 +22,21 @@ export const RESOURCE_TYPE_OPTIONS = [
 
 export const GRANT_MODE_OPTIONS = [
   { label: '订阅准入 (access)', value: 'access' },
-  { label: '试看 (trial)', value: 'trial' },
+  { label: '计量配额 (metered)', value: 'metered' },
   { label: '限免 (free_pass)', value: 'free_pass' },
-  { label: '单点购买 (ownership_required)', value: 'ownership_required' },
+];
+
+/**
+ * 试看策略模式
+ *
+ * 试看不是权益凭证, 无需给用户发放任何 entitlement,
+ * 直接挂在资源规则上作为"未命中权益时的降级放行策略"。
+ */
+export const TRIAL_MODE_OPTIONS = [
+  { label: '按量试刷 (ordinal) — 前 N 个子资源免费', value: 'ordinal' },
+  { label: '按比例试看 (fraction) — 前 X% 免费', value: 'fraction' },
+  { label: '按篇试看 (excerpt) — 只展示前 N 字', value: 'excerpt' },
+  { label: '按日体验 (daily_count) — 每日 N 次', value: 'daily_count' },
 ];
 
 export const RULE_STATUS_OPTIONS = [
@@ -37,7 +52,7 @@ export const RULE_STATUS_OPTIONS = [
 
 type ResourceOption = { label: string; value: number };
 
-const RESOLVABLE_TYPES = new Set(['category', 'qbank']);
+const RESOLVABLE_TYPES = new Set(['category', 'qbank', 'qbank_collection']);
 
 const resourceOptionCache = new Map<string, ResourceOption[]>();
 const resourceOptionLoading = new Map<string, Promise<ResourceOption[]>>();
@@ -52,12 +67,19 @@ export async function loadResourceOptions(
   }
   const promise = (async () => {
     let options: ResourceOption[] = [];
-    if (type === 'qbank') {
-      const banks = await getBankListApi({});
-      options = (banks || []).map((b) => ({
-        label: `${b.name} (#${b.id})`,
-        value: b.id,
-      }));
+    if (type === 'qbank_collection') {
+      const catalog = await getCollectionCatalogApi();
+      const walk = (nodes: any[], depth: number) => {
+        nodes.forEach((n) => {
+          const prefix = '— '.repeat(depth);
+          options.push({
+            label: `${prefix}${n.name} (#${n.id})`,
+            value: n.id,
+          });
+          if (n.children?.length) walk(n.children, depth + 1);
+        });
+      };
+      walk(catalog || [], 0);
     } else if (type === 'category') {
       const tree = await getSysCategoryTreeApi({ status: true });
       const walk = (nodes: any[], depth: number) => {
@@ -80,14 +102,67 @@ export async function loadResourceOptions(
   return promise;
 }
 
+/** 按关键词远程搜索题库(V2 接口), 用于新建规则时按名称定位 */
+export async function searchBankOptions(
+  keyword: string,
+): Promise<ResourceOption[]> {
+  const res = await qbankV2GetBankListApi({
+    keyword: keyword?.trim() || undefined,
+    page: 1,
+    size: 20,
+  });
+  return (res?.items || []).map((b) => ({
+    label: `${b.name} (#${b.id})`,
+    value: b.id,
+  }));
+}
+
+// 题库远程搜索回调由 RuleEditor 注入(内部需访问表单 api 更新 options)
+let bankSearchHandler: ((keyword: string) => Promise<unknown>) | undefined;
+export function registerBankSearchHandler(
+  fn: (keyword: string) => Promise<unknown>,
+) {
+  bankSearchHandler = fn;
+}
+
+export function handleBankSearch(keyword: string) {
+  if (bankSearchHandler) {
+    void bankSearchHandler(keyword);
+  }
+}
+
 export async function enrichResourceNames<
   T extends { resource_id: number; resource_type: string },
 >(rows: T[]): Promise<Array<T & { _resource_name: string }>> {
-  const types = [...new Set(rows.map((r) => r.resource_type))].filter((t) =>
-    RESOLVABLE_TYPES.has(t),
-  );
-  await Promise.all(types.map((t) => loadResourceOptions(t)));
+  // 题库数量多, 按 ID 单查反查名称(并行), 不走全量加载
+  const bankIds = [
+    ...new Set(
+      rows.filter((r) => r.resource_type === 'qbank').map((r) => r.resource_id),
+    ),
+  ];
+  const bankNameById = new Map<number, string>();
+  if (bankIds.length > 0) {
+    const banks = await Promise.all(
+      bankIds.map((id) =>
+        getBankApi(id)
+          .then((b) => ({ id, name: b.current_revision?.name || b.code }))
+          .catch(() => null),
+      ),
+    );
+    banks.forEach((b) => {
+      if (b) bankNameById.set(b.id, b.name);
+    });
+  }
+
+  const otherTypes = [
+    ...new Set(rows.map((r) => r.resource_type)),
+  ].filter((t) => t !== 'qbank' && RESOLVABLE_TYPES.has(t));
+  await Promise.all(otherTypes.map((t) => loadResourceOptions(t)));
+
   return rows.map((row) => {
+    if (row.resource_type === 'qbank') {
+      return { ...row, _resource_name: bankNameById.get(row.resource_id) ?? '' };
+    }
     const options = resourceOptionCache.get(row.resource_type);
     const match = options?.find((o) => o.value === row.resource_id);
     return { ...row, _resource_name: match?.label ?? '' };
@@ -184,12 +259,25 @@ export const createSchema: VbenFormSchema[] = [
         if (!RESOLVABLE_TYPES.has(type)) {
           return { options: [] };
         }
+        if (type === 'qbank') {
+          // 题库远程搜索: options 由 RuleEditor 通过 updateSchema 注入,
+          // 这里不返回 options 字段, 避免 dependencies 覆盖 updateSchema 的结果
+          return {
+            allowClear: true,
+            filterOption: false,
+            showSearch: true,
+            onSearch: (val: string) => handleBankSearch(val),
+            placeholder: '输入题库名称/编码搜索',
+            popupMatchSelectWidth: 480,
+            style: { width: '100%' },
+          };
+        }
         const options = await loadResourceOptions(type);
         return {
           allowClear: true,
           options,
           optionFilterProp: 'label',
-          placeholder: `请选择${type === 'qbank' ? '题库' : '分类'}`,
+          placeholder: `请选择${RESOURCE_TYPE_LABEL[type] ?? '资源'}`,
           popupMatchSelectWidth: 480,
           showSearch: true,
           style: { width: '100%' },
@@ -255,6 +343,70 @@ export const createSchema: VbenFormSchema[] = [
     defaultValue: 0,
     fieldName: 'priority',
     label: '优先级',
+  },
+  {
+    component: 'Select',
+    componentProps: {
+      allowClear: true,
+      options: TRIAL_MODE_OPTIONS,
+      placeholder: '不配置表示该资源不可试看',
+    },
+    fieldName: 'trial_mode',
+    label: '试看策略',
+    help: '试看是未付费用户的体验策略，不需要给用户发放任何权益凭证',
+  },
+  {
+    component: 'InputNumber',
+    componentProps: {
+      min: 1,
+      placeholder: '前 N 个子资源 / 每日 N 次',
+      style: { width: '100%' },
+    },
+    fieldName: 'trial_limit',
+    label: '试看次数',
+    rules: 'required',
+    dependencies: {
+      if(values: any) {
+        return ['daily_count', 'ordinal'].includes(values.trial_mode);
+      },
+      triggerFields: ['trial_mode'],
+    },
+  },
+  {
+    component: 'InputNumber',
+    componentProps: {
+      max: 1,
+      min: 0.01,
+      placeholder: '0.1 表示放行前 10%',
+      step: 0.05,
+      style: { width: '100%' },
+    },
+    fieldName: 'trial_ratio',
+    label: '试看比例',
+    rules: 'required',
+    dependencies: {
+      if(values: any) {
+        return values.trial_mode === 'fraction';
+      },
+      triggerFields: ['trial_mode'],
+    },
+  },
+  {
+    component: 'InputNumber',
+    componentProps: {
+      min: 1,
+      placeholder: '可见字数，如 300',
+      style: { width: '100%' },
+    },
+    fieldName: 'trial_chars',
+    label: '可见字数',
+    rules: 'required',
+    dependencies: {
+      if(values: any) {
+        return values.trial_mode === 'excerpt';
+      },
+      triggerFields: ['trial_mode'],
+    },
   },
   {
     component: 'DatePicker',
@@ -324,6 +476,70 @@ export const editSchema: VbenFormSchema[] = [
     label: '优先级',
   },
   {
+    component: 'Select',
+    componentProps: {
+      allowClear: true,
+      options: TRIAL_MODE_OPTIONS,
+      placeholder: '不配置表示该资源不可试看',
+    },
+    fieldName: 'trial_mode',
+    label: '试看策略',
+    help: '试看是未付费用户的体验策略，不需要给用户发放任何权益凭证',
+  },
+  {
+    component: 'InputNumber',
+    componentProps: {
+      min: 1,
+      placeholder: '前 N 个子资源 / 每日 N 次',
+      style: { width: '100%' },
+    },
+    fieldName: 'trial_limit',
+    label: '试看次数',
+    rules: 'required',
+    dependencies: {
+      if(values: any) {
+        return ['daily_count', 'ordinal'].includes(values.trial_mode);
+      },
+      triggerFields: ['trial_mode'],
+    },
+  },
+  {
+    component: 'InputNumber',
+    componentProps: {
+      max: 1,
+      min: 0.01,
+      placeholder: '0.1 表示放行前 10%',
+      step: 0.05,
+      style: { width: '100%' },
+    },
+    fieldName: 'trial_ratio',
+    label: '试看比例',
+    rules: 'required',
+    dependencies: {
+      if(values: any) {
+        return values.trial_mode === 'fraction';
+      },
+      triggerFields: ['trial_mode'],
+    },
+  },
+  {
+    component: 'InputNumber',
+    componentProps: {
+      min: 1,
+      placeholder: '可见字数，如 300',
+      style: { width: '100%' },
+    },
+    fieldName: 'trial_chars',
+    label: '可见字数',
+    rules: 'required',
+    dependencies: {
+      if(values: any) {
+        return values.trial_mode === 'excerpt';
+      },
+      triggerFields: ['trial_mode'],
+    },
+  },
+  {
     component: 'DatePicker',
     componentProps: {
       placeholder: '生效开始时间,不选表示立即生效',
@@ -360,6 +576,7 @@ export const editSchema: VbenFormSchema[] = [
 
 const RESOURCE_TYPE_LABEL: Record<string, string> = {
   qbank: '题库',
+  qbank_collection: '合集',
   content: '内容',
   video: '视频',
   live: '直播',
@@ -368,6 +585,7 @@ const RESOURCE_TYPE_LABEL: Record<string, string> = {
 
 const RESOURCE_TYPE_COLOR: Record<string, string> = {
   qbank: 'geekblue',
+  qbank_collection: 'cyan',
   content: 'purple',
   video: 'cyan',
   live: 'magenta',
@@ -376,17 +594,48 @@ const RESOURCE_TYPE_COLOR: Record<string, string> = {
 
 const GRANT_MODE_LABEL: Record<string, string> = {
   access: '订阅准入',
-  trial: '试看',
   free_pass: '限免',
-  ownership_required: '单点购买',
+  metered: '计量配额',
 };
 
 const GRANT_MODE_COLOR: Record<string, string> = {
   access: 'blue',
-  trial: 'orange',
   free_pass: 'green',
-  ownership_required: 'purple',
+  metered: 'orange',
 };
+
+const TRIAL_MODE_LABEL: Record<string, string> = {
+  daily_count: '按日体验',
+  excerpt: '按篇试看',
+  fraction: '按比例试看',
+  ordinal: '按量试刷',
+};
+
+/** 把试看策略渲染成一句人话, 供列表列展示 */
+export function formatTrialPolicy(
+  policy: null | Record<string, unknown> | undefined,
+): string {
+  if (!policy || !policy.mode) return '';
+  const mode = String(policy.mode);
+  const label = TRIAL_MODE_LABEL[mode] || mode;
+  switch (mode) {
+    case 'daily_count': {
+      return `${label} · 每日 ${policy.limit} 次`;
+    }
+    case 'excerpt': {
+      return `${label} · 前 ${policy.chars} 字`;
+    }
+    case 'fraction': {
+      return `${label} · 前 ${Number(policy.ratio) * 100}%`;
+    }
+    case 'ordinal': {
+      return `${label} · 前 ${policy.limit} 个`;
+    }
+    default: {
+      return label;
+    }
+  }
+}
 
 const STATUS_LABEL: Record<string, string> = {
   active: '生效中',
@@ -458,6 +707,20 @@ export function useColumns(
       },
     },
     { field: 'priority', title: '优先级', width: 90 },
+    {
+      field: 'trial_policy',
+      title: '试看策略',
+      minWidth: 190,
+      slots: {
+        default: ({ row }: any) => {
+          const text = formatTrialPolicy(row.trial_policy);
+          if (!text) {
+            return h('span', { style: 'color: rgba(0,0,0,0.25);' }, '不可试看');
+          }
+          return h(Tag, { color: 'cyan' }, () => text);
+        },
+      },
+    },
     {
       field: 'valid_period',
       title: '生效区间',
@@ -531,4 +794,37 @@ export function useColumns(
       },
     },
   ];
+}
+
+/** 把表单里的扁平字段收敛成后端要的 trial_policy 对象 */
+export function buildTrialPolicy(values: any): AccessTrialPolicy | null {
+  const mode = values.trial_mode;
+  if (!mode) return null;
+  switch (mode) {
+    case 'daily_count':
+    case 'ordinal': {
+      return { mode, limit: values.trial_limit };
+    }
+    case 'excerpt': {
+      return { chars: values.trial_chars, mode };
+    }
+    case 'fraction': {
+      return { mode, ratio: values.trial_ratio };
+    }
+    default: {
+      return null;
+    }
+  }
+}
+
+/** 把后端返回的 trial_policy 摊平成表单字段 */
+export function spreadTrialPolicy(
+  policy: null | Record<string, any> | undefined,
+): Record<string, unknown> {
+  return {
+    trial_chars: policy?.chars ?? undefined,
+    trial_limit: policy?.limit ?? undefined,
+    trial_mode: policy?.mode ?? undefined,
+    trial_ratio: policy?.ratio ?? undefined,
+  };
 }

@@ -20,6 +20,15 @@ const routes: RouteRecordRaw[] = [
         },
       },
       {
+        name: 'AccessMembershipTier',
+        path: 'membership-tier',
+        component: () => import('#/views/access/membership-tier/index.vue'),
+        meta: {
+          title: '会员档位',
+          icon: 'material-symbols:workspace-premium',
+        },
+      },
+      {
         name: 'AccessSubscriptionTemplate',
         path: 'subscription-template',
         component: () =>

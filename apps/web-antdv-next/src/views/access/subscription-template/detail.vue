@@ -189,11 +189,19 @@ onMounted(() => {
                 <DescriptionsItem label="模板名称">
                   {{ detail.name }}
                 </DescriptionsItem>
+                <DescriptionsItem label="会员档位">
+                  <Tag :color="detail.tier_badge_color || 'blue'">
+                    {{ detail.tier_name || detail.tier_code || '未配置' }}
+                  </Tag>
+                </DescriptionsItem>
+                <DescriptionsItem label="档位权重">
+                  {{ detail.tier_weight || 0 }}
+                </DescriptionsItem>
                 <DescriptionsItem label="Pack">
-                  {{ detail.pack_code }}
+                  {{ detail.pack_codes?.join(', ') || detail.pack_code || '-' }}
                 </DescriptionsItem>
                 <DescriptionsItem label="有效天数">
-                  {{ detail.duration_days }} 天
+                  {{ detail.duration_days == null ? '永久' : `${detail.duration_days} 天` }}
                 </DescriptionsItem>
                 <DescriptionsItem label="现价">
                   ¥{{

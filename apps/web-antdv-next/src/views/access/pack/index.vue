@@ -160,7 +160,7 @@ function getEntitlement(code: string) {
 
 function getDefaultValueInt(code: string) {
   const entitlement = getEntitlement(code);
-  if (entitlement?.category === 'quota' || entitlement?.metric === 'count') {
+  if (entitlement?.category === 'quota') {
     return 1;
   }
   return null;

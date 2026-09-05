@@ -176,13 +176,24 @@ async function handleRun(): Promise<void> {
           <span>
             #{{ rule.id }} {{ rule.resource_type }}:{{ rule.resource_id }}
           </span>
-          <Tag :color="rule.grant_mode === 'free_pass' ? 'green' : 'blue'">
+          <Tag
+            :color="
+              rule.grant_mode === 'free_pass'
+                ? 'green'
+                : rule.grant_mode === 'metered'
+                  ? 'orange'
+                  : 'blue'
+            "
+          >
             {{ rule.grant_mode }}
           </Tag>
         </div>
         <div class="mt-1 text-gray-500">
           {{ rule.entitlement_code }} · priority={{ rule.priority }} ·
           inherit={{ rule.inherit_to_children }}
+        </div>
+        <div v-if="rule.trial_policy" class="mt-1 text-gray-500">
+          trial={{ JSON.stringify(rule.trial_policy) }}
         </div>
       </div>
 

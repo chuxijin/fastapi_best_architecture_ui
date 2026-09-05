@@ -91,14 +91,24 @@ export function useColumns(
     { field: 'user_id', title: '用户 ID', width: 100 },
     { field: 'username', title: '用户名', minWidth: 140 },
     { field: 'nickname', title: '用户昵称', minWidth: 140 },
-    { field: 'template_code', title: '模板编码', minWidth: 220 },
     { field: 'template_name', title: '模板名称', minWidth: 160 },
+    {
+      field: 'tier_code',
+      title: '会员档位',
+      width: 110,
+      slots: {
+        default: ({ row }: any) =>
+          h(Tag, { color: row.is_paid_membership ? 'gold' : 'default' }, () =>
+            row.tier_name || row.tier_code || '-',
+          ),
+      },
+    },
     {
       field: 'valid_from',
       title: '生效时间',
       width: 170,
       formatter: ({ cellValue }) =>
-        cellValue ? new Date(cellValue).toLocaleString() : '-',
+        cellValue ? new Date(cellValue).toLocaleString() : '永久',
     },
     {
       field: 'valid_to',

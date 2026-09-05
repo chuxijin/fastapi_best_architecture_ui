@@ -9,6 +9,7 @@ import type {
   AccessDomainResult,
   AccessPackResult,
   CreateSubscriptionTemplateParams,
+  MembershipTierResult,
   SubscriptionTemplateResult,
 } from '#/api/access';
 
@@ -27,6 +28,7 @@ import {
   deleteSubscriptionTemplateApi,
   getAccessDomainListApi,
   getAccessPackListApi,
+  getMembershipTierListApi,
   getSubscriptionTemplateDetailApi,
   getSubscriptionTemplateListApi,
   setSubscriptionTemplatePacksApi,
@@ -147,17 +149,50 @@ async function loadPackOptions() {
   }));
 }
 
+async function loadTierOptions() {
+  const tiers: MembershipTierResult[] = [];
+  let page = 1;
+
+  while (true) {
+    const data = await getMembershipTierListApi({
+      page,
+      size: optionPageSize,
+      status: 'active',
+    });
+    tiers.push(...data.items);
+    if (tiers.length >= data.total || data.items.length < optionPageSize) break;
+    page += 1;
+  }
+
+  return tiers.map((item) => ({
+    label: `${item.code} · ${item.name}${item.is_paid ? '（付费）' : '（免费）'}`,
+    value: item.code,
+  }));
+}
+
 async function loadFormOptions() {
   if (optionsLoaded) {
     return;
   }
 
-  const [packOptions, domainOptions] = await Promise.all([
+  const [packOptions, domainOptions, tierOptions] = await Promise.all([
     loadPackOptions(),
     loadDomainOptions(),
+    loadTierOptions(),
   ]);
 
   await formApi.updateSchema([
+    {
+      componentProps: {
+        allowClear: true,
+        optionFilterProp: 'label',
+        options: tierOptions,
+        placeholder: '请选择会员档位',
+        showSearch: true,
+        style: { width: '100%' },
+      },
+      fieldName: 'tier_code',
+    },
     {
       componentProps: {
         allowClear: true,

@@ -25,11 +25,15 @@ import {
 } from '#/api/access';
 
 import {
+  buildTrialPolicy,
   createSchema,
   editSchema,
   enrichResourceNames,
   loadResourceOptions,
   querySchema,
+  registerBankSearchHandler,
+  searchBankOptions,
+  spreadTrialPolicy,
   useColumns,
 } from '../data';
 
@@ -166,6 +170,16 @@ const [CreateForm, createFormApi] = useVbenForm({
   schema: effectiveCreateSchema,
 });
 
+registerBankSearchHandler(async (keyword: string) => {
+  const options = await searchBankOptions(keyword);
+  await createFormApi.updateSchema([
+    {
+      componentProps: { options },
+      fieldName: 'resource_id',
+    },
+  ]);
+});
+
 const [CreateModal, createModalApi] = useVbenModal({
   title: '新建资源规则',
   onConfirm: async () => {
@@ -183,6 +197,7 @@ const [CreateModal, createModalApi] = useVbenModal({
         entitlement_code: values.entitlement_code,
         grant_mode: values.grant_mode,
         priority: values.priority ?? 0,
+        trial_policy: buildTrialPolicy(values),
         valid_period:
           values.valid_from || values.valid_to
             ? {
@@ -243,6 +258,7 @@ const [EditModal, editModalApi] = useVbenModal({
       const payload = {
         grant_mode: values.grant_mode,
         priority: values.priority ?? 0,
+        trial_policy: buildTrialPolicy(values),
         valid_period:
           values.valid_from || values.valid_to
             ? {
@@ -275,6 +291,7 @@ function openEditModal(row: AccessRuleResult) {
     entitlement_code: row.entitlement_code,
     grant_mode: row.grant_mode,
     priority: row.priority,
+    ...spreadTrialPolicy(row.trial_policy),
     valid_from: row.valid_period?.valid_from || null,
     valid_to: row.valid_period?.valid_to || null,
     inherit_to_children: row.inherit_to_children,
