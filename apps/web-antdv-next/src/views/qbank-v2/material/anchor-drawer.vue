@@ -393,6 +393,7 @@ function confirmDelete(a: GetMaterialAnchorDetail) {
     content: `锚点：#${a.id}（${a.text || a.anchor_key}）`,
     okButtonProps: { danger: true },
     okText: '删除',
+    zIndex: 1200,
     onOk: () => deleteAnchor(a),
   });
 }
