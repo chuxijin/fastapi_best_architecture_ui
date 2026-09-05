@@ -12,6 +12,7 @@ export * from './grayscale';
 export * from './growth';
 export * from './halo';
 export * from './knowledge-store';
+export * from './learning';
 export * from './links-domain';
 export * from './links-dwz';
 export * from './links-kf';
