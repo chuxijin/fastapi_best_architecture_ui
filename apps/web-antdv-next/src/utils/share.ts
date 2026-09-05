@@ -19,7 +19,7 @@ const PASSCODE_PATTERNS = [
   /密码[：:]\s*([a-zA-Z0-9]+)/,
 ];
 
-function extractUrl(text: string): string | null {
+function extractUrl(text: string): null | string {
   for (const pattern of SHARE_URL_PATTERNS) {
     const match = text.match(pattern);
     if (match) return match[0];
@@ -35,7 +35,7 @@ function extractPasscode(text: string): string | undefined {
   return undefined;
 }
 
-export function parseShareLink(text: string): ParsedShareLink | null {
+export function parseShareLink(text: string): null | ParsedShareLink {
   const trimmed = text.trim();
   if (!trimmed) return null;
 

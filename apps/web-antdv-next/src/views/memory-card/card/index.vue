@@ -326,9 +326,9 @@ function renderTitle(node: any) {
           class="mt-3 flex items-center justify-between"
         >
           <span class="text-sm font-medium">分组（章/节）</span>
-          <a-button type="link" size="small" @click="handleCreateGroup()"
-            >新建分组</a-button
-          >
+          <a-button type="link" size="small" @click="handleCreateGroup()">
+            新建分组
+          </a-button>
         </div>
         <div v-if="selectedDeckId" class="mt-1 flex-1 overflow-y-auto">
           <a-tree

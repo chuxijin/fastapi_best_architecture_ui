@@ -36,7 +36,6 @@ import {
   saveMyDriveShareFilesApi,
   updateMyDriveSpaceApi,
 } from '#/api';
-
 import { parseShareLink } from '#/utils/share';
 
 import FileContextMenu from '../components/FileContextMenu.vue';

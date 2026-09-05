@@ -1,7 +1,10 @@
 <script lang="ts" setup>
 import type { VbenFormProps } from '@vben/common-ui';
 
-import type { OnActionClickParams, VxeTableGridOptions } from '#/adapter/vxe-table';
+import type {
+  OnActionClickParams,
+  VxeTableGridOptions,
+} from '#/adapter/vxe-table';
 import type {
   CreateMembershipTierParams,
   MembershipTierResult,
@@ -98,7 +101,10 @@ const [Modal, modalApi] = useVbenModal({
   },
 });
 
-function onActionClick({ code, row }: OnActionClickParams<MembershipTierResult>) {
+function onActionClick({
+  code,
+  row,
+}: OnActionClickParams<MembershipTierResult>) {
   if (code === 'edit') {
     modalApi.setData(row).open();
     return;
@@ -126,4 +132,3 @@ function handleCreate() {
     <Modal><Form /></Modal>
   </Page>
 </template>
-

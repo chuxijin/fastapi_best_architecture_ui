@@ -274,16 +274,12 @@ async function handleFreeGenerate() {
         >
           <template #extra>
             <ASpace>
-              <AButton size="small" type="link" @click="fillSample('xhs')"
-                >
-填入小红书示例
-</AButton
-              >
-              <AButton size="small" type="link" @click="fillSample('douyin')"
-                >
-填入抖音示例
-</AButton
-              >
+              <AButton size="small" type="link" @click="fillSample('xhs')">
+                填入小红书示例
+              </AButton>
+              <AButton size="small" type="link" @click="fillSample('douyin')">
+                填入抖音示例
+              </AButton>
             </ASpace>
           </template>
 
@@ -296,11 +292,9 @@ async function handleFreeGenerate() {
               placeholder="请粘贴小红书或抖音笔记链接，支持直接粘贴APP中复制的整段文案..."
             />
             <div class="mt-3 flex justify-end gap-2">
-              <AButton :disabled="!parseInput" @click="parseInput = ''"
-                >
-清空
-</AButton
-              >
+              <AButton :disabled="!parseInput" @click="parseInput = ''">
+                清空
+              </AButton>
               <AButton
                 :loading="parseLoading"
                 type="primary"
@@ -337,10 +331,12 @@ async function handleFreeGenerate() {
                         {{ mediaData.platform === 'xhs' ? '小红书' : '抖音' }}
                       </ATag>
                       <ATag color="blue">
-{{
-                        mediaData.media_type === 'video' ? '短视频' : '图文笔记'
-                      }}
-</ATag>
+                        {{
+                          mediaData.media_type === 'video'
+                            ? '短视频'
+                            : '图文笔记'
+                        }}
+                      </ATag>
                     </div>
                   </div>
                 </div>
@@ -392,10 +388,9 @@ async function handleFreeGenerate() {
                     v-for="tag in mediaData.tags"
                     :key="tag"
                     color="processing"
-                    >
-#{{ tag }}
-</ATag
                   >
+                    #{{ tag }}
+                  </ATag>
                 </div>
               </ACard>
 
@@ -419,7 +414,8 @@ async function handleFreeGenerate() {
                     <div
                       v-for="(imgUrl, idx) in mediaData.images"
                       :key="idx"
-                      class="group relative overflow-hidden rounded-md border transition-all" :class="[
+                      class="group relative overflow-hidden rounded-md border transition-all"
+                      :class="[
                         selectedRefImage === imgUrl
                           ? 'border-2 border-emerald-500 ring-2 ring-emerald-200 dark:ring-emerald-900'
                           : 'border-gray-200 dark:border-gray-700',
@@ -621,7 +617,7 @@ async function handleFreeGenerate() {
                       type="link"
                       @click="
                         recreateForm.custom_prompt =
-                          (mediaData.title ? `${mediaData.title } ` : '') +
+                          (mediaData.title ? `${mediaData.title} ` : '') +
                           mediaData.content
                       "
                     >
@@ -714,7 +710,7 @@ async function handleFreeGenerate() {
                       type="link"
                       @click="
                         freeForm.prompt =
-                          (mediaData.title ? `${mediaData.title } ` : '') +
+                          (mediaData.title ? `${mediaData.title} ` : '') +
                           mediaData.content
                       "
                     >

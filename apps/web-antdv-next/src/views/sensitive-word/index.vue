@@ -1,8 +1,14 @@
 <script lang="ts" setup>
 import type { VbenFormProps } from '@vben/common-ui';
 
-import type { OnActionClickParams, VxeTableGridOptions } from '#/adapter/vxe-table';
-import type { CreateSensitiveWordParams, SensitiveWordResult } from '#/api/sensitive-word';
+import type {
+  OnActionClickParams,
+  VxeTableGridOptions,
+} from '#/adapter/vxe-table';
+import type {
+  CreateSensitiveWordParams,
+  SensitiveWordResult,
+} from '#/api/sensitive-word';
 
 import { computed, ref } from 'vue';
 
@@ -101,7 +107,10 @@ const [Modal, modalApi] = useVbenModal({
   },
 });
 
-function onActionClick({ code, row }: OnActionClickParams<SensitiveWordResult>) {
+function onActionClick({
+  code,
+  row,
+}: OnActionClickParams<SensitiveWordResult>) {
   switch (code) {
     case 'delete': {
       deleteSensitiveWordApi(row.id).then(() => {

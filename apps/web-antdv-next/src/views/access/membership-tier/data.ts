@@ -132,14 +132,23 @@ export function useColumns(
           ),
       },
     },
-    { field: 'description', title: '描述', minWidth: 220, showOverflow: 'tooltip' },
+    {
+      field: 'description',
+      title: '描述',
+      minWidth: 220,
+      showOverflow: 'tooltip',
+    },
     {
       title: '操作',
       width: 140,
       fixed: 'right',
       slots: {
         default: ({ row }: any) => [
-          h('a', { onClick: () => onActionClick({ code: 'edit', row }) }, '编辑'),
+          h(
+            'a',
+            { onClick: () => onActionClick({ code: 'edit', row }) },
+            '编辑',
+          ),
           h(
             'a',
             {
@@ -153,4 +162,3 @@ export function useColumns(
     },
   ];
 }
-

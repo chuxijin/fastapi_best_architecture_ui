@@ -8,8 +8,8 @@ import { h } from 'vue';
 import { Tag } from 'ant-design-vue';
 
 import { getSysCategoryTreeApi } from '#/api/category';
-import { getCollectionCatalogApi } from '#/api/qbank-v2/catalog';
 import { getBankApi, qbankV2GetBankListApi } from '#/api/qbank-v2/bank';
+import { getCollectionCatalogApi } from '#/api/qbank-v2/catalog';
 
 export const RESOURCE_TYPE_OPTIONS = [
   { label: '题库 (qbank)', value: 'qbank' },
@@ -66,7 +66,7 @@ export async function loadResourceOptions(
     return resourceOptionLoading.get(type) ?? [];
   }
   const promise = (async () => {
-    let options: ResourceOption[] = [];
+    const options: ResourceOption[] = [];
     if (type === 'qbank_collection') {
       const catalog = await getCollectionCatalogApi();
       const walk = (nodes: any[], depth: number) => {
@@ -154,14 +154,17 @@ export async function enrichResourceNames<
     });
   }
 
-  const otherTypes = [
-    ...new Set(rows.map((r) => r.resource_type)),
-  ].filter((t) => t !== 'qbank' && RESOLVABLE_TYPES.has(t));
+  const otherTypes = [...new Set(rows.map((r) => r.resource_type))].filter(
+    (t) => t !== 'qbank' && RESOLVABLE_TYPES.has(t),
+  );
   await Promise.all(otherTypes.map((t) => loadResourceOptions(t)));
 
   return rows.map((row) => {
     if (row.resource_type === 'qbank') {
-      return { ...row, _resource_name: bankNameById.get(row.resource_id) ?? '' };
+      return {
+        ...row,
+        _resource_name: bankNameById.get(row.resource_id) ?? '',
+      };
     }
     const options = resourceOptionCache.get(row.resource_type);
     const match = options?.find((o) => o.value === row.resource_id);

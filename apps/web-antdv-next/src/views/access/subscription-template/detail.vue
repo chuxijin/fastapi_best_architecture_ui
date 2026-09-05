@@ -201,7 +201,11 @@ onMounted(() => {
                   {{ detail.pack_codes?.join(', ') || detail.pack_code || '-' }}
                 </DescriptionsItem>
                 <DescriptionsItem label="有效天数">
-                  {{ detail.duration_days == null ? '永久' : `${detail.duration_days} 天` }}
+                  {{
+                    detail.duration_days == null
+                      ? '永久'
+                      : `${detail.duration_days} 天`
+                  }}
                 </DescriptionsItem>
                 <DescriptionsItem label="现价">
                   ¥{{

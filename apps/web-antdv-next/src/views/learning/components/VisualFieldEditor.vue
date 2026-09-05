@@ -89,11 +89,9 @@ function updateTags(row: VisualFieldRow, value: unknown) {
         placeholder="字段值"
         @update:value="row.value = $event"
       />
-      <a-button danger type="link" @click="rows.splice(index, 1)"
-        >
-删除
-</a-button
-      >
+      <a-button danger type="link" @click="rows.splice(index, 1)">
+        删除
+      </a-button>
     </div>
     <a-button block type="dashed" @click="addRow">添加自定义字段</a-button>
   </div>

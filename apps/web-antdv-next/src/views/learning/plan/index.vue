@@ -1553,15 +1553,11 @@ onMounted(async () => {
               >
                 <template #bodyCell="{ column, record }">
                   <template v-if="column.dataIndex === 'question_type'">
-{{
-                    questionTypeLabel(record.question_type)
-                  }}
-</template>
+                    {{ questionTypeLabel(record.question_type) }}
+                  </template>
                   <template v-else-if="column.dataIndex === 'difficulty'">
-{{
-                    record.difficulty || '未标注'
-                  }}
-</template>
+                    {{ record.difficulty || '未标注' }}
+                  </template>
                 </template>
               </a-table>
             </template>
@@ -1579,11 +1575,9 @@ onMounted(async () => {
                 ]"
               />
             </a-form-item>
-            <a-form-item label="需要阅读确认"
-              >
-<a-switch v-model:checked="resourceConfig.require_acknowledge"
-            />
-</a-form-item>
+            <a-form-item label="需要阅读确认">
+              <a-switch v-model:checked="resourceConfig.require_acknowledge" />
+            </a-form-item>
           </div>
           <div
             v-else-if="
@@ -1591,73 +1585,65 @@ onMounted(async () => {
             "
             class="grid grid-cols-2 gap-4"
           >
-            <a-form-item label="起始位置（秒）"
-              >
-<a-input-number
+            <a-form-item label="起始位置（秒）">
+              <a-input-number
                 v-model:value="resourceConfig.start_position_seconds"
                 :min="0"
                 style="width: 100%"
-            />
-</a-form-item>
-            <a-form-item label="必须完整学完"
-              >
-<a-switch v-model:checked="resourceConfig.must_finish"
-            />
-</a-form-item>
+              />
+            </a-form-item>
+            <a-form-item label="必须完整学完">
+              <a-switch v-model:checked="resourceConfig.must_finish" />
+            </a-form-item>
           </div>
           <div
             v-else-if="taskForm.resource_type === 'ability'"
             class="grid grid-cols-3 gap-4"
           >
-            <a-form-item label="能力等级"
-              >
-<a-input
+            <a-form-item label="能力等级">
+              <a-input
                 v-model:value="resourceConfig.ability_level"
                 placeholder="基础 / 进阶 / 冲刺"
-            />
-</a-form-item>
-            <a-form-item label="训练模式"
-              >
-<a-select
+              />
+            </a-form-item>
+            <a-form-item label="训练模式">
+              <a-select
                 v-model:value="resourceConfig.training_mode"
                 :options="[
                   { label: '标准', value: 'standard' },
                   { label: '限时', value: 'timed' },
                   { label: '强化', value: 'intensive' },
                 ]"
-            />
-</a-form-item>
-            <a-form-item label="重复次数"
-              >
-<a-input-number
+              />
+            </a-form-item>
+            <a-form-item label="重复次数">
+              <a-input-number
                 v-model:value="resourceConfig.repeat_count"
                 :min="1"
                 style="width: 100%"
-            />
-</a-form-item>
+              />
+            </a-form-item>
           </div>
           <div
             v-else-if="taskForm.resource_type === 'external'"
             class="grid grid-cols-2 gap-4"
           >
-            <a-form-item label="资源提供方"
-              >
-<a-input
+            <a-form-item label="资源提供方">
+              <a-input
                 v-model:value="resourceConfig.provider"
                 placeholder="机构或平台名称"
-            />
-</a-form-item>
-            <a-form-item label="打开方式"
-              >
-<a-select
+              />
+            </a-form-item>
+            <a-form-item label="打开方式">
+              <a-select
                 v-model:value="resourceConfig.open_method"
                 :options="[
                   { label: '新页面', value: 'new_page' },
                   { label: '应用内', value: 'in_app' },
                   { label: '复制链接', value: 'copy' },
                 ]"
-            />
-</a-form-item>
+              />
+            </a-form-item>
           </div>
           <a-divider title-placement="start">其他配置</a-divider>
           <VisualFieldEditor v-model="resourceConfig.customFields" />
@@ -1728,11 +1714,9 @@ onMounted(async () => {
                   :min="0.01"
                   :step="0.05"
                 />
-                <a-button type="primary" @click="addKnowledgeBindings"
-                  >
-应用知识点
-</a-button
-                >
+                <a-button type="primary" @click="addKnowledgeBindings">
+                  应用知识点
+                </a-button>
               </a-space>
             </a-form-item>
           </div>
@@ -1756,41 +1740,26 @@ onMounted(async () => {
           >
             <template #bodyCell="{ column, record, index }">
               <template v-if="column.dataIndex === 'knowledge_system_name'">
-{{
-                record.knowledge_system_name || record.knowledge_system_id
-              }}
-</template>
-              <template
-                v-else-if="column.dataIndex === 'knowledge_point_name'"
-                >
-{{
-                  record.knowledge_point_name || record.knowledge_point_id
-                }}
-</template
-              >
+                {{ record.knowledge_system_name || record.knowledge_system_id }}
+              </template>
+              <template v-else-if="column.dataIndex === 'knowledge_point_name'">
+                {{ record.knowledge_point_name || record.knowledge_point_id }}
+              </template>
               <template v-else-if="column.dataIndex === 'role'">
-{{
-                record.role === 'primary' ? '主要' : '次要'
-              }}
-</template>
-              <template
-                v-else-if="column.dataIndex === 'include_descendants'"
-                >
-{{ record.include_descendants ? '是' : '否' }}
-</template
-              >
-              <template v-else-if="column.dataIndex === 'operation'"
-                >
-<a-button
+                {{ record.role === 'primary' ? '主要' : '次要' }}
+              </template>
+              <template v-else-if="column.dataIndex === 'include_descendants'">
+                {{ record.include_descendants ? '是' : '否' }}
+              </template>
+              <template v-else-if="column.dataIndex === 'operation'">
+                <a-button
                   danger
                   type="link"
                   @click="taskForm.knowledge_points.splice(index, 1)"
-                  >
-移除
-</a-button
                 >
-</template
-              >
+                  移除
+                </a-button>
+              </template>
             </template>
           </a-table>
         </a-card>
@@ -1851,17 +1820,18 @@ onMounted(async () => {
                 danger
                 type="link"
                 @click="taskForm.goals.splice(index, 1)"
-                >
-删除
-</a-button
               >
+                删除
+              </a-button>
             </div>
           </div>
-          <a-button block type="dashed" @click="taskForm.goals.push(makeGoal())"
-            >
-添加指标
-</a-button
+          <a-button
+            block
+            type="dashed"
+            @click="taskForm.goals.push(makeGoal())"
           >
+            添加指标
+          </a-button>
         </a-card>
 
         <a-form-item label="任务说明">

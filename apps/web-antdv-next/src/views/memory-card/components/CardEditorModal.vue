@@ -324,9 +324,9 @@ watch(
           <span
             >当前选中：<strong>{{ selection.text }}</strong></span
           >
-          <a-button type="primary" size="small" @click="addSelectedPoint"
-            >添加记忆点</a-button
-          >
+          <a-button type="primary" size="small" @click="addSelectedPoint">
+            添加记忆点
+          </a-button>
         </div>
 
         <a-form-item :label="`记忆点（${form.points.length} 个）`">
@@ -353,8 +353,9 @@ watch(
                   danger
                   size="small"
                   @click="removePoint(index)"
-                  >删除</a-button
                 >
+                  删除
+                </a-button>
               </div>
               <div class="grid grid-cols-2 gap-3">
                 <a-form-item label="错误内容" required>

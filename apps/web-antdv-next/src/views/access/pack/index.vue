@@ -355,9 +355,9 @@ onMounted(() => {
                 { label: '终身', value: 'lifetime' },
               ]"
             />
-            <a-button danger @click="handleRemovePackItem(index)"
-              >删除</a-button
-            >
+            <a-button danger @click="handleRemovePackItem(index)">
+              删除
+            </a-button>
           </div>
         </div>
         <a-empty v-else description="暂无权益" />

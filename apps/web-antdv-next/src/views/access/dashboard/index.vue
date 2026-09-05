@@ -96,7 +96,9 @@ onMounted(() => {
                 description="暂无数据"
               />
               <div
-                v-for="[template, count] in entries(stats.template_distribution)"
+                v-for="[template, count] in entries(
+                  stats.template_distribution,
+                )"
                 :key="template"
                 class="flex items-center justify-between py-2"
               >

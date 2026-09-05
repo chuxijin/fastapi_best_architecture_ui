@@ -592,11 +592,9 @@ async function submitInstantiate() {
       </template>
       <template #operation_default="{ row }">
         <a-button type="link" @click="openEdit(row)">编辑</a-button>
-        <a-button v-if="!row.plan_id" type="link" @click="openInstantiate(row)"
-          >
-生成计划
-</a-button
-        >
+        <a-button v-if="!row.plan_id" type="link" @click="openInstantiate(row)">
+          生成计划
+        </a-button>
         <a-popconfirm
           v-if="row.status !== 'delivered' && row.status !== 'canceled'"
           title="发布后会激活关联的草稿计划，确定继续？"

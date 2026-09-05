@@ -51,7 +51,7 @@ export interface SensitiveHitLogResult {
 }
 
 export async function getSensitiveWordActionOptionsApi() {
-  return requestClient.get<Array<{ label: string, value: string }>>(
+  return requestClient.get<Array<{ label: string; value: string }>>(
     '/sensitive-words/admin/options',
   );
 }
@@ -61,7 +61,10 @@ export async function getSensitiveWordListApi(params?: Record<string, any>) {
 }
 
 export async function createSensitiveWordApi(data: CreateSensitiveWordParams) {
-  return requestClient.post<SensitiveWordResult>('/sensitive-words/admin/words', data);
+  return requestClient.post<SensitiveWordResult>(
+    '/sensitive-words/admin/words',
+    data,
+  );
 }
 
 export async function updateSensitiveWordApi(

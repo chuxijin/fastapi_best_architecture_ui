@@ -140,8 +140,10 @@ export function useColumns(
       width: 120,
       slots: {
         default: ({ row }: any) =>
-          h(Tag, { color: row.tier_badge_color || 'blue' }, () =>
-            row.tier_name || row.tier_code || '未配置',
+          h(
+            Tag,
+            { color: row.tier_badge_color || 'blue' },
+            () => row.tier_name || row.tier_code || '未配置',
           ),
       },
     },

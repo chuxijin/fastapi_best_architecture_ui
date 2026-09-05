@@ -107,7 +107,12 @@ export function useColumns(
   return [
     { title: 'ID', field: 'id', width: 60 },
     { title: '敏感词', field: 'word', minWidth: 140 },
-    { title: '变体数', field: 'variants', width: 80, slots: { default: ({ row }) => String((row.variants ?? []).length) } },
+    {
+      title: '变体数',
+      field: 'variants',
+      width: 80,
+      slots: { default: ({ row }) => String((row.variants ?? []).length) },
+    },
     {
       title: '处理方式',
       field: 'action',
@@ -169,7 +174,6 @@ export function useColumns(
     },
   ];
 }
-
 
 /** ============ 命中日志 ============ */
 

@@ -23,6 +23,7 @@ import {
   refreshMyDriveResourceShareApi,
   updateMyDriveResourceApi,
 } from '#/api';
+import { parseShareLink } from '#/utils/share';
 
 import {
   createResourceColumns,
@@ -31,8 +32,6 @@ import {
   resourceQuerySchema,
 } from './data';
 import ResourceImageUploaders from './modules/ResourceImageUploaders.vue';
-
-import { parseShareLink } from '#/utils/share';
 
 const drawerOpen = ref(false);
 const saving = ref(false);

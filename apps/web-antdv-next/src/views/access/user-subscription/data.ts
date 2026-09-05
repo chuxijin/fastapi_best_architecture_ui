@@ -98,8 +98,10 @@ export function useColumns(
       width: 110,
       slots: {
         default: ({ row }: any) =>
-          h(Tag, { color: row.is_paid_membership ? 'gold' : 'default' }, () =>
-            row.tier_name || row.tier_code || '-',
+          h(
+            Tag,
+            { color: row.is_paid_membership ? 'gold' : 'default' },
+            () => row.tier_name || row.tier_code || '-',
           ),
       },
     },

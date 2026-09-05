@@ -1341,11 +1341,9 @@ onMounted(async () => {
               第 {{ record.start_day }}～{{ record.end_day }} 天
             </template>
             <template v-else-if="column.dataIndex === 'operation'">
-              <a-button type="link" @click="openEditStage(record)"
-                >
-编辑
-</a-button
-              >
+              <a-button type="link" @click="openEditStage(record)">
+                编辑
+              </a-button>
               <a-popconfirm
                 title="删除后该阶段的任务会保留并改为未分阶段，确定继续？"
                 @confirm="removeStage(record)"
@@ -1362,11 +1360,9 @@ onMounted(async () => {
           <span class="font-medium">每日任务与完成指标</span>
         </template>
         <template #toolbar-tools>
-          <a-button type="primary" @click="openCreateTask"
-            >
-新增模板任务
-</a-button
-          >
+          <a-button type="primary" @click="openCreateTask">
+            新增模板任务
+          </a-button>
         </template>
         <template #task_title_default="{ row }">
           <div class="font-medium">{{ row.title }}</div>
@@ -1384,10 +1380,8 @@ onMounted(async () => {
           </div>
         </template>
         <template #goals_default="{ row }">
-{{
-          formatGoals(row.goals)
-        }}
-</template>
+          {{ formatGoals(row.goals) }}
+        </template>
         <template #knowledge_default="{ row }">
           <a-space wrap>
             <a-tag
@@ -1707,11 +1701,9 @@ onMounted(async () => {
             v-else-if="taskForm.resource_type === 'ability'"
             class="grid grid-cols-3 gap-4"
           >
-            <a-form-item label="能力等级"
-              >
-<a-input v-model:value="resourceConfig.ability_level"
-            />
-</a-form-item>
+            <a-form-item label="能力等级">
+              <a-input v-model:value="resourceConfig.ability_level" />
+            </a-form-item>
             <a-form-item label="训练模式">
               <a-select
                 v-model:value="resourceConfig.training_mode"
@@ -1734,11 +1726,9 @@ onMounted(async () => {
             v-else-if="taskForm.resource_type === 'external'"
             class="grid grid-cols-2 gap-4"
           >
-            <a-form-item label="资源提供方"
-              >
-<a-input v-model:value="resourceConfig.provider"
-            />
-</a-form-item>
+            <a-form-item label="资源提供方">
+              <a-input v-model:value="resourceConfig.provider" />
+            </a-form-item>
             <a-form-item label="打开方式">
               <a-select
                 v-model:value="resourceConfig.open_method"
@@ -1814,11 +1804,9 @@ onMounted(async () => {
                   :min="0.01"
                   :step="0.05"
                 />
-                <a-button type="primary" @click="addKnowledgeBindings"
-                  >
-应用知识点
-</a-button
-                >
+                <a-button type="primary" @click="addKnowledgeBindings">
+                  应用知识点
+                </a-button>
               </a-space>
             </a-form-item>
           </div>
@@ -1841,10 +1829,9 @@ onMounted(async () => {
                   danger
                   type="link"
                   @click="taskForm.knowledge_points.splice(index, 1)"
-                  >
-移除
-</a-button
                 >
+                  移除
+                </a-button>
               </template>
             </template>
           </a-table>
@@ -1906,17 +1893,18 @@ onMounted(async () => {
                 danger
                 type="link"
                 @click="taskForm.goals.splice(index, 1)"
-                >
-删除
-</a-button
               >
+                删除
+              </a-button>
             </div>
           </div>
-          <a-button block type="dashed" @click="taskForm.goals.push(makeGoal())"
-            >
-添加指标
-</a-button
+          <a-button
+            block
+            type="dashed"
+            @click="taskForm.goals.push(makeGoal())"
           >
+            添加指标
+          </a-button>
         </a-card>
 
         <a-form-item label="任务说明">

@@ -98,7 +98,7 @@ function openEdit(site: AnalyticsSite) {
 }
 
 async function saveSite() {
-  if (!form.name.trim() || !form.domains.length) {
+  if (!form.name.trim() || form.domains.length === 0) {
     message.warning('请填写站点名称和至少一个允许域名');
     return;
   }
@@ -155,16 +155,16 @@ onMounted(loadSites);
           <p>一个统计中心，管理多个网站的数据边界与采集策略</p>
         </div>
         <div class="actions">
-          <a-button @click="runMaintenance"
-            ><DataBase class="size-4" />执行维护</a-button
-          ><a-button type="primary" @click="openCreate"
-            ><Add class="size-4" />新增站点</a-button
-          >
+          <a-button @click="runMaintenance">
+            <DataBase class="size-4" />执行维护 </a-button
+          ><a-button type="primary" @click="openCreate">
+            <Add class="size-4" />新增站点
+          </a-button>
         </div>
       </header>
 
       <a-spin :spinning="loading">
-        <div v-if="sites.length" class="site-grid">
+        <div v-if="sites.length > 0" class="site-grid">
           <article v-for="site in sites" :key="site.id" class="site-card">
             <div class="site-card-head">
               <div class="site-identity">
@@ -174,9 +174,9 @@ onMounted(loadSites);
                   <code>{{ site.site_key }}</code>
                 </div>
               </div>
-              <a-tag :color="site.is_active ? 'green' : 'default'">{{
-                site.is_active ? '运行中' : '已停用'
-              }}</a-tag>
+              <a-tag :color="site.is_active ? 'green' : 'default'">
+                {{ site.is_active ? '运行中' : '已停用' }}
+              </a-tag>
             </div>
             <div class="domain-list">
               <span v-for="domain in site.domains" :key="domain">{{
@@ -204,33 +204,34 @@ onMounted(loadSites);
             </div>
             <div class="feature-flags">
               <a-tag>{{ site.is_public ? '公开计数' : '私有计数' }}</a-tag
-              ><a-tag>{{
-                site.heatmap_enabled ? '热力图开启' : '热力图关闭'
-              }}</a-tag
-              ><a-tag>{{
-                site.replay_enabled ? '回放开启' : '回放关闭'
-              }}</a-tag>
+              ><a-tag>
+                {{ site.heatmap_enabled ? '热力图开启' : '热力图关闭' }} </a-tag
+              ><a-tag>
+                {{ site.replay_enabled ? '回放开启' : '回放关闭' }}
+              </a-tag>
             </div>
             <div class="site-actions">
               <a-button
                 size="small"
                 @click="copyText(site.site_key, 'Site Key')"
-                ><Copy class="size-4" />Key</a-button
+              >
+                <Copy class="size-4" />Key </a-button
               ><a-button
                 size="small"
                 @click="copyText(snippet(site), '接入代码')"
-                ><Code class="size-4" />接入代码</a-button
-              ><a-button size="small" @click="openEdit(site)"
-                ><Edit class="size-4" />配置</a-button
               >
+                <Code class="size-4" />接入代码 </a-button
+              ><a-button size="small" @click="openEdit(site)">
+                <Edit class="size-4" />配置
+              </a-button>
             </div>
           </article>
         </div>
-        <a-empty v-else description="还没有统计站点"
-          ><a-button type="primary" @click="openCreate"
-            >创建第一个站点</a-button
-          ></a-empty
-        >
+        <a-empty v-else description="还没有统计站点">
+          <a-button type="primary" @click="openCreate">
+            创建第一个站点
+          </a-button>
+        </a-empty>
       </a-spin>
     </div>
 
@@ -243,52 +244,57 @@ onMounted(loadSites);
     >
       <a-form layout="vertical" class="site-form">
         <div class="form-grid">
-          <a-form-item label="站点名称" required
-            ><a-input
+          <a-form-item label="站点名称" required>
+            <a-input
               v-model:value="form.name"
-              placeholder="例如：启航学堂" /></a-form-item
-          ><a-form-item label="统计时区"
-            ><a-select v-model:value="form.timezone"
-              ><a-select-option value="Asia/Shanghai"
-                >Asia/Shanghai</a-select-option
+              placeholder="例如：启航学堂"
+            /> </a-form-item
+          ><a-form-item label="统计时区">
+            <a-select v-model:value="form.timezone">
+              <a-select-option value="Asia/Shanghai">
+                Asia/Shanghai </a-select-option
               ><a-select-option value="UTC">UTC</a-select-option
-              ><a-select-option value="Asia/Hong_Kong"
-                >Asia/Hong_Kong</a-select-option
-              ></a-select
-            ></a-form-item
-          >
+              ><a-select-option value="Asia/Hong_Kong">
+                Asia/Hong_Kong
+              </a-select-option>
+            </a-select>
+          </a-form-item>
         </div>
         <a-form-item
           label="允许上报的域名"
           required
           extra="只填写域名，不包含协议、端口和路径"
-          ><a-select
+        >
+          <a-select
             v-model:value="form.domains"
             mode="tags"
             placeholder="example.com"
-        /></a-form-item>
+          />
+        </a-form-item>
         <div class="form-grid">
-          <a-form-item label="回放采样率"
-            ><a-input-number
+          <a-form-item label="回放采样率">
+            <a-input-number
               v-model:value="form.replay_sample_rate"
               :min="0"
               :max="1"
               :step="0.01"
               class="w-full"
-            /><small>0.05 表示 5%</small></a-form-item
-          ><a-form-item label="事件保留天数"
-            ><a-input-number
+            /><small>0.05 表示 5%</small> </a-form-item
+          ><a-form-item label="事件保留天数">
+            <a-input-number
               v-model:value="form.event_retention_days"
               :min="1"
               :max="3650"
-              class="w-full" /></a-form-item
-          ><a-form-item label="回放保留天数"
-            ><a-input-number
+              class="w-full"
+            /> </a-form-item
+          ><a-form-item label="回放保留天数">
+            <a-input-number
               v-model:value="form.replay_retention_days"
               :min="1"
               :max="365"
               class="w-full"
-          /></a-form-item>
+            />
+          </a-form-item>
         </div>
         <div class="switch-grid">
           <div>
