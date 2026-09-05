@@ -23,6 +23,7 @@ export * from './monitor';
 export * from './mydrive';
 export * from './page';
 export * from './plugin';
+export * from './qbank-v2';
 export * from './quest';
 export * from './question-generation';
 export * from './role';
