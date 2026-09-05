@@ -8,7 +8,7 @@ import type {
   MyDriveSpace,
 } from '#/api';
 
-import { computed, nextTick, onMounted, ref } from 'vue';
+import { computed, nextTick, onMounted, ref, watch } from 'vue';
 
 import { Page, VbenButton } from '@vben/common-ui';
 import { createIconifyIcon } from '@vben/icons';
@@ -36,6 +36,8 @@ import {
   saveMyDriveShareFilesApi,
   updateMyDriveSpaceApi,
 } from '#/api';
+
+import { parseShareLink } from '#/utils/share';
 
 import FileContextMenu from '../components/FileContextMenu.vue';
 import PathSelectorModal from '../components/PathSelectorModal.vue';
@@ -186,17 +188,39 @@ const canSaveShare = computed(
     ['baidu', 'quark'].includes(selectedSpace.value.provider),
 );
 
+watch(
+  () => mountForm.value.shareUrl,
+  (newVal) => {
+    if (!newVal) return;
+    const parsed = parseShareLink(newVal);
+    if (parsed) {
+      if (parsed.url !== newVal.trim()) {
+        mountForm.value.shareUrl = parsed.url;
+      }
+      if (parsed.passcode && !mountForm.value.sharePasscode) {
+        mountForm.value.sharePasscode = parsed.passcode;
+      }
+    }
+  },
+);
+
 const saveSharePreviewParams = computed(() => {
   if (!selectedSpace.value || !saveShareForm.value.url.trim()) return undefined;
-  const url = saveShareForm.value.url.trim();
-  const sourceRef =
-    selectedSpace.value.provider === 'baidu' ? { url } : { share_id: url };
+  const parsed = parseShareLink(saveShareForm.value.url);
+  if (!parsed) return undefined;
+  const sourceRef: Record<string, string> =
+    selectedSpace.value.provider === 'baidu'
+      ? { url: parsed.url }
+      : { share_id: parsed.url };
+  if (parsed.passcode) {
+    sourceRef.passcode = parsed.passcode;
+  }
   return {
     account_id: selectedSpace.value.account_id as number,
     provider: selectedSpace.value.provider,
     root_id: null,
     root_path: '/',
-    source_key: url,
+    source_key: parsed.url,
     source_ref: sourceRef,
     space_type: 'share_link',
   };
@@ -447,6 +471,17 @@ function openSaveShareDialog(): void {
   saveShareFiles.value = [];
   saveShareVisible.value = true;
 }
+
+watch(
+  () => saveShareForm.value.url,
+  (newVal) => {
+    if (!newVal) return;
+    const parsed = parseShareLink(newVal);
+    if (parsed && parsed.url !== newVal.trim()) {
+      saveShareForm.value.url = parsed.url;
+    }
+  },
+);
 
 async function loadSaveShareFiles(): Promise<void> {
   if (!saveSharePreviewParams.value) {
@@ -1071,8 +1106,10 @@ async function createMountSpace() {
 }
 
 function getMountSourceKey() {
-  if (mountForm.value.spaceType === 'share_link')
-    return mountForm.value.shareUrl.trim();
+  if (mountForm.value.spaceType === 'share_link') {
+    const parsed = parseShareLink(mountForm.value.shareUrl);
+    return parsed ? parsed.url : mountForm.value.shareUrl.trim();
+  }
   if (isRelationshipSpace.value) return mountForm.value.relationshipSourceId;
   return mountForm.value.sourceKey.trim();
 }
@@ -1083,16 +1120,23 @@ function buildMountSourceRef(showMessage = true) {
       if (showMessage) message.warning('请输入分享链接或分享 ID');
       return null;
     }
+    const parsed = parseShareLink(mountForm.value.shareUrl);
+    if (!parsed) {
+      if (showMessage) message.warning('无法识别分享链接');
+      return null;
+    }
+    const url = parsed.url;
+    const passcode = parsed.passcode || mountForm.value.sharePasscode.trim();
     if (mountForm.value.provider === 'baidu') {
       return {
-        passcode: mountForm.value.sharePasscode.trim(),
-        url: mountForm.value.shareUrl.trim(),
+        passcode,
+        url,
       };
     }
     if (mountForm.value.provider === 'quark') {
       return {
-        passcode: mountForm.value.sharePasscode.trim(),
-        share_id: mountForm.value.shareUrl.trim(),
+        passcode,
+        share_id: url,
       };
     }
   }

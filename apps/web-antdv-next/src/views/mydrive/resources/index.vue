@@ -4,7 +4,7 @@ import type { VbenFormProps } from '@vben/common-ui';
 import type { VxeTableGridOptions } from '#/adapter/vxe-table';
 import type { MyDriveResource, MyDriveResourcePayload } from '#/api';
 
-import { computed, onMounted, ref } from 'vue';
+import { computed, onMounted, ref, watch } from 'vue';
 
 import { Page, VbenButton } from '@vben/common-ui';
 import { AddData } from '@vben/icons';
@@ -32,6 +32,8 @@ import {
 } from './data';
 import ResourceImageUploaders from './modules/ResourceImageUploaders.vue';
 
+import { parseShareLink } from '#/utils/share';
+
 const drawerOpen = ref(false);
 const saving = ref(false);
 const editingResource = ref<MyDriveResource>();
@@ -57,6 +59,22 @@ const resourceImageText = computed({
       .filter(Boolean);
   },
 });
+
+watch(
+  () => form.value.share.share_url,
+  (newVal) => {
+    if (!newVal) return;
+    const parsed = parseShareLink(newVal);
+    if (parsed) {
+      if (parsed.url !== newVal.trim()) {
+        form.value.share.share_url = parsed.url;
+      }
+      if (parsed.passcode) {
+        form.value.share.extract_code = parsed.passcode;
+      }
+    }
+  },
+);
 
 const queryFormOptions: VbenFormProps = {
   collapsed: false,
