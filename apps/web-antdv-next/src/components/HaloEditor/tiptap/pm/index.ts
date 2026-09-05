@@ -4,7 +4,6 @@ export * from '@tiptap/pm/gapcursor';
 export * from '@tiptap/pm/history';
 export * from '@tiptap/pm/keymap';
 export * from '@tiptap/pm/model';
-export * from '@tiptap/pm/schema-list';
 export * from '@tiptap/pm/state';
 export * from '@tiptap/pm/tables';
 export * from '@tiptap/pm/transform';
