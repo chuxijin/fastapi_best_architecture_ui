@@ -1057,18 +1057,50 @@ function selectAnchorMaterialBlock(block: Record<string, any>) {
   clearImageAnchorFields();
 }
 
-function applyTextSelectionAnchor(block: Record<string, any>) {
-  const selectedText = String(window.getSelection()?.toString() || '').trim();
+function getSelectionStartOffsetIn(
+  container: HTMLElement,
+  sel: Selection,
+): number {
+  try {
+    const range = sel.getRangeAt(0);
+    const pre = document.createRange();
+    pre.selectNodeContents(container);
+    pre.setEnd(range.startContainer, range.startOffset);
+    const raw = range.toString();
+    const lead = raw.length - raw.trimStart().length;
+    return pre.toString().length + lead;
+  } catch {
+    return -1;
+  }
+}
+
+function applyTextSelectionAnchor(block: Record<string, any>, event?: MouseEvent) {
+  const sel = window.getSelection();
+  const selectedText = String(sel?.toString() || '').trim();
   if (!selectedText) {
     message.warning('请先用鼠标选中材料中的文字');
     return;
   }
 
   const blockContent = getBlockContent(block);
-  const startOffset = blockContent.indexOf(selectedText);
+  let startOffset = -1;
+  const container = event?.currentTarget as HTMLElement | null;
+  if (container && sel && sel.rangeCount > 0) {
+    startOffset = getSelectionStartOffsetIn(container, sel);
+    if (
+      startOffset >= 0 &&
+      blockContent.slice(startOffset, startOffset + selectedText.length) !==
+        selectedText
+    ) {
+      startOffset = -1;
+    }
+  }
   if (startOffset === -1) {
-    message.warning('选中文字不在当前材料块中，请重新选择');
-    return;
+    startOffset = blockContent.indexOf(selectedText);
+    if (startOffset === -1) {
+      message.warning('选中文字不在当前材料块中，请重新选择');
+      return;
+    }
   }
 
   const blockId = getBlockId(block);
@@ -2256,7 +2288,7 @@ function showErrorMessage(error: unknown, fallback: string) {
               <div
                 v-else
                 class="max-h-60 cursor-text overflow-auto whitespace-pre-wrap rounded bg-white p-2 text-sm leading-7 text-gray-700"
-                @mouseup.stop="applyTextSelectionAnchor(block)"
+                @mouseup.stop="applyTextSelectionAnchor(block, $event)"
               >
                 <span
                   v-for="segment in getTextBlockSegments(block)"

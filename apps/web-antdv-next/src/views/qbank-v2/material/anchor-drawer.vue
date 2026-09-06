@@ -173,22 +173,48 @@ function rmDraft(k: string) {
   drafts.value = drafts.value.filter((d) => d._key !== k);
 }
 
+function selectionStartOffsetIn(root: HTMLElement, sel: Selection): number {
+  try {
+    const range = sel.getRangeAt(0);
+    const pre = document.createRange();
+    pre.selectNodeContents(root);
+    pre.setEnd(range.startContainer, range.startOffset);
+    const raw = range.toString();
+    const lead = raw.length - raw.trimStart().length;
+    return pre.toString().length + lead;
+  } catch {
+    return -1;
+  }
+}
+
 function onTextUp(b: BlockItem) {
   const sel = window.getSelection();
   const text = sel?.toString()?.trim();
   if (!text || !sel || !sel.rangeCount || !b.plainText) return;
-  const idx = b.plainText.indexOf(text);
-  if (idx === -1) {
-    message.warning('选中文字不在块中');
-    return;
+  const root = document.querySelector<HTMLElement>(`#mc-${b.id}`);
+  let start = root ? selectionStartOffsetIn(root, sel) : -1;
+  if (
+    root &&
+    start >= 0 &&
+    (root.textContent || '').slice(start, start + text.length) !== text
+  ) {
+    start = -1;
+  }
+  if (start < 0) {
+    const idx = b.plainText.indexOf(text);
+    if (idx === -1) {
+      message.warning('选中文字不在块中');
+      return;
+    }
+    start = idx;
   }
   addDraft({
-    anchor_key: genKey(`t${idx}`),
+    anchor_key: genKey(`t${start}`),
     anchor_type: 'text_range',
     block_id: b.id,
     text,
-    start_offset: idx,
-    end_offset: idx + text.length,
+    start_offset: start,
+    end_offset: start + text.length,
   });
   sel.removeAllRanges();
 }
@@ -406,24 +432,49 @@ async function loadExistingAnchors(revisionId: number) {
   );
 }
 
-function applyHighlights() {
-  const items: Array<{ cls: string; text: string }> = [];
-  for (const a of existingAnchors.value)
-    if (a.anchor_type === 'text_range' && a.text)
-      items.push({
-        text: a.text,
-        cls: 'bg-yellow-200 border-b-2 border-yellow-500',
-      });
-  for (const d of drafts.value)
-    if (d.anchor_type === 'text_range' && d.text)
-      items.push({
-        text: d.text,
-        cls: 'bg-blue-200 border-b-2 border-blue-500',
-      });
+function wrapTextRange(
+  root: HTMLElement,
+  start: number,
+  end: number,
+  cls: string,
+) {
+  const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
+  let offset = 0;
+  let startNode: null | Text = null;
+  let startOffset = 0;
+  let endNode: null | Text = null;
+  let endOffset = 0;
+  while (walker.nextNode()) {
+    const node = walker.currentNode as Text;
+    const nodeEnd = offset + node.data.length;
+    if (startNode === null && start < nodeEnd) {
+      startNode = node;
+      startOffset = start - offset;
+    }
+    if (end <= nodeEnd) {
+      endNode = node;
+      endOffset = end - offset;
+      break;
+    }
+    offset = nodeEnd;
+  }
+  if (!startNode || !endNode) return;
+  try {
+    const r = document.createRange();
+    r.setStart(startNode, startOffset);
+    r.setEnd(endNode, endOffset);
+    const span = document.createElement('span');
+    span.className = `ah ${cls}`;
+    r.surroundContents(span);
+  } catch {
+    /* skip across-element matches */
+  }
+}
 
+function applyHighlights() {
   for (const b of blocks.value) {
     if (b.type !== 'text') continue;
-    const root = document.querySelector(`#mc-${b.id}`);
+    const root = document.querySelector<HTMLElement>(`#mc-${b.id}`);
     if (!root) continue;
     root.querySelectorAll('.ah').forEach((el) => {
       const p = el.parentNode;
@@ -432,25 +483,33 @@ function applyHighlights() {
         p.normalize();
       }
     });
+
+    const items: Array<{ cls: string; end: number; start: number }> = [];
+    for (const a of existingAnchors.value) {
+      if (a.anchor_type !== 'text_range') continue;
+      const start = Number(a.start_offset);
+      const end = Number(a.end_offset);
+      if (!Number.isFinite(start) || !Number.isFinite(end) || end <= start)
+        continue;
+      items.push({
+        cls: 'bg-yellow-200 border-b-2 border-yellow-500',
+        end,
+        start,
+      });
+    }
+    for (const d of drafts.value) {
+      if (d.anchor_type !== 'text_range') continue;
+      const start = Number(d.start_offset);
+      const end = Number(d.end_offset);
+      if (!Number.isFinite(start) || !Number.isFinite(end) || end <= start)
+        continue;
+      items.push({ cls: 'bg-blue-200 border-b-2 border-blue-500', end, start });
+    }
+    if (items.length === 0) continue;
+
+    items.sort((x, y) => x.start - y.start || y.end - x.end);
     for (const item of items) {
-      if (!item.text) continue;
-      const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
-      while (walker.nextNode()) {
-        const node = walker.currentNode as Text;
-        const idx = node.textContent?.indexOf(item.text);
-        if (idx === undefined || idx < 0) continue;
-        const r = document.createRange();
-        r.setStart(node, idx);
-        r.setEnd(node, idx + item.text.length);
-        const span = document.createElement('span');
-        span.className = `ah ${item.cls}`;
-        try {
-          r.surroundContents(span);
-        } catch {
-          /* skip across-element matches */
-        }
-        break;
-      }
+      wrapTextRange(root, item.start, item.end, item.cls);
     }
   }
 }
