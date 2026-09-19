@@ -124,7 +124,7 @@ function createEmptyForm(): MyDriveResourcePayload {
     images: [],
     org_name: '',
     resource_expired_at: null,
-    resource_type: 'course',
+    resource_type: '',
     share: {
       account_id: null,
       expires_in_days: 0,
@@ -200,15 +200,19 @@ function validateForm(): boolean {
     return false;
   }
   if (!form.value.category_id) {
-    message.warning('请输入分类 ID');
+    message.warning('请选择分类');
     return false;
   }
   if (!form.value.resource_type.trim()) {
-    message.warning('请输入资源类型');
+    message.warning('请选择资源类型');
     return false;
   }
   if (!form.value.share.provider.trim() || !form.value.share.share_url.trim()) {
     message.warning('请输入网盘类型和分享链接');
+    return false;
+  }
+  if (!form.value.share.account_id) {
+    message.warning('请选择关联账号，否则分享链接无法解析');
     return false;
   }
   return true;

@@ -3,6 +3,13 @@ import type { VxeGridProps } from '#/adapter/vxe-table';
 
 import { getSysCategoryTreeApi } from '#/api/category';
 
+/**
+ * 录入 / 编辑表单的「资源类型」选项
+ *
+ * 「干货」直接对应飞书「干货汇总」子表，录入时可直接选它，
+ * 不必再纠结归到 电子书 / 软件 / 其他 哪一类。
+ * 与后端 `GONGKAO_FEISHU_SHEET_MAP` 保持一致。
+ */
 export const RESOURCE_TYPE_OPTIONS = [
   { label: '课程', value: '课程' },
   { label: '电子书', value: '电子书' },
@@ -10,6 +17,31 @@ export const RESOURCE_TYPE_OPTIONS = [
   { label: '软件', value: '软件' },
   { label: '真题', value: '真题' },
   { label: '其他', value: '其他' },
+  { label: '干货', value: '干货' },
+];
+
+/**
+ * 「干货汇总」子表涵盖的全部资源类型
+ *
+ * 与后端 GONGKAO_FEISHU_SHEET_MAP 中映射到「干货汇总」的键保持一致，
+ * 新增映射时同步这里，筛选才不会漏。
+ */
+export const GANHUO_RESOURCE_TYPES = [
+  '干货',
+  '电子书',
+  '软件',
+  '其他',
+] as const;
+
+/**
+ * 筛选专用选项
+ *
+ * 在录入选项基础上追加一个「干货汇总」聚合项，一次筛出所有会写入
+ * 飞书「干货汇总」子表的资源；多值以逗号分隔传给后端，后端会展开为 IN 查询。
+ */
+export const RESOURCE_TYPE_FILTER_OPTIONS = [
+  ...RESOURCE_TYPE_OPTIONS,
+  { label: '干货汇总', value: GANHUO_RESOURCE_TYPES.join(',') },
 ];
 
 export const resourceQuerySchema: VbenFormSchema[] = [
@@ -23,7 +55,7 @@ export const resourceQuerySchema: VbenFormSchema[] = [
     component: 'Select',
     componentProps: {
       allowClear: true,
-      options: RESOURCE_TYPE_OPTIONS,
+      options: RESOURCE_TYPE_FILTER_OPTIONS,
       placeholder: '请选择资源类型',
     },
     fieldName: 'resource_type',
@@ -129,7 +161,7 @@ export async function getCategoryTreeOptions(): Promise<any[]> {
     const response = await getSysCategoryTreeApi({
       app_code: 'youanshang',
       status: true,
-      type: 'resource_exam',
+      type: 'knowledge_point',
     });
     const categories = Array.isArray(response)
       ? response
