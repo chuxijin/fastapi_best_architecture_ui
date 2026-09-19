@@ -46,6 +46,15 @@ const routes: RouteRecordRaw[] = [
           icon: 'mdi:database-outline',
         },
       },
+      {
+        name: 'MyDriveFeishuSheets',
+        path: 'feishu-sheets',
+        component: () => import('#/views/mydrive/feishu-sheets/index.vue'),
+        meta: {
+          title: '飞书表导出',
+          icon: 'mdi:table-arrow-right',
+        },
+      },
     ],
   },
 ];

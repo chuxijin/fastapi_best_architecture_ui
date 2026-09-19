@@ -177,6 +177,70 @@ export interface MyDriveSyncRuleSetPayload {
   rules: MyDriveSyncRulePayload[];
 }
 
+/** 飞书表导出配置 */
+export interface MyDriveFeishuSheetConfig {
+  id: number;
+  name: string;
+  /** 分类来源，对应 sys_category.app_code */
+  app_code: string;
+  /** 飞书表格地址 */
+  sheet_url: string;
+  /** 分类类型，对应 sys_category.type */
+  category_type: string;
+  description: string;
+  /** 资源类型 -> 子表名称 */
+  sheet_map: Record<string, string>;
+  /** 分类列下拉选项 */
+  category_options: string[];
+  /** 来源 -> 随机权重 */
+  source_weights: Record<string, number>;
+  /** 允许出现「店铺购买」来源的子表 */
+  paid_sheets: string[];
+  is_enabled: boolean;
+  cron: null | string;
+  end_time: null | string;
+  last_synced_at: null | string;
+  created_time: string;
+  updated_time: null | string;
+}
+
+export interface MyDriveFeishuSheetConfigPayload {
+  name: string;
+  app_code: string;
+  sheet_url: string;
+  category_type?: string;
+  description?: string;
+  sheet_map: Record<string, string>;
+  category_options?: string[];
+  source_weights?: Record<string, number>;
+  paid_sheets?: string[];
+  cron?: null | string;
+  end_time?: null | string;
+}
+
+/** 可选分类来源（app_code + category_type 组合） */
+export interface MyDriveFeishuCategorySource {
+  app_code: string;
+  category_type: string;
+  /** 该组合下的分类数量，便于确认选对了来源 */
+  category_count: number;
+  /** 分类名示例，便于人工确认 */
+  sample_names: string[];
+}
+
+/** 飞书表导出任务 */
+export interface MyDriveFeishuSheetTask {
+  id: number;
+  config_id: number;
+  status: 'cancelled' | 'completed' | 'failed' | 'pending' | 'running';
+  statistics: Record<string, unknown>;
+  error_message: null | string;
+  started_at: null | string;
+  finished_at: null | string;
+  created_time: string;
+  updated_time: null | string;
+}
+
 export interface MyDriveResourceShare {
   id?: number;
   resource_id?: number;
@@ -625,6 +689,86 @@ export async function getMyDriveSyncTaskItemsApi(taskId: number) {
 export async function cancelMyDriveSyncTaskApi(taskId: number) {
   return requestClient.post<undefined>(
     `/api/v1/mydrive/sync/tasks/${taskId}/cancel`,
+  );
+}
+
+// ---------------- 飞书表导出 ----------------
+
+export async function getMyDriveFeishuCategorySourcesApi() {
+  return requestClient.get<MyDriveFeishuCategorySource[]>(
+    '/api/v1/mydrive/feishu/category-sources',
+  );
+}
+
+export async function getMyDriveFeishuConfigsApi(params?: {
+  is_enabled?: boolean;
+  name?: string;
+  page?: number;
+  size?: number;
+}) {
+  return requestClient.get<MyDrivePageData<MyDriveFeishuSheetConfig>>(
+    '/api/v1/mydrive/feishu/configs',
+    {
+      params: { page: params?.page || 1, size: params?.size || 100, ...params },
+    },
+  );
+}
+
+export async function getMyDriveFeishuConfigApi(configId: number) {
+  return requestClient.get<MyDriveFeishuSheetConfig>(
+    `/api/v1/mydrive/feishu/configs/${configId}`,
+  );
+}
+
+export async function createMyDriveFeishuConfigApi(
+  params: MyDriveFeishuSheetConfigPayload,
+) {
+  return requestClient.post<MyDriveFeishuSheetConfig>(
+    '/api/v1/mydrive/feishu/configs',
+    params,
+  );
+}
+
+export async function updateMyDriveFeishuConfigApi(
+  configId: number,
+  params: Partial<MyDriveFeishuSheetConfigPayload & { is_enabled: boolean }>,
+) {
+  return requestClient.put<undefined>(
+    `/api/v1/mydrive/feishu/configs/${configId}`,
+    params,
+  );
+}
+
+export async function deleteMyDriveFeishuConfigApi(configId: number) {
+  return requestClient.delete<undefined>(
+    `/api/v1/mydrive/feishu/configs/${configId}`,
+  );
+}
+
+/** 手动触发一次导出 */
+export async function createMyDriveFeishuTaskApi(configId: number) {
+  return requestClient.post<MyDriveFeishuSheetTask>(
+    `/api/v1/mydrive/feishu/configs/${configId}/tasks`,
+  );
+}
+
+export async function getMyDriveFeishuTasksApi(params?: {
+  config_id?: number;
+  page?: number;
+  size?: number;
+  status?: string;
+}) {
+  return requestClient.get<MyDrivePageData<MyDriveFeishuSheetTask>>(
+    '/api/v1/mydrive/feishu/tasks',
+    {
+      params: { page: params?.page || 1, size: params?.size || 100, ...params },
+    },
+  );
+}
+
+export async function getMyDriveFeishuTaskApi(taskId: number) {
+  return requestClient.get<MyDriveFeishuSheetTask>(
+    `/api/v1/mydrive/feishu/tasks/${taskId}`,
   );
 }
 
