@@ -10,7 +10,6 @@ import '@vben/styles/antdv-next';
 import { useTitle } from '@vueuse/core';
 import Antd from 'antdv-next';
 import FloatingVue from 'floating-vue';
-import 'floating-vue/dist/style.css';
 
 import { $t, setupI18n } from '#/locales';
 
@@ -19,6 +18,10 @@ import { initSetupVbenForm } from './adapter/form';
 import App from './app.vue';
 import { router } from './router';
 import { registerHaloGlobalStubs } from './stubs/halo-globals';
+
+import 'floating-vue/dist/style.css';
+// 移动端（窄屏）全局兜底，必须放在所有组件库样式之后才具备覆盖能力
+import './styles/mobile.css';
 
 async function bootstrap(namespace: string) {
   // 初始化组件适配器

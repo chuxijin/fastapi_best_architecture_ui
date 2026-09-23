@@ -847,6 +847,7 @@ async function onQuestionBankChange(
       id: detail.id,
       name: detail.current_revision.name,
       question_count: detail.current_revision.question_count,
+      revision_id: detail.current_revision.id,
       revision_status: detail.current_revision.status,
       status: detail.status,
       total_score: detail.current_revision.total_score,

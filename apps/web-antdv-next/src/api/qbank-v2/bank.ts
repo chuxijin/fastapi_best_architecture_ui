@@ -105,13 +105,23 @@ export interface GetBankListItem {
   bank_kind: BankKind;
   visibility: BankVisibility;
   status: BankStatus;
+  /**
+   * 列表返回的版本 ID。
+   * - `/banks`（公开列表）：当前**已发布**版本，join 条件含 `status='published'`
+   * - `/banks/admin`：**最新**版本（max revision_no），可能是草稿
+   */
+  revision_id: number;
+  /** 仅 `/banks/admin` 返回，公开列表不含此字段 */
   current_revision_id?: number;
+  /** 仅 `/banks/admin` 返回 */
+  revision_status?: RevisionStatus;
+  revision_no?: number;
+  description?: null | string;
   question_count: number;
   total_score: number;
   cover_url?: string;
   created_time: string;
   updated_time: string;
-  revision_status?: RevisionStatus;
 }
 
 export interface BankListParams {

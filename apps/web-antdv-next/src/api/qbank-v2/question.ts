@@ -85,6 +85,11 @@ export interface UpdateQuestionParam {
   answer?: QuestionAnswerParam;
   explanations?: QuestionExplanationParam[];
   knowledge_points?: QuestionKnowledgePoint[];
+  /**
+   * 知识点所属体系 ID。传入后 `knowledge_points` **只替换该体系**的标注，
+   * 其他体系的标注保持不变；不传则替换该题全部体系的标注（历史行为，慎用）。
+   */
+  knowledge_system_id?: number;
   materials?: QuestionMaterial[];
 }
 
@@ -150,6 +155,8 @@ export interface QuestionListParams {
   bank_revision_id?: number;
   question_type?: QbankV2QuestionType;
   keyword?: string;
+  knowledge_labeled?: boolean;
+  section_id?: number;
 }
 
 export async function qbankV2GetQuestionListApi(params: QuestionListParams) {
